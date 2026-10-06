@@ -1,0 +1,191 @@
+{
+  "date": "2026-10-07",
+  "checks": [
+    {
+      "name": "真实Electron桥存在",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "真机限帧运行",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "真机暂停停止绘制",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "最小化触发挂起",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "最小化停止绘制",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "恢复后继续绘制",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "最终展示酒狐与主题设置",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "真机无新运行错误",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "samples": [
+    {
+      "name": "disabled",
+      "fps": 0,
+      "taskMsPerSecond": 1.8976666666666666,
+      "jsHeapMiB": 1.8022918701171875
+    },
+    {
+      "name": "running",
+      "fps": 30.333333333333332,
+      "taskMsPerSecond": 30.20099999999998,
+      "jsHeapMiB": 21.36227035522461
+    },
+    {
+      "name": "paused",
+      "fps": 0,
+      "taskMsPerSecond": 0.6296666666666395,
+      "jsHeapMiB": 21.447219848632812
+    },
+    {
+      "name": "minimized",
+      "fps": 0,
+      "taskMsPerSecond": 13.231333333333337,
+      "jsHeapMiB": 8.324310302734375
+    },
+    {
+      "name": "restored",
+      "fps": 30.333333333333332,
+      "taskMsPerSecond": 44.12266666666668,
+      "jsHeapMiB": 8.487445831298828
+    }
+  ],
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Laptop GPU (0x000028A0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "state": {
+    "preferences": {
+      "enabled": true,
+      "size": 280,
+      "paused": false,
+      "animation": "idle",
+      "expression": -1,
+      "x": null,
+      "y": null
+    },
+    "loading": false,
+    "error": "",
+    "loaded": true,
+    "animations": [
+      "attacked",
+      "beg",
+      "boat",
+      "climb",
+      "climbing",
+      "death",
+      "elytra_fly",
+      "extra0",
+      "extra1",
+      "extra2",
+      "extra3",
+      "extra4",
+      "extra5",
+      "extra6",
+      "extra7",
+      "fly",
+      "game_lost",
+      "game_win",
+      "gui",
+      "head:default",
+      "idle",
+      "jump",
+      "keyboard",
+      "ladder_down",
+      "ladder_stillness",
+      "ladder_up",
+      "lever_left_to_right",
+      "lever_right_to_left",
+      "new_idle_1",
+      "new_idle_2",
+      "new_idle_3",
+      "new_idle_4",
+      "picnic",
+      "pre_parallel0",
+      "run",
+      "sit",
+      "sleep",
+      "sneak",
+      "sneaking",
+      "swim",
+      "swim_stand",
+      "swing_hand",
+      "use_mainhand",
+      "use_mainhand:gohei",
+      "use_offhand",
+      "walk"
+    ],
+    "animation": "idle",
+    "expression": -1,
+    "effectiveExpression": 0,
+    "angry": false,
+    "frames": 264,
+    "hitTests": 0,
+    "meanHitMs": 0,
+    "paused": false,
+    "suspended": false,
+    "contextLost": false,
+    "position": [
+      1134.390625,
+      568
+    ],
+    "size": [
+      201,
+      280
+    ],
+    "drawCalls": 8,
+    "triangles": 5088,
+    "faceScales": [
+      {
+        "name": "FaceMode_0",
+        "scale": 1
+      },
+      {
+        "name": "FaceMode_1",
+        "scale": 0
+      },
+      {
+        "name": "FaceMode_2",
+        "scale": 0
+      },
+      {
+        "name": "FaceMode_3",
+        "scale": 0
+      },
+      {
+        "name": "FaceMode_4",
+        "scale": 0
+      },
+      {
+        "name": "FaceMode_5",
+        "scale": 0
+      },
+      {
+        "name": "FaceMode_6",
+        "scale": 0
+      }
+    ],
+    "leverVisible": false
+  }
+}

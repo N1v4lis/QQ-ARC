@@ -1,5 +1,7 @@
 # 踩坑速查（症状 → 根因 → 修法）
 
+> 0.4.01 增量：GLTFLoader 默认 ImageBitmapLoader 会 fetch(blob)，受 connect-src 拒绝导致白贴图；当前插件使用 TextureLoader 遵循既有 img-src blob，不放宽 CSP。开发 API/SSE 上游断流时响应可能已发送头，应销毁响应，不能再次 writeHead(502)；同时清理上游请求。部署必需文件应指向 styles/_legacy-style.css，已删除的 style.css 不再是契约。
+
 > 出怪问题时**先翻这里**。每条都是真实踩过的，按"症状"分组，方便照症状找。
 
 ---

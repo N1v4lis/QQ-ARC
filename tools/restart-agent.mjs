@@ -24,6 +24,11 @@ const UI_MARKER = 'q-titlebar';
 const args = process.argv.slice(2);
 const APPLY = args.includes('--apply');
 const STATUS_ONLY = args.includes('--status');
+const cdpArg = args.indexOf('--cdp-port');
+const cdpPort = cdpArg < 0 ? null : Number(args[cdpArg + 1]);
+if(cdpArg >= 0 && (!Number.isInteger(cdpPort) || cdpPort < 1024 || cdpPort > 65535)) {
+  console.error('CDP 调试端口必须在 1024~65535 之间');process.exit(1);
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -122,7 +127,7 @@ const childEnv = { ...process.env };
 delete childEnv.ELECTRON_RUN_AS_NODE;
 delete childEnv.ELECTRON_NO_ATTACH_CONSOLE;
 console.log(`      ELECTRON_RUN_AS_NODE 已剔除（原值=${process.env.ELECTRON_RUN_AS_NODE ?? '(未设置)'}）`);
-spawn(EXE, [], {
+spawn(EXE, cdpPort ? [`--remote-debugging-port=${cdpPort}`, '--remote-debugging-address=127.0.0.1'] : [], {
   cwd: WORKDIR, detached: true, stdio: 'ignore', windowsHide: false, env: childEnv
 }).unref();
 

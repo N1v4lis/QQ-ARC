@@ -1,5 +1,7 @@
 # 架构
 
+> 0.4.01 增量：shell/04-wine-fox.js 管本地偏好与按需导入，shell/wine-fox-runtime.mjs 管 WebGL2、动画、输入及释放；styles/33-wine-fox.css 管局部宠物与设置卡；assets/wine-fox 为运行必需资产。完整 Wine_Fox 来源包位于项目根，不整体部署。
+
 > 这份说明**结构和加载顺序**。想改外观去 `THEME-SYSTEM.md`，想查"为什么这么做"去
 > `design-notes.md`，想避坑直接看 `PITFALLS.md`。
 

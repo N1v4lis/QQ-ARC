@@ -95,12 +95,19 @@ function proxy(req, res) {
   };
   const up = http.request(options, (upRes) => {
     res.writeHead(upRes.statusCode || 502, upRes.headers);
+    upRes.on('error', () => res.destroy());
     upRes.pipe(res);
   });
   up.on('error', (error) => {
+    // An SSE proxy already sent HTTP 200 when the host restarts. Sending another
+    // status line crashes the whole dev server with ERR_HTTP_HEADERS_SENT.
+    if (res.destroyed || res.writableEnded) return;
+    if (res.headersSent) { res.destroy(); return; }
     res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
     res.end(`上游 ${API_TARGET} 不可达：${error?.message ?? error}\n（QQ Agent 没在跑？先启动它再刷新）`);
   });
+  req.on('aborted', () => up.destroy());
+  res.on('close', () => up.destroy());
   req.pipe(up);
 }
 

@@ -1,5 +1,7 @@
 # 开发工作流
 
+> 0.4.01 新工具：node tools/prepare-wine-fox.mjs 生成最小运行资产；node tools/check-wine-fox.mjs http://127.0.0.1:3210/ 验收宠物；真机检查先 node tools/restart-agent.mjs --apply --cdp-port 9224，再 node tools/verify-wine-fox-electron.mjs。完成后用普通 restart-agent --apply 重启结束调试。部署 app/ui 共81文件（约26.88 MiB），当前工具79文件；旧统计为历史。
+
 ---
 
 ## 一、改一行代码之后的四步（少一步都不生效）

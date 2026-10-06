@@ -1,5 +1,11 @@
 # 测试与验收
 
+> 2026-10-07：酒狐删除守卫已由 `check-wine-fox.mjs` 替代，套件总数仍为42。
+> 新验收覆盖真实鼠标 / 触屏、透明区域输入、弹窗隔离、情绪计时、完整46动作与启停性能。
+> `check-fox-removed.mjs` 仅为旧命令的兼容入口；下文删除守卫章节保留为历史经验。
+> 真机单独运行 `node tools/restart-agent.mjs --apply --cdp-port 9224`，随后
+> `node tools/verify-wine-fox-electron.mjs`。检查后正常重启关闭调试端口。
+
 **总入口**：
 
 ```powershell

@@ -1,0 +1,93 @@
+// Interactive checks against the real UI and CSP, without changing backend data.
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {withPage,sleep} from './cdp.mjs';
+const url=process.argv[2]||'http://127.0.0.1:3210/';
+let pass=0,fail=0;const results=[];
+function ok(name,cond,detail=''){results.push({name,pass:!!cond,detail});console.log(`${cond?'✔':'✗'} ${name} ${detail}`);cond?pass++:fail++;}
+const digest=f=>crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+ok('部署模型与完整最新成品相同',digest('app/ui/assets/wine-fox/winefox.glb')===digest('Wine_Fox/Models/GLB/winefox-large-lever.glb'));
+ok('来源与 Three.js 许可随运行资源保留',fs.existsSync('app/ui/assets/wine-fox/SOURCE.txt')&&fs.existsSync('app/ui/assets/wine-fox/three/LICENSE'));
+const report={url,results,actions:[],performance:[]};
+try{await withPage({url,width:1400,height:900},async(page,logs)=>{
+  await page.waitFor('window.qqaWineFox && document.querySelector("#tabs .tab.active")',{timeout:60000,label:'界面启动'});
+  ok('默认关闭且未加载 GLB',await page.eval('!qqaWineFox.read().enabled && !document.getElementById("wine-fox-pet") && !performance.getEntriesByType("resource").some(r=>r.name.includes("winefox.glb"))'));
+  await page.click('#tabs .tab[data-tab="settings"]');
+  await page.waitFor('!!document.querySelector("#settings-sidebar [data-section=theme]")',{timeout:30000,label:'设置导航'});
+  await page.click('#settings-sidebar [data-section=theme]');
+  await page.waitFor('!!document.querySelector("[data-wine-fox-pref=enabled]")',{timeout:30000,label:'宠物控件'});
+  await page.eval('document.querySelector("[data-wine-fox-pref=enabled]").click()');
+  await page.waitFor('qqaWineFox.state().loaded',{timeout:60000,label:'按需加载酒狐'});
+  await sleep(300);
+  let st=await page.eval('qqaWineFox.state()');
+  ok('主题设置开关真正加载宠物',st.loaded);
+  ok('完整46个动作及拉杆保留',st.animations.length===46&&st.animations.includes('lever_right_to_left'));
+  ok('动画菜单加载后自动填充',await page.eval('document.querySelector("[data-wine-fox-pref=animation]").options.length===46'));
+  ok('局部绘图缓冲',st.size[0]<=500&&st.size[1]<=500,JSON.stringify(st.size));
+  await page.send('Performance.enable');
+  async function sample(name){const a=await page.send('Performance.getMetrics');const frames=await page.eval('qqaWineFox.state().frames||0');await sleep(3000);
+    const b=await page.send('Performance.getMetrics');const final=await page.eval('qqaWineFox.state()');const before=Object.fromEntries(a.metrics.map(m=>[m.name,m.value])),after=Object.fromEntries(b.metrics.map(m=>[m.name,m.value]));
+    const out={name,fps:((final.frames||0)-frames)/3,taskMsPerSecond:(after.TaskDuration-before.TaskDuration)*1000/3,heapMiB:after.JSHeapUsedSize/1048576};report.performance.push(out);return out;}
+  const running=await sample('running idle');ok('绘制限制在30FPS以内',running.fps>15&&running.fps<=32,JSON.stringify(running));
+  await page.eval('qqaWineFox.set({paused:true})');await sleep(150);
+  const paused=await sample('paused');ok('暂停后停止持续绘制',paused.fps===0,JSON.stringify(paused));
+  await page.eval('qqaWineFox.set({paused:false})');
+  async function mouse(type,x,y){await page.send('Input.dispatchMouseEvent',{type,x,y,button:'left',buttons:type==='mouseReleased'?0:1,clickCount:1});}
+  const point=await page.eval('(()=>{const r=document.getElementById("wine-fox-pet").getBoundingClientRect();return {x:r.left+r.width*.5,y:r.top+r.height*.6}})()');
+  await mouse('mousePressed',point.x,point.y);await mouse('mouseReleased',point.x,point.y);
+  ok('真实鼠标轻点触发开心',await page.eval('qqaWineFox.state().expression===1'));
+  await mouse('mousePressed',point.x,point.y);await mouse('mouseReleased',point.x,point.y);
+  await mouse('mousePressed',point.x,point.y);await mouse('mouseReleased',point.x,point.y);
+  ok('2秒内3次点击触发生气',await page.eval('qqaWineFox.state().angry && qqaWineFox.state().expression===2'));
+  await page.eval('qqaWineFox.set({paused:true})');await sleep(6300);
+  ok('暂停身体时6秒情绪仍恢复',await page.eval('!qqaWineFox.state().angry && qqaWineFox.state().expression===-1'));
+  const beforeDrag=await page.eval('qqaWineFox.state()');
+  await mouse('mousePressed',point.x,point.y);await mouse('mouseMoved',point.x-120,point.y-70);await mouse('mouseReleased',point.x-120,point.y-70);
+  const afterDrag=await page.eval('qqaWineFox.state()');
+  ok('拖动移动而非轻点',afterDrag.position[0]<beforeDrag.position[0]-100&&afterDrag.expression===-1,JSON.stringify(afterDrag.position));
+  ok('位置持久化',await page.eval('JSON.parse(localStorage.getItem(qqaWineFox.KEY)).x===qqaWineFox.state().position[0]'));
+  const hits=afterDrag.hitTests;
+  for(let i=0;i<10;i++)await mouse('mouseMoved',100+i,100);
+  ok('普通鼠标移动不执行精确射线',await page.eval(`qqaWineFox.state().hitTests===${hits}`));
+  await page.eval('(()=>{const modal=document.createElement("div");modal.id="wine-fox-test-modal";modal.setAttribute("role","dialog");modal.style.cssText="position:fixed;left:0;top:0;width:20px;height:20px";document.body.append(modal);})()');
+  const modalHits=await page.eval('qqaWineFox.state().hitTests');
+  const movedPoint=await page.eval('(()=>{const r=document.getElementById("wine-fox-pet").getBoundingClientRect();return {x:r.left+r.width*.5,y:r.top+r.height*.6}})()');
+  await mouse('mousePressed',movedPoint.x,movedPoint.y);await mouse('mouseReleased',movedPoint.x,movedPoint.y);
+  ok('弹窗打开时宠物不劫持输入',await page.eval(`qqaWineFox.state().hitTests===${modalHits}`));
+  await page.eval('document.getElementById("wine-fox-test-modal").remove()');
+  await page.eval(`(()=>{const r=document.getElementById('wine-fox-pet').getBoundingClientRect(),b=document.createElement('button');b.id='wine-fox-underlay';b.style.cssText='position:fixed;z-index:84;left:'+r.left+'px;top:'+(r.bottom-18)+'px;width:30px;height:18px';b.textContent='测试';window.__underlayClicks=0;b.onclick=()=>window.__underlayClicks++;document.body.append(b);})()`);
+  const blank=await page.eval('(()=>{const r=document.getElementById("wine-fox-underlay").getBoundingClientRect();return {x:r.left+5,y:r.top+8}})()');
+  await mouse('mousePressed',blank.x,blank.y);await mouse('mouseReleased',blank.x,blank.y);
+  ok('透明空白区域点击穿过到主界面',await page.eval('window.__underlayClicks===1'));
+  await page.eval('document.getElementById("wine-fox-underlay").remove()');
+  await page.eval('qqaWineFox.home();qqaWineFox.set({expression:2})');await sleep(150);
+  ok('手动表情覆盖并只启用一个FaceMode',await page.eval('qqaWineFox.state().effectiveExpression===2 && qqaWineFox.state().faceScales.filter(b=>b.scale>.5).length===1'));
+  const animations=st.animations;
+  for(const animation of animations){await page.eval(`qqaWineFox.set({animation:${JSON.stringify(animation)},expression:-1})`);await sleep(40);
+    const state=await page.eval('qqaWineFox.state()');const good=state.animation===animation&&state.faceScales.every(b=>Number.isFinite(b.scale));report.actions.push({animation,pass:good});}
+  ok('全部46个动作均可切换',report.actions.every(a=>a.pass));
+  for(const animation of ['death','game_lost']){await page.eval(`qqaWineFox.set({animation:${JSON.stringify(animation)},expression:-1})`);await sleep(100);ok(`${animation}自动呆住`,await page.eval('qqaWineFox.state().effectiveExpression===6'));}
+  await page.eval('qqaWineFox.set({animation:"idle",expression:-1,paused:false});qqaSkin.set("minecraft")');await sleep(100);
+  ok('Minecraft主题与宠物同时可用',await page.eval('qqaSkin.isMinecraft() && qqaWineFox.state().loaded'));
+  await page.eval('qqaSkin.set("default")');
+  await page.screenshot('shots/final/wine-fox-integrated.png');
+  await page.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:2,mobile:true});
+  await page.eval('qqaWineFox.home();qqaWineFox.set({paused:true,animation:"idle",expression:-1,size:220})');await sleep(150);
+  const touchPoint=await page.eval('(()=>{const r=document.getElementById("wine-fox-pet").getBoundingClientRect();return {x:r.left+r.width*.5,y:r.top+r.height*.6,position:qqaWineFox.state().position}})()');
+  const touch=(x,y)=>[{x,y,id:1,radiusX:2,radiusY:2,force:1}];
+  await page.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:touch(touchPoint.x,touchPoint.y)});
+  await page.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:touch(touchPoint.x-60,touchPoint.y-40)});
+  await page.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  ok('触屏拖动有效且不计轻点',await page.eval(`qqaWineFox.state().position[0]<${touchPoint.position[0]-40} && qqaWineFox.state().expression===-1`));
+  await page.send('Emulation.setDeviceMetricsOverride',{width:1400,height:900,deviceScaleFactor:1,mobile:false});
+  await page.eval('qqaWineFox.set({paused:false,size:280});qqaWineFox.home()');
+  for(let i=0;i<3;i++){await page.eval('qqaWineFox.set({enabled:false})');ok(`关闭${i+1}无残留DOM`,await page.eval('!document.getElementById("wine-fox-pet")&&!qqaWineFox.state().loaded'));await page.eval('qqaWineFox.set({enabled:true})');await page.waitFor('qqaWineFox.state().loaded',{timeout:60000,label:'重新开启'});}
+  await page.eval('qqaWineFox.set({enabled:false});qqaWineFox.set({enabled:true});qqaWineFox.set({enabled:false})');await sleep(500);
+  ok('快速取消加载无迟到宠物',await page.eval('!qqaWineFox.state().loaded&&!document.getElementById("wine-fox-pet")'));
+  const off=await sample('disabled');ok('关闭后零绘制',off.fps===0,JSON.stringify(off));
+  const errors=logs.filter(l=>/\[exception\]|\[error\]|Content Security Policy|Refused to|Failed to fetch dynamically imported/.test(l));
+  ok('无运行异常与CSP加载错误',errors.length===0,errors.join(' | '));
+});}catch(e){ok('验收运行完成',false,e.stack||e.message);}
+fs.mkdirSync('shots/final',{recursive:true});fs.writeFileSync('shots/final/wine-fox-checks.json',JSON.stringify(report,null,2));
+console.log(`酒狐互动宠物：${pass} 项通过，${fail} 项失败。`);process.exit(fail?2:0);

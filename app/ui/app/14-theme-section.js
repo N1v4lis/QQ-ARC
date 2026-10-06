@@ -131,7 +131,35 @@ function renderThemeSection(c) {
     </div>
 
     ${subCard}
+    ${renderWineFoxSettings()}
   `;
+}
+
+/** A local companion shared by both skins, with no backend configuration write. */
+function renderWineFoxSettings() {
+  const api=window.qqaWineFox;
+  const p=api?api.read():{enabled:false,size:280,paused:false,animation:'idle',expression:-1};
+  const s=api?api.state():{loaded:false,loading:false,error:''};
+  const animations=s.animations||['idle'];
+  const expressions=['自动（跟随动作）','普通','开心','生气','紧张','惊讶','小张嘴','呆住'];
+  return `<div class="setcard fold open" id="card-wine-fox">
+    <div class="setcard-head fold-head"><div class="sc-ico">🦊</div>
+      <div class="sc-tt"><h4>酒狐互动宠物</h4><div class="sc-sub">拖动移动，轻点打招呼，连续轻点会生气</div></div>
+      <span class="sc-val" data-wine-fox-summary>${p.enabled?'开启':'关闭'}</span><span class="chev-r">›</span></div>
+    <div class="setcard-body fold-body"><div class="fold-inner">
+      <div class="wine-fox-options">
+        <label class="switch"><input type="checkbox" data-wine-fox-pref="enabled" ${p.enabled?'checked':''}><span class="track"><span class="thumb"></span></span><span>开启酒狐</span></label>
+        <label class="switch"><input type="checkbox" data-wine-fox-pref="paused" ${p.paused?'checked':''}><span class="track"><span class="thumb"></span></span><span>暂停动作</span></label>
+        <label>大小 <select data-wine-fox-pref="size">${[160,220,280,340,400].map(n=>`<option value="${n}" ${p.size===n?'selected':''}>${n}px</option>`).join('')}</select></label>
+        <button type="button" class="btn" data-wine-fox-home>位置复位</button>
+      </div>
+      <div class="wine-fox-options" style="margin-top:12px">
+        <label>动作 <select data-wine-fox-pref="animation" ${s.loaded?'':'disabled'}>${animations.map(n=>`<option value="${esc(n)}" ${p.animation===n?'selected':''}>${esc(n)}</option>`).join('')}</select></label>
+        <label>表情 <select data-wine-fox-pref="expression">${expressions.map((name,i)=>`<option value="${i-1}" ${p.expression===i-1?'selected':''}>${name}</option>`).join('')}</select></label>
+      </div>
+      <p class="th-note" data-wine-fox-status role="status">${esc(s.error||(s.loading?'酒狐正在过来…':p.enabled?'已开启':'已关闭'))}</p>
+      <p class="th-note">默认与 Minecraft 皮肤均可使用。宠物设置仅保存在本机。</p>
+    </div></div></div>`;
 }
 
 /**

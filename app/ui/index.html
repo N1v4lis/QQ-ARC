@@ -53,6 +53,7 @@
   <!-- 「主题」卡页 + Minecraft 皮肤。放在 31 之后：皮肤规则要能覆盖个性化之后的样式 -->
   <link rel="stylesheet" href="/styles/32-theme.css" />
   <link rel="stylesheet" href="/styles/40-market.css" />
+  <link rel="stylesheet" href="/styles/33-wine-fox.css" />
   <!-- 旧皮肤：**必须**通过 99-legacy-layer.css 的 @import ... layer(legacy) 载入。
        直接 <link> 它是不行的 —— 它必须在最后加载（给没接管的角落兜底），
        但那样它就会靠文档顺序赢过新版组件（同特指度下比顺序）。
@@ -423,6 +424,7 @@
        放在这里即可：它靠 DOMContentLoaded 与 qqa-skin-change 事件两处同步，
        不依赖后面的导航脚本，但必须在页面图标已存在之后才起作用（DOMContentLoaded 保证）。 -->
   <script defer src="/shell/03-mc-icons.js?v=ui2"></script>
+  <script defer src="/shell/04-wine-fox.js?v=0.4.01"></script>
   <!-- 个性化：配色覆盖（10）与实际生效的动效开关（11）。
        都要早于 app/06+07（渲染/接线设置页时就要能读到 window.qqaColors / qqaMotion）。 -->
   <script defer src="/shell/10-personalize.js?v=ui2"></script>

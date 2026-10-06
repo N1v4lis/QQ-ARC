@@ -38,12 +38,19 @@ const ROLLBACK = (() => {
 // ── 必须一起过去的文件（少一个都会白屏或功能缺失）────────────────────────
 const REQUIRED = [
   'index.html',
-  'style.css',              // 旧皮肤（新 UI 也依赖它的兜底规则）
+  // The legacy fallback moved to styles/_legacy-style.css during the UI rewrite;
+  // requiring a deleted root style.css incorrectly rejects every deployment.
   'app.js',                 // ESM 桥（vendor → window）
   'app/00-core.js',
   'app/11-init.js',
   'app/12-concept2-ui.js',
   'shell/00-theme.js',
+  'shell/04-wine-fox.js',
+  'shell/wine-fox-runtime.mjs',
+  'assets/wine-fox/winefox.glb',
+  'assets/wine-fox/three/addons/loaders/GLTFLoader.js',
+  'assets/wine-fox/three/addons/utils/SkeletonUtils.js',
+  'styles/33-wine-fox.css',
   'shell/99-shell-boot.js',
   'styles/00-tokens.css',
   'styles/99-legacy-layer.css',

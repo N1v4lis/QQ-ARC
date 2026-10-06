@@ -1,0 +1,13 @@
+/* A local canvas that never captures blank-area input or covers modal controls. */
+#wine-fox-pet{position:fixed;z-index:85;pointer-events:none;isolation:isolate;contain:layout style;}
+#wine-fox-pet[hidden]{display:none!important;}
+#wine-fox-pet canvas{display:block;width:100%;height:100%;pointer-events:none;touch-action:none;outline:none;}
+#wine-fox-pet canvas:focus-visible{outline:2px solid var(--q-accent);outline-offset:2px;}
+#wine-fox-pet .wine-fox-bubble{position:absolute;bottom:88%;left:50%;transform:translateX(-50%);max-width:200px;min-width:90px;padding:7px 10px;border:1px solid var(--q-line-2);border-radius:10px;background:var(--q-bg-1);color:var(--q-fg);font:13px/1.5 var(--q-font);text-align:center;box-shadow:0 3px 15px #0002;white-space:normal;}
+#wine-fox-pet .wine-fox-bubble[hidden]{display:none;}
+#wine-fox-pet .wine-fox-hide{position:absolute;right:0;top:0;width:24px;height:24px;border:1px solid var(--q-line-2);border-radius:50%;background:var(--q-bg-1);color:var(--q-fg-3);font:16px/1 sans-serif;pointer-events:auto;cursor:pointer;opacity:.35;}
+#wine-fox-pet .wine-fox-hide:hover,#wine-fox-pet .wine-fox-hide:focus-visible{opacity:1;}
+#card-wine-fox .wine-fox-options{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+#card-wine-fox .wine-fox-options label{display:flex;gap:8px;align-items:center;}
+#card-wine-fox select{max-width:220px;}
+html[data-skin='minecraft'] #wine-fox-pet .wine-fox-bubble{border-radius:0;}

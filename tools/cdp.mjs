@@ -284,4 +284,22 @@ export async function withPage(opts, fn) {
   }
 }
 
+/** Attach to the running Electron page; never launch/close a second browser. */
+export async function withElectronPage(opts,fn){
+  const base=opts.cdpUrl||'http://127.0.0.1:9224';
+  const targets=await fetchJson(base+'/json/list',10,250);
+  const target=targets.find(t=>t.type==='page'&&t.url.startsWith(opts.url||'http://127.0.0.1:3210/'));
+  if(!target?.webSocketDebuggerUrl)throw new Error('未找到目标 Electron 页面');
+  const ws=new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',reject,{once:true});});
+  const page=new Page(ws),logs=[];
+  try{
+    await page.send('Runtime.enable');await page.send('Log.enable');
+    page.on(msg=>{if(msg.method==='Runtime.exceptionThrown')logs.push('[exception] '+(msg.params.exceptionDetails.exception?.description||msg.params.exceptionDetails.text));
+      if(msg.method==='Runtime.consoleAPICalled')logs.push('['+msg.params.type+'] '+msg.params.args.map(a=>a.value??a.description??a.type).join(' '));
+      if(msg.method==='Log.entryAdded')logs.push('[log:'+msg.params.entry.level+'] '+msg.params.entry.text);});
+    return await fn(page,logs);
+  }finally{ws.close();}
+}
+
 export { sleep };
