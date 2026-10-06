@@ -1,0 +1,864 @@
+[
+  {
+    "variant": "winefox",
+    "actions": [
+      {
+        "action": "attacked",
+        "tail_variation_degrees": 96.87847428173374,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "action": "beg",
+        "tail_variation_degrees": 56.986778339936365,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "action": "boat",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "climb",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "climbing",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "death",
+        "tail_variation_degrees": 0.0,
+        "tail_status": "intentional_death_stillness_preserved",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "elytra_fly",
+        "tail_variation_degrees": 5.21053317863611,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "action": "extra0",
+        "tail_variation_degrees": 20.617212877628628,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "extra1",
+        "tail_variation_degrees": 38.56107605373593,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          45.0
+        ]
+      },
+      {
+        "action": "extra2",
+        "tail_variation_degrees": 38.56107605373593,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          45.0
+        ]
+      },
+      {
+        "action": "extra3",
+        "tail_variation_degrees": 48.2471517308386,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          1080.0
+        ]
+      },
+      {
+        "action": "extra4",
+        "tail_variation_degrees": 43.888568964832515,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          689.4989624023438
+        ]
+      },
+      {
+        "action": "extra5",
+        "tail_variation_degrees": 56.986778339936365,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "action": "extra6",
+        "tail_variation_degrees": 51.27762470330322,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.000999450683594
+        ]
+      },
+      {
+        "action": "extra7",
+        "tail_variation_degrees": 29.070572598232815,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          41.00100326538086
+        ]
+      },
+      {
+        "action": "fly",
+        "tail_variation_degrees": 360.00001001791264,
+        "tail_status": "excluded_fly",
+        "range": [
+          0.0,
+          22.667999267578125
+        ]
+      },
+      {
+        "action": "game_lost",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "game_win",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "gui",
+        "tail_variation_degrees": 47.899607800206255,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          540.0
+        ]
+      },
+      {
+        "action": "head:default",
+        "tail_variation_degrees": 0.0,
+        "tail_status": "utility_not_body_animation",
+        "range": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "action": "idle",
+        "tail_variation_degrees": 34.14494894397249,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          900.0
+        ]
+      },
+      {
+        "action": "jump",
+        "tail_variation_degrees": 41.104966349728834,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          22.5
+        ]
+      },
+      {
+        "action": "keyboard",
+        "tail_variation_degrees": 34.47144906177202,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          1487.4990234375
+        ]
+      },
+      {
+        "action": "ladder_down",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "ladder_stillness",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "ladder_up",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "lever_left_to_right",
+        "tail_variation_degrees": 27.377595806776558,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.0
+        ]
+      },
+      {
+        "action": "lever_right_to_left",
+        "tail_variation_degrees": 27.377595806776558,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.0
+        ]
+      },
+      {
+        "action": "new_idle_1",
+        "tail_variation_degrees": 42.81565552925023,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          180.0
+        ]
+      },
+      {
+        "action": "new_idle_2",
+        "tail_variation_degrees": 50.1882505118212,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          150.0
+        ]
+      },
+      {
+        "action": "new_idle_3",
+        "tail_variation_degrees": 45.4265192451497,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          195.0
+        ]
+      },
+      {
+        "action": "new_idle_4",
+        "tail_variation_degrees": 48.75999648466901,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          300.0
+        ]
+      },
+      {
+        "action": "picnic",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "pre_parallel0",
+        "tail_variation_degrees": 0.0,
+        "tail_status": "utility_not_body_animation",
+        "range": [
+          0.0,
+          120.0
+        ]
+      },
+      {
+        "action": "run",
+        "tail_variation_degrees": 32.16538595267895,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.000999450683594
+        ]
+      },
+      {
+        "action": "sit",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "sleep",
+        "tail_variation_degrees": 1.128118439548911,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          11.25
+        ]
+      },
+      {
+        "action": "sneak",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "sneaking",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "swim",
+        "tail_variation_degrees": 31.217454733624148,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          39.999000549316406
+        ]
+      },
+      {
+        "action": "swim_stand",
+        "tail_variation_degrees": 31.217454733624148,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          39.999000549316406
+        ]
+      },
+      {
+        "action": "swing_hand",
+        "tail_variation_degrees": 14.101756263249127,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          11.25
+        ]
+      },
+      {
+        "action": "use_mainhand",
+        "tail_variation_degrees": 14.101756263249127,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          11.25
+        ]
+      },
+      {
+        "action": "use_mainhand:gohei",
+        "tail_variation_degrees": 51.27762470330322,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.000999450683594
+        ]
+      },
+      {
+        "action": "use_offhand",
+        "tail_variation_degrees": 14.101756263249127,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          11.25
+        ]
+      },
+      {
+        "action": "walk",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      }
+    ],
+    "expression_compatibility_cases": 1152,
+    "manual_states": 7,
+    "automatic_state": true,
+    "mouth_manual_and_auto": true,
+    "gui_synced_after_frame_120": true,
+    "gui_frames": [
+      0,
+      540
+    ],
+    "fps": 30,
+    "playback_end": 1488,
+    "no_preview_or_action_range_restriction": true
+  },
+  {
+    "variant": "snowfox",
+    "actions": [
+      {
+        "action": "attacked",
+        "tail_variation_degrees": 96.87847428173374,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "action": "beg",
+        "tail_variation_degrees": 56.986778339936365,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "action": "boat",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "climb",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "climbing",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "death",
+        "tail_variation_degrees": 0.0,
+        "tail_status": "intentional_death_stillness_preserved",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "elytra_fly",
+        "tail_variation_degrees": 5.21053317863611,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "action": "extra0",
+        "tail_variation_degrees": 20.617212877628628,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "extra1",
+        "tail_variation_degrees": 38.56107605373593,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          45.0
+        ]
+      },
+      {
+        "action": "extra2",
+        "tail_variation_degrees": 38.56107605373593,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          45.0
+        ]
+      },
+      {
+        "action": "extra3",
+        "tail_variation_degrees": 48.2471517308386,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          1080.0
+        ]
+      },
+      {
+        "action": "extra4",
+        "tail_variation_degrees": 43.888568964832515,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          689.4989624023438
+        ]
+      },
+      {
+        "action": "extra5",
+        "tail_variation_degrees": 56.986778339936365,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          15.0
+        ]
+      },
+      {
+        "action": "extra6",
+        "tail_variation_degrees": 51.27762470330322,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.000999450683594
+        ]
+      },
+      {
+        "action": "extra7",
+        "tail_variation_degrees": 29.070572598232815,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          41.00100326538086
+        ]
+      },
+      {
+        "action": "fly",
+        "tail_variation_degrees": 360.00001001791264,
+        "tail_status": "excluded_fly",
+        "range": [
+          0.0,
+          22.667999267578125
+        ]
+      },
+      {
+        "action": "game_lost",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "game_win",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "gui",
+        "tail_variation_degrees": 47.899607800206255,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          540.0
+        ]
+      },
+      {
+        "action": "head:default",
+        "tail_variation_degrees": 0.0,
+        "tail_status": "utility_not_body_animation",
+        "range": [
+          0.0,
+          1.0
+        ]
+      },
+      {
+        "action": "idle",
+        "tail_variation_degrees": 34.14494894397249,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          900.0
+        ]
+      },
+      {
+        "action": "jump",
+        "tail_variation_degrees": 41.104966349728834,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          22.5
+        ]
+      },
+      {
+        "action": "keyboard",
+        "tail_variation_degrees": 34.47144906177202,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          1487.4990234375
+        ]
+      },
+      {
+        "action": "ladder_down",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "ladder_stillness",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "ladder_up",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      },
+      {
+        "action": "lever_left_to_right",
+        "tail_variation_degrees": 27.377595806776558,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.0
+        ]
+      },
+      {
+        "action": "lever_right_to_left",
+        "tail_variation_degrees": 27.377595806776558,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.0
+        ]
+      },
+      {
+        "action": "new_idle_1",
+        "tail_variation_degrees": 42.81565552925023,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          180.0
+        ]
+      },
+      {
+        "action": "new_idle_2",
+        "tail_variation_degrees": 50.1882505118212,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          150.0
+        ]
+      },
+      {
+        "action": "new_idle_3",
+        "tail_variation_degrees": 45.4265192451497,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          195.0
+        ]
+      },
+      {
+        "action": "new_idle_4",
+        "tail_variation_degrees": 48.75999648466901,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          300.0
+        ]
+      },
+      {
+        "action": "picnic",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "pre_parallel0",
+        "tail_variation_degrees": 0.0,
+        "tail_status": "utility_not_body_animation",
+        "range": [
+          0.0,
+          120.0
+        ]
+      },
+      {
+        "action": "run",
+        "tail_variation_degrees": 32.16538595267895,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.000999450683594
+        ]
+      },
+      {
+        "action": "sit",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "sleep",
+        "tail_variation_degrees": 1.128118439548911,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          11.25
+        ]
+      },
+      {
+        "action": "sneak",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "sneaking",
+        "tail_variation_degrees": 47.55207752995225,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          90.0
+        ]
+      },
+      {
+        "action": "swim",
+        "tail_variation_degrees": 31.217454733624148,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          39.999000549316406
+        ]
+      },
+      {
+        "action": "swim_stand",
+        "tail_variation_degrees": 31.217454733624148,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          39.999000549316406
+        ]
+      },
+      {
+        "action": "swing_hand",
+        "tail_variation_degrees": 14.101756263249127,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          11.25
+        ]
+      },
+      {
+        "action": "use_mainhand",
+        "tail_variation_degrees": 14.101756263249127,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          11.25
+        ]
+      },
+      {
+        "action": "use_mainhand:gohei",
+        "tail_variation_degrees": 51.27762470330322,
+        "tail_status": "authored_motion_preserved",
+        "range": [
+          0.0,
+          20.000999450683594
+        ]
+      },
+      {
+        "action": "use_offhand",
+        "tail_variation_degrees": 14.101756263249127,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          11.25
+        ]
+      },
+      {
+        "action": "walk",
+        "tail_variation_degrees": 43.46923633092875,
+        "tail_status": "source_parallel_oscillator_baked",
+        "range": [
+          0.0,
+          30.0
+        ]
+      }
+    ],
+    "expression_compatibility_cases": 1152,
+    "manual_states": 7,
+    "automatic_state": true,
+    "mouth_manual_and_auto": true,
+    "gui_synced_after_frame_120": true,
+    "gui_frames": [
+      0,
+      540
+    ],
+    "fps": 30,
+    "playback_end": 1488,
+    "no_preview_or_action_range_restriction": true
+  }
+]

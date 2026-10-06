@@ -1,0 +1,13 @@
+{
+  "animations": 46,
+  "manualSelection": true,
+  "randomButton": true,
+  "characterClick": true,
+  "drag": true,
+  "dragDoesNotClick": true,
+  "pause": true,
+  "reset": true,
+  "snowfox": true,
+  "mobileNoOverflow": true,
+  "errors": []
+}

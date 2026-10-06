@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#741f39">
+  <meta name="description" content="拖拽酒狐，点击播放随机动画，或自由选择角色动作。">
+  <title>酒狐与雪狐 · 全动作演示</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><img src="./favicon.svg" alt=""><span>酒狐<span class="brand-small">动作游乐场</span></span></a>
+    <div class="variants" role="group" aria-label="选择角色">
+      <button class="variant active" data-variant="winefox" aria-pressed="true">酒狐</button>
+      <button class="variant" data-variant="snowfox" aria-pressed="false">雪狐</button>
+    </div>
+    <button id="reset" class="quiet">回到中央</button>
+  </header>
+  <main class="workspace">
+    <section class="stage" aria-label="可交互的三维角色">
+      <div class="stage-heading"><span class="eyebrow">FOX PLAYGROUND</span><h1 id="character-name">和酒狐玩一会儿</h1><p>拖动她换个位置，轻点一下，看看她会做什么。</p></div>
+      <div id="viewport"><canvas id="canvas" tabindex="0" aria-label="酒狐三维模型：拖动移动，点击随机动作；按空格暂停或继续，按 Enter 随机播放"></canvas></div>
+      <div id="loading" class="loading" role="status"><span class="spinner"></span><strong>酒狐正在过来…</strong><span id="load-detail">准备模型与动作</span><button id="retry" hidden>再试一次</button></div>
+      <div class="stage-bottom"><span class="stage-note">拖角色 · 移动　拖空白 · 旋转　滚轮 · 缩放</span><span class="playing-pill"><span class="pulse"></span><span id="now-playing">正在准备</span></span></div>
+    </section>
+    <aside class="panel">
+      <div class="panel-title"><div><span class="eyebrow">ANIMATIONS</span><h2>选一个动作</h2></div><span id="clip-count" class="count">—</span></div>
+      <label class="select-label" for="animation-select">当前动作</label>
+      <select id="animation-select" disabled><option>载入中…</option></select>
+      <div class="play-controls"><button id="random" class="primary" disabled><span>✦</span> 随机动作</button><button id="pause" class="secondary" disabled>暂停</button></div>
+      <button id="tour" class="secondary tour">逐个演示全部动作</button>
+      <label class="select-label" for="timeline">动画进度 <output id="time-label">0 / 0 秒</output></label><input id="timeline" type="range" min="0" max="1" value="0" step="0.001" aria-label="动画进度">
+      <fieldset id="expression-control" class="expression-control"><legend>嘴型与表情</legend><select id="expression-select" aria-label="选择嘴型与表情"><option value="-1">自动 · 跟随动作</option><option value="0">普通 · 闭嘴微笑</option><option value="1">开心 · 张嘴笑</option><option value="2">💢 生气</option><option value="3">紧张 · 锯齿嘴</option><option value="4">惊讶 · 大张嘴</option><option value="5">小张嘴</option><option value="6">呆住 · 方眼</option></select><label class="select-label" for="mouth-select">嘴巴张合</label><select id="mouth-select"><option value="-1">自动 · 跟随动作</option><option value="0">闭合</option><option value="0.5">半张</option><option value="1">张开</option></select></fieldset>
+      <div class="settings"><label for="playback-speed">播放速度 <output id="speed-label">1.00×</output></label><input id="playback-speed" type="range" min="0.25" max="2" step="0.05" value="1"><label class="loop-label"><span>循环播放</span><input id="loop" type="checkbox" checked role="switch"></label></div>
+      <div class="list-label"><span>全部动作</span><span>轻点即可播放</span></div>
+      <div id="animation-list" class="animation-list" aria-label="全部动画"></div>
+      <footer class="credits">模型：完美冻结及酒狐制作团队<br><a href="./models/winefox-SOURCE.txt" target="_blank" rel="noopener">作者与许可 · CC BY-NC-SA 4.0</a></footer>
+    </aside>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

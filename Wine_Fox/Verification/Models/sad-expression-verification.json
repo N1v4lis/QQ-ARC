@@ -1,0 +1,50 @@
+[
+  {
+    "variant": "winefox",
+    "actions": [
+      {
+        "action": "death",
+        "range": [
+          0.0,
+          30.0
+        ],
+        "automatic_mode": 6,
+        "manual_states_verified": 7
+      },
+      {
+        "action": "game_lost",
+        "range": [
+          0.0,
+          90.0
+        ],
+        "automatic_mode": 6,
+        "manual_states_verified": 7
+      }
+    ],
+    "other_curves_unchanged": true
+  },
+  {
+    "variant": "snowfox",
+    "actions": [
+      {
+        "action": "death",
+        "range": [
+          0.0,
+          30.0
+        ],
+        "automatic_mode": 6,
+        "manual_states_verified": 7
+      },
+      {
+        "action": "game_lost",
+        "range": [
+          0.0,
+          90.0
+        ],
+        "automatic_mode": 6,
+        "manual_states_verified": 7
+      }
+    ],
+    "other_curves_unchanged": true
+  }
+]

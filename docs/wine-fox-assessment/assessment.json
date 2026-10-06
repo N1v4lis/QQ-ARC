@@ -1,0 +1,417 @@
+{
+  "date": "2026-10-07",
+  "package": {
+    "files": 1320,
+    "bytes": 111380171,
+    "manifestEntries": 1319,
+    "missing": [],
+    "mismatched": [],
+    "copyVerification": {
+      "source": "E:\\CodeX-YSM\\Finish-end",
+      "files": 1320,
+      "exactFileCount": true,
+      "failures": []
+    }
+  },
+  "models": [
+    {
+      "file": "Wine_Fox\\Models\\GLB\\winefox-large-lever.glb",
+      "bytes": 6868648,
+      "meshDefinitions": 19,
+      "primitives": 19,
+      "triangles": 5444,
+      "maxSkeletonJoints": 203,
+      "animations": 46,
+      "channelsPerClip": [
+        616
+      ],
+      "animationAccessorElements": 506688,
+      "animationAccessorBytes": 2026752,
+      "animationNames": [
+        "attacked",
+        "beg",
+        "boat",
+        "climb",
+        "climbing",
+        "death",
+        "elytra_fly",
+        "extra0",
+        "extra1",
+        "extra2",
+        "extra3",
+        "extra4",
+        "extra5",
+        "extra6",
+        "extra7",
+        "fly",
+        "game_lost",
+        "game_win",
+        "gui",
+        "head:default",
+        "idle",
+        "jump",
+        "keyboard",
+        "ladder_down",
+        "ladder_stillness",
+        "ladder_up",
+        "lever_left_to_right",
+        "lever_right_to_left",
+        "new_idle_1",
+        "new_idle_2",
+        "new_idle_3",
+        "new_idle_4",
+        "picnic",
+        "pre_parallel0",
+        "run",
+        "sit",
+        "sleep",
+        "sneak",
+        "sneaking",
+        "swim",
+        "swim_stand",
+        "swing_hand",
+        "use_mainhand",
+        "use_mainhand:gohei",
+        "use_offhand",
+        "walk"
+      ]
+    },
+    {
+      "file": "Wine_Fox\\Models\\GLB\\snowfox-large-lever.glb",
+      "bytes": 6885180,
+      "meshDefinitions": 19,
+      "primitives": 19,
+      "triangles": 5444,
+      "maxSkeletonJoints": 203,
+      "animations": 46,
+      "channelsPerClip": [
+        616
+      ],
+      "animationAccessorElements": 506688,
+      "animationAccessorBytes": 2026752,
+      "animationNames": [
+        "attacked",
+        "beg",
+        "boat",
+        "climb",
+        "climbing",
+        "death",
+        "elytra_fly",
+        "extra0",
+        "extra1",
+        "extra2",
+        "extra3",
+        "extra4",
+        "extra5",
+        "extra6",
+        "extra7",
+        "fly",
+        "game_lost",
+        "game_win",
+        "gui",
+        "head:default",
+        "idle",
+        "jump",
+        "keyboard",
+        "ladder_down",
+        "ladder_stillness",
+        "ladder_up",
+        "lever_left_to_right",
+        "lever_right_to_left",
+        "new_idle_1",
+        "new_idle_2",
+        "new_idle_3",
+        "new_idle_4",
+        "picnic",
+        "pre_parallel0",
+        "run",
+        "sit",
+        "sleep",
+        "sneak",
+        "sneaking",
+        "swim",
+        "swim_stand",
+        "swing_hand",
+        "use_mainhand",
+        "use_mainhand:gohei",
+        "use_offhand",
+        "walk"
+      ]
+    }
+  ],
+  "browser": "isolated headless Edge, not QQ Agent Electron; CPU timings exclude asynchronous GPU execution",
+  "scenarios": [
+    {
+      "label": "original fullscreen 1400x900 DPR1 idle",
+      "frames": 1201,
+      "fps": 240.2,
+      "renderSubmissionMeanMs": 0.3052456286006129,
+      "renderSubmissionP95Ms": 0.5,
+      "drawCalls": 8,
+      "triangles": 5088,
+      "geometries": 8,
+      "textures": 10,
+      "programs": 2,
+      "buffer": [
+        1400,
+        900
+      ],
+      "jsHeapUsedMiB": 27.42931365966797,
+      "rendererTaskMsPerSecond": 173.23319999999998,
+      "scriptMsPerSecond": 118.98839999999997
+    },
+    {
+      "label": "fullscreen 1400x900 DPR2 idle",
+      "frames": 1201,
+      "fps": 240.2,
+      "renderSubmissionMeanMs": 0.2567027477884074,
+      "renderSubmissionP95Ms": 0.4000000059604645,
+      "drawCalls": 8,
+      "triangles": 5088,
+      "geometries": 8,
+      "textures": 10,
+      "programs": 2,
+      "buffer": [
+        2800,
+        1800
+      ],
+      "jsHeapUsedMiB": 25.172576904296875,
+      "rendererTaskMsPerSecond": 154.214,
+      "scriptMsPerSecond": 102.0206
+    },
+    {
+      "label": "small drawing buffer 360x480 DPR1 idle",
+      "frames": 1202,
+      "fps": 240.4,
+      "renderSubmissionMeanMs": 0.2524958401050623,
+      "renderSubmissionP95Ms": 0.4000000059604645,
+      "drawCalls": 8,
+      "triangles": 5088,
+      "geometries": 8,
+      "textures": 10,
+      "programs": 2,
+      "buffer": [
+        360,
+        480
+      ],
+      "jsHeapUsedMiB": 24.197471618652344,
+      "rendererTaskMsPerSecond": 143.3356,
+      "scriptMsPerSecond": 97.38479999999998
+    },
+    {
+      "label": "small drawing buffer 360x480 DPR1 animation paused",
+      "frames": 1202,
+      "fps": 240.4,
+      "renderSubmissionMeanMs": 0.2876039934646766,
+      "renderSubmissionP95Ms": 0.4000000059604645,
+      "drawCalls": 8,
+      "triangles": 5088,
+      "geometries": 8,
+      "textures": 10,
+      "programs": 2,
+      "buffer": [
+        360,
+        480
+      ],
+      "jsHeapUsedMiB": 15.54220962524414,
+      "rendererTaskMsPerSecond": 156.89299999999992,
+      "scriptMsPerSecond": 107.04379999999993
+    },
+    {
+      "label": "experimental small drawing buffer DPR1 capped at 30fps",
+      "frames": 139,
+      "fps": 27.8,
+      "renderSubmissionMeanMs": 0.2949640287769784,
+      "renderSubmissionP95Ms": 0.4000000059604645,
+      "drawCalls": 8,
+      "triangles": 5088,
+      "geometries": 8,
+      "textures": 10,
+      "programs": 2,
+      "buffer": [
+        360,
+        480
+      ],
+      "jsHeapUsedMiB": 7.647312164306641,
+      "rendererTaskMsPerSecond": 43.608399999999925,
+      "scriptMsPerSecond": 15.876399999999968
+    }
+  ],
+  "runtime": {
+    "state": {
+      "loaded": true,
+      "animation": "idle",
+      "animations": [
+        "attacked",
+        "beg",
+        "boat",
+        "climb",
+        "climbing",
+        "death",
+        "elytra_fly",
+        "extra0",
+        "extra1",
+        "extra2",
+        "extra3",
+        "extra4",
+        "extra5",
+        "extra6",
+        "extra7",
+        "fly",
+        "game_lost",
+        "game_win",
+        "gui",
+        "head:default",
+        "idle",
+        "jump",
+        "keyboard",
+        "ladder_down",
+        "ladder_stillness",
+        "ladder_up",
+        "lever_left_to_right",
+        "lever_right_to_left",
+        "new_idle_1",
+        "new_idle_2",
+        "new_idle_3",
+        "new_idle_4",
+        "picnic",
+        "pre_parallel0",
+        "run",
+        "sit",
+        "sleep",
+        "sneak",
+        "sneaking",
+        "swim",
+        "swim_stand",
+        "swing_hand",
+        "use_mainhand",
+        "use_mainhand:gohei",
+        "use_offhand",
+        "walk"
+      ],
+      "expression": -1,
+      "effectiveExpression": 0,
+      "angry": false,
+      "position": [
+        3.111111111111111,
+        -4,
+        0
+      ],
+      "clicks": 0,
+      "paused": false,
+      "panelOpen": false,
+      "meshes": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "faceScales": [
+        {
+          "name": "FaceMode_0",
+          "scale": 1
+        },
+        {
+          "name": "FaceMode_1",
+          "scale": 0
+        },
+        {
+          "name": "FaceMode_2",
+          "scale": 0
+        },
+        {
+          "name": "FaceMode_3",
+          "scale": 0
+        },
+        {
+          "name": "FaceMode_4",
+          "scale": 0
+        },
+        {
+          "name": "FaceMode_5",
+          "scale": 0
+        },
+        {
+          "name": "FaceMode_6",
+          "scale": 0
+        }
+      ],
+      "leverVisible": false
+    },
+    "loadReadyMs": 516.8000000044703,
+    "webglRenderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Laptop GPU (0x000028A0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "webglVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "threeRevision": "see bundled vendor",
+    "drawingBuffer": [
+      1400,
+      900
+    ]
+  },
+  "loadedResources": [
+    {
+      "name": "/style.css",
+      "transferSize": 4269,
+      "decodedBodySize": 3969,
+      "durationMs": 6.699999995529652
+    },
+    {
+      "name": "/app.js",
+      "transferSize": 12312,
+      "decodedBodySize": 12012,
+      "durationMs": 7.300000004470348
+    },
+    {
+      "name": "/vendor/three/addons/loaders/GLTFLoader.js",
+      "transferSize": 117870,
+      "decodedBodySize": 117570,
+      "durationMs": 2.7999999970197678
+    },
+    {
+      "name": "/vendor/three/three.module.js",
+      "transferSize": 663072,
+      "decodedBodySize": 662772,
+      "durationMs": 14.399999998509884
+    },
+    {
+      "name": "/vendor/three/addons/utils/BufferGeometryUtils.js",
+      "transferSize": 38012,
+      "decodedBodySize": 37712,
+      "durationMs": 1.7000000029802322
+    },
+    {
+      "name": "/vendor/three/addons/utils/SkeletonUtils.js",
+      "transferSize": 11835,
+      "decodedBodySize": 11535,
+      "durationMs": 2.5
+    },
+    {
+      "name": "/vendor/three/three.core.js",
+      "transferSize": 1458413,
+      "decodedBodySize": 1458113,
+      "durationMs": 3.6999999955296516
+    },
+    {
+      "name": "/models/winefox.glb",
+      "transferSize": 6868948,
+      "decodedBodySize": 6868648,
+      "durationMs": 14.300000004470348
+    },
+    {
+      "name": "/favicon.svg",
+      "transferSize": 711,
+      "decodedBodySize": 411,
+      "durationMs": 1.9000000059604645
+    }
+  ],
+  "hitTest": {
+    "samples": 30,
+    "hits": 30,
+    "meanMs": 9.526666666815679,
+    "p95Ms": 12.400000005960464
+  },
+  "console": [],
+  "screenshot": "docs/wine-fox-assessment/pet-preview.png"
+}

@@ -1,0 +1,194 @@
+{
+  "webPet": {
+    "animations": 46,
+    "statesPerAction": 8,
+    "checks": [
+      {
+        "animation": "attacked",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "beg",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "boat",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "climb",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "climbing",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "death",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "elytra_fly",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "extra0",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "extra1",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "extra2",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "extra3",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "extra4",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "extra5",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "extra6",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "extra7",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "fly",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "game_lost",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "game_win",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "gui",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "head:default",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "idle",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "jump",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "keyboard",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "ladder_down",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "ladder_stillness",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "ladder_up",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "lever_left_to_right",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "lever_right_to_left",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "new_idle_1",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "new_idle_2",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "new_idle_3",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "new_idle_4",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "picnic",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "pre_parallel0",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "run",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "sit",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "sleep",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "sneak",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "sneaking",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "swim",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "swim_stand",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "swing_hand",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "use_mainhand",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "use_mainhand:gohei",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "use_offhand",
+        "automaticAndSevenManualExpressions": true
+      },
+      {
+        "animation": "walk",
+        "automaticAndSevenManualExpressions": true
+      }
+    ],
+    "autoDazedForDeathAndGameLost": true
+  },
+  "errors": []
+}

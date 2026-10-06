@@ -1,0 +1,435 @@
+{
+  "oscillator_source": "01_taisho_maid/animations/main.animation.json:pre_parallel2+parallel3+parallel4",
+  "engine_source": "openysm-code/PlayerAnimationController.java",
+  "period_seconds": 3,
+  "gain": 1.2629709248883851,
+  "phase_lag": 0.26770202396850523,
+  "fly_original_pose_channels_preserved": true,
+  "variants": [
+    "winefox",
+    "snowfox"
+  ],
+  "actions": [
+    {
+      "action": "attacked",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        15.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "beg",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        15.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "boat",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        90.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "climb",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        30.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "climbing",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        90.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "death",
+      "tail_status": "intentional_death_stillness_preserved",
+      "range": [
+        0.0,
+        30.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "elytra_fly",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        15.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "extra0",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        90.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "extra1",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        45.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "extra2",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        45.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "extra3",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        1080.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "extra4",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        689.4989624023438
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "extra5",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        15.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "extra6",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        20.000999450683594
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "extra7",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        41.00100326538086
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "fly",
+      "tail_status": "excluded_fly",
+      "range": [
+        0.0,
+        22.667999267578125
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "game_lost",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        90.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "game_win",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        90.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "gui",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        540.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "head:default",
+      "tail_status": "utility_not_body_animation",
+      "range": [
+        0.0,
+        1.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "idle",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        900.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "jump",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        22.5
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "keyboard",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        1487.4990234375
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "ladder_down",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        30.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "ladder_stillness",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        30.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "ladder_up",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        30.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "lever_left_to_right",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        20.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "lever_right_to_left",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        20.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "new_idle_1",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        180.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "new_idle_2",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        150.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "new_idle_3",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        195.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "new_idle_4",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        300.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "picnic",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        90.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "pre_parallel0",
+      "tail_status": "utility_not_body_animation",
+      "range": [
+        0.0,
+        120.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "run",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        20.000999450683594
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "sit",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        90.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "sleep",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        11.25
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "sneak",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        90.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "sneaking",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        90.0
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "swim",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        39.999000549316406
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "swim_stand",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        39.999000549316406
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "swing_hand",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        11.25
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "use_mainhand",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        11.25
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "use_mainhand:gohei",
+      "tail_status": "authored_motion_preserved",
+      "range": [
+        0.0,
+        20.000999450683594
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "use_offhand",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        11.25
+      ],
+      "auto_expression": true
+    },
+    {
+      "action": "walk",
+      "tail_status": "source_parallel_oscillator_baked",
+      "range": [
+        0.0,
+        30.0
+      ],
+      "auto_expression": true
+    }
+  ],
+  "playback_end": 1488,
+  "preview_range": false,
+  "gui_frames": [
+    0,
+    540
+  ],
+  "fps": 30
+}

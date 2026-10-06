@@ -1,0 +1,30 @@
+{
+  "reopened_blender": true,
+  "frames_checked_per_action": 21,
+  "total_frames_checked": 42,
+  "separate_actions_in_one_model": true,
+  "fps": 30,
+  "duration_seconds_per_action": 0.6666666666666666,
+  "lever_driven_by_same_action_bone": "Lever_Control",
+  "alternating_loop_mesh_and_prop_boundary_error": 0,
+  "visible_hand_triangles_per_side": 12,
+  "hand_surface_gap_range": [
+    0.000999271753244102,
+    0.00100022554397583
+  ],
+  "visible_hand_center_to_wrist_maximum_error": 6.9510363278929e-07,
+  "character_prop_surface_intersections": {},
+  "arm_forearm_hair_accessory_intersections": [],
+  "shoulder_garment_attachment_overlap_excluded": true,
+  "skirt_vertices_checked": 1032,
+  "skirt_maximum_drift_from_original_standing_pose": 4.789859998358914e-07,
+  "original_hidden_garment_leg_overlap_preserved": true,
+  "foot_drift": 0,
+  "source_body_actions_retained": 44,
+  "new_body_actions": 2,
+  "prop_actions": 0,
+  "preview_frames": [
+    0,
+    20
+  ]
+}

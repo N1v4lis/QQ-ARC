@@ -1,0 +1,5 @@
+Source: user-provided E:\CodeX-YSM\01_taisho_maid
+Geometry and animations: original package JSON, without manual tail motion or extra rotor bones.
+License: CC BY-NC-SA 4.0
+Authors: 完美冻结, 星屑海螺, 哥斯拉（映素团队）, 白帆小喵, 蓝玫瑰, 墨染逝羽, Maks怜悯, 浅陌菌, 祸御神, 羊毛
+Runtime reference: https://github.com/OpenYSM/OpenYSM/tree/1.20.1-forge

@@ -1,0 +1,658 @@
+[
+  {
+    "variant": "winefox",
+    "clips": [
+      {
+        "name": "attacked",
+        "duration": 0.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "beg",
+        "duration": 0.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "boat",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "climb",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "climbing",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "death",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "elytra_fly",
+        "duration": 0.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra0",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra1",
+        "duration": 1.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra2",
+        "duration": 1.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra3",
+        "duration": 36,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra4",
+        "duration": 22.966666666666665,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra5",
+        "duration": 0.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra6",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra7",
+        "duration": 1.3666666666666667,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "fly",
+        "duration": 0.7333333333333333,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "game_lost",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "game_win",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "gui",
+        "duration": 18,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "head:default",
+        "duration": 0.03333333333333333,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "idle",
+        "duration": 30,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "jump",
+        "duration": 0.7333333333333333,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "keyboard",
+        "duration": 49.56666666666667,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "ladder_down",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "ladder_stillness",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "ladder_up",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "lever_left_to_right",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "lever_right_to_left",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "new_idle_1",
+        "duration": 6,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "new_idle_2",
+        "duration": 5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "new_idle_3",
+        "duration": 6.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "new_idle_4",
+        "duration": 10,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "picnic",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "pre_parallel0",
+        "duration": 4,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "run",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "sit",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "sleep",
+        "duration": 0.36666666666666664,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "sneak",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "sneaking",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "swim",
+        "duration": 1.3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "swim_stand",
+        "duration": 1.3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "swing_hand",
+        "duration": 0.36666666666666664,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "use_mainhand",
+        "duration": 0.36666666666666664,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "use_mainhand:gohei",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "use_offhand",
+        "duration": 0.36666666666666664,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "walk",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      }
+    ],
+    "bytes": 6868648
+  },
+  {
+    "variant": "snowfox",
+    "clips": [
+      {
+        "name": "attacked",
+        "duration": 0.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "beg",
+        "duration": 0.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "boat",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "climb",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "climbing",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "death",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "elytra_fly",
+        "duration": 0.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra0",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra1",
+        "duration": 1.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra2",
+        "duration": 1.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra3",
+        "duration": 36,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra4",
+        "duration": 22.966666666666665,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra5",
+        "duration": 0.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra6",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "extra7",
+        "duration": 1.3666666666666667,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "fly",
+        "duration": 0.7333333333333333,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "game_lost",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "game_win",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "gui",
+        "duration": 18,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "head:default",
+        "duration": 0.03333333333333333,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "idle",
+        "duration": 30,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "jump",
+        "duration": 0.7333333333333333,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "keyboard",
+        "duration": 49.56666666666667,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "ladder_down",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "ladder_stillness",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "ladder_up",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "lever_left_to_right",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "lever_right_to_left",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "new_idle_1",
+        "duration": 6,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "new_idle_2",
+        "duration": 5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "new_idle_3",
+        "duration": 6.5,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "new_idle_4",
+        "duration": 10,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "picnic",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "pre_parallel0",
+        "duration": 4,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "run",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "sit",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "sleep",
+        "duration": 0.36666666666666664,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "sneak",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "sneaking",
+        "duration": 3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "swim",
+        "duration": 1.3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "swim_stand",
+        "duration": 1.3,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "swing_hand",
+        "duration": 0.36666666666666664,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "use_mainhand",
+        "duration": 0.36666666666666664,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "use_mainhand:gohei",
+        "duration": 0.6666666666666666,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "use_offhand",
+        "duration": 0.36666666666666664,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      },
+      {
+        "name": "walk",
+        "duration": 1,
+        "channels": 616,
+        "face_scale_channels": 7,
+        "mouth_morph_channels": 7
+      }
+    ],
+    "bytes": 6885180
+  }
+]

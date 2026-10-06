@@ -1,0 +1,8 @@
+00:01.062  blend            | Read blend: "E:\CodeX-YSM\Finish-end\Models\Blender\winefox-large-lever.blend"
+E:\CodeX-YSM\Finish-end\Reference\check_packaged_blends.py:12: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  images={n.image for m in bpy.data.materials if m.use_nodes for n in m.node_tree.nodes if n.type=='TEX_IMAGE' and n.image}
+00:01.375  blend            | Read blend: "E:\CodeX-YSM\Finish-end\Models\Blender\snowfox-large-lever.blend"
+PACKAGED_BLENDS_OK [{'variant': 'winefox', 'actions': 46, 'bones': 203, 'fps': 30, 'frame_range': [0, 1488], 'all_material_images_packed': True, 'images': [{'name': 'Image_0', 'packed': True, 'size': [256, 256]}]}, {'variant': 'snowfox', 'actions': 46, 'bones': 203, 'fps': 30, 'frame_range': [0, 1488], 'all_material_images_packed': True, 'images': [{'name': 'SnowFox_Face_Atlas', 'packed': True, 'size': [256, 256]}, {'name': 'skin_white.png', 'packed': True, 'size': [256, 256]}]}]
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:37:04)
+
+Blender quit

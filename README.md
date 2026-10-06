@@ -4,6 +4,10 @@
 > 本地 UI 基线：**0.4.0（未发布）**；目标 GitHub 仓库：**QQARCFOX（私有）**。
 > 本次接手结果与版本流程见 [`docs/CODEX-MIGRATION.md`](docs/CODEX-MIGRATION.md)。
 
+酒狐最新完整资源已收录在 `Wine_Fox/`，后续将作为主题互动宠物。
+接入与实测性能见 [`docs/WINE-FOX-INTEGRATION.md`](docs/WINE-FOX-INTEGRATION.md)。
+当前主界面尚未注册新宠物；独立参考页可运行 `node Wine_Fox/WebPet/server.mjs`。
+
 > 这个目录是 **QQ Agent 前端的一次完整重写**：新外壳（无边框窗口 + 自绘标题栏 + 新侧栏/仪表盘）
 > ＋ 一套 Minecraft 像素风皮肤（配色 / 字体 / 音效 / 背景图 / 像素图标 / 拉杆开关）。
 >

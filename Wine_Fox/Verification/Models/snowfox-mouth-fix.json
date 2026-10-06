@@ -1,0 +1,17 @@
+{
+  "restored_opaque_face_pixels": 63,
+  "face_texture": "E:\\CodeX-YSM\\Test\\textures\\snowfox-face-atlas.png",
+  "affected_meshes": [
+    "Normal_Mouth",
+    "Happy_Mouth",
+    "Anger_Mark",
+    "Wave_Mouth",
+    "Surprise_Mouth",
+    "Expression5_Mouth",
+    "Expression6_Mouth"
+  ],
+  "action_count": 46,
+  "all_action_curves_unchanged": true,
+  "body_texture_unchanged": true,
+  "source_cause": "skin_white.png has transparent pixels in the WineFox mouth UV regions"
+}

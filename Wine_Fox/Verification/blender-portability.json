@@ -1,0 +1,52 @@
+[
+  {
+    "variant": "winefox",
+    "actions": 46,
+    "bones": 203,
+    "fps": 30,
+    "frame_range": [
+      0,
+      1488
+    ],
+    "all_material_images_packed": true,
+    "images": [
+      {
+        "name": "Image_0",
+        "packed": true,
+        "size": [
+          256,
+          256
+        ]
+      }
+    ]
+  },
+  {
+    "variant": "snowfox",
+    "actions": 46,
+    "bones": 203,
+    "fps": 30,
+    "frame_range": [
+      0,
+      1488
+    ],
+    "all_material_images_packed": true,
+    "images": [
+      {
+        "name": "SnowFox_Face_Atlas",
+        "packed": true,
+        "size": [
+          256,
+          256
+        ]
+      },
+      {
+        "name": "skin_white.png",
+        "packed": true,
+        "size": [
+          256,
+          256
+        ]
+      }
+    ]
+  }
+]

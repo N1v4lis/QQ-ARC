@@ -1,0 +1,37 @@
+{
+  "report": [
+    {
+      "variant": "winefox",
+      "action": "death",
+      "seconds": 1,
+      "autoMode": 6,
+      "manualOverride": true,
+      "restoreAuto": true
+    },
+    {
+      "variant": "winefox",
+      "action": "game_lost",
+      "seconds": 3,
+      "autoMode": 6,
+      "manualOverride": true,
+      "restoreAuto": true
+    },
+    {
+      "variant": "snowfox",
+      "action": "death",
+      "seconds": 1,
+      "autoMode": 6,
+      "manualOverride": true,
+      "restoreAuto": true
+    },
+    {
+      "variant": "snowfox",
+      "action": "game_lost",
+      "seconds": 3,
+      "autoMode": 6,
+      "manualOverride": true,
+      "restoreAuto": true
+    }
+  ],
+  "errors": []
+}

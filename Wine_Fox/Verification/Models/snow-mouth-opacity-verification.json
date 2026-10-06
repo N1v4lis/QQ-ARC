@@ -1,0 +1,51 @@
+[
+  {
+    "expression": "Normal_Mouth",
+    "mouth_region_opaque_pixel_samples": 6,
+    "mouth_region_triangles": 36,
+    "texture": "SnowFox_Face_Atlas",
+    "packed": true
+  },
+  {
+    "expression": "Happy_Mouth",
+    "mouth_region_opaque_pixel_samples": 16,
+    "mouth_region_triangles": 72,
+    "texture": "SnowFox_Face_Atlas",
+    "packed": true
+  },
+  {
+    "expression": "Anger_Mark",
+    "mouth_region_opaque_pixel_samples": 6,
+    "mouth_region_triangles": 36,
+    "texture": "SnowFox_Face_Atlas",
+    "packed": true
+  },
+  {
+    "expression": "Wave_Mouth",
+    "mouth_region_opaque_pixel_samples": 16,
+    "mouth_region_triangles": 96,
+    "texture": "SnowFox_Face_Atlas",
+    "packed": true
+  },
+  {
+    "expression": "Surprise_Mouth",
+    "mouth_region_opaque_pixel_samples": 34,
+    "mouth_region_triangles": 144,
+    "texture": "SnowFox_Face_Atlas",
+    "packed": true
+  },
+  {
+    "expression": "Expression5_Mouth",
+    "mouth_region_opaque_pixel_samples": 12,
+    "mouth_region_triangles": 60,
+    "texture": "SnowFox_Face_Atlas",
+    "packed": true
+  },
+  {
+    "expression": "Expression6_Mouth",
+    "mouth_region_opaque_pixel_samples": 260,
+    "mouth_region_triangles": 144,
+    "texture": "SnowFox_Face_Atlas",
+    "packed": true
+  }
+]

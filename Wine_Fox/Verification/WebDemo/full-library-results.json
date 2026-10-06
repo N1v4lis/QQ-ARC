@@ -1,0 +1,484 @@
+{
+  "results": [
+    {
+      "variant": "winefox",
+      "animations": [
+        {
+          "name": "attacked",
+          "seconds": 0.5,
+          "states": 8
+        },
+        {
+          "name": "beg",
+          "seconds": 0.5,
+          "states": 8
+        },
+        {
+          "name": "boat",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "climb",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "climbing",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "death",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "elytra_fly",
+          "seconds": 0.5,
+          "states": 8
+        },
+        {
+          "name": "extra0",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "extra1",
+          "seconds": 1.5,
+          "states": 8
+        },
+        {
+          "name": "extra2",
+          "seconds": 1.5,
+          "states": 8
+        },
+        {
+          "name": "extra3",
+          "seconds": 36,
+          "states": 8
+        },
+        {
+          "name": "extra4",
+          "seconds": 22.96666717529297,
+          "states": 8
+        },
+        {
+          "name": "extra5",
+          "seconds": 0.5,
+          "states": 8
+        },
+        {
+          "name": "extra6",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "extra7",
+          "seconds": 1.3666666746139526,
+          "states": 8
+        },
+        {
+          "name": "fly",
+          "seconds": 0.7333333492279053,
+          "states": 8
+        },
+        {
+          "name": "game_lost",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "game_win",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "gui",
+          "seconds": 18,
+          "states": 8
+        },
+        {
+          "name": "head:default",
+          "seconds": 0.03333333507180214,
+          "states": 8
+        },
+        {
+          "name": "idle",
+          "seconds": 30,
+          "states": 8
+        },
+        {
+          "name": "jump",
+          "seconds": 0.7333333492279053,
+          "states": 8
+        },
+        {
+          "name": "keyboard",
+          "seconds": 49.56666564941406,
+          "states": 8
+        },
+        {
+          "name": "ladder_down",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "ladder_stillness",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "ladder_up",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "lever_left_to_right",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "lever_right_to_left",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "new_idle_1",
+          "seconds": 6,
+          "states": 8
+        },
+        {
+          "name": "new_idle_2",
+          "seconds": 5,
+          "states": 8
+        },
+        {
+          "name": "new_idle_3",
+          "seconds": 6.5,
+          "states": 8
+        },
+        {
+          "name": "new_idle_4",
+          "seconds": 10,
+          "states": 8
+        },
+        {
+          "name": "picnic",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "pre_parallel0",
+          "seconds": 4,
+          "states": 8
+        },
+        {
+          "name": "run",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "sit",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "sleep",
+          "seconds": 0.36666667461395264,
+          "states": 8
+        },
+        {
+          "name": "sneak",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "sneaking",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "swim",
+          "seconds": 1.2999999523162842,
+          "states": 8
+        },
+        {
+          "name": "swim_stand",
+          "seconds": 1.2999999523162842,
+          "states": 8
+        },
+        {
+          "name": "swing_hand",
+          "seconds": 0.36666667461395264,
+          "states": 8
+        },
+        {
+          "name": "use_mainhand",
+          "seconds": 0.36666667461395264,
+          "states": 8
+        },
+        {
+          "name": "use_mainhand:gohei",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "use_offhand",
+          "seconds": 0.36666667461395264,
+          "states": 8
+        },
+        {
+          "name": "walk",
+          "seconds": 1,
+          "states": 8
+        }
+      ],
+      "guiAuto": true,
+      "manualMouth": true,
+      "leverAlternates": true,
+      "tour": true
+    },
+    {
+      "variant": "snowfox",
+      "animations": [
+        {
+          "name": "attacked",
+          "seconds": 0.5,
+          "states": 8
+        },
+        {
+          "name": "beg",
+          "seconds": 0.5,
+          "states": 8
+        },
+        {
+          "name": "boat",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "climb",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "climbing",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "death",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "elytra_fly",
+          "seconds": 0.5,
+          "states": 8
+        },
+        {
+          "name": "extra0",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "extra1",
+          "seconds": 1.5,
+          "states": 8
+        },
+        {
+          "name": "extra2",
+          "seconds": 1.5,
+          "states": 8
+        },
+        {
+          "name": "extra3",
+          "seconds": 36,
+          "states": 8
+        },
+        {
+          "name": "extra4",
+          "seconds": 22.96666717529297,
+          "states": 8
+        },
+        {
+          "name": "extra5",
+          "seconds": 0.5,
+          "states": 8
+        },
+        {
+          "name": "extra6",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "extra7",
+          "seconds": 1.3666666746139526,
+          "states": 8
+        },
+        {
+          "name": "fly",
+          "seconds": 0.7333333492279053,
+          "states": 8
+        },
+        {
+          "name": "game_lost",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "game_win",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "gui",
+          "seconds": 18,
+          "states": 8
+        },
+        {
+          "name": "head:default",
+          "seconds": 0.03333333507180214,
+          "states": 8
+        },
+        {
+          "name": "idle",
+          "seconds": 30,
+          "states": 8
+        },
+        {
+          "name": "jump",
+          "seconds": 0.7333333492279053,
+          "states": 8
+        },
+        {
+          "name": "keyboard",
+          "seconds": 49.56666564941406,
+          "states": 8
+        },
+        {
+          "name": "ladder_down",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "ladder_stillness",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "ladder_up",
+          "seconds": 1,
+          "states": 8
+        },
+        {
+          "name": "lever_left_to_right",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "lever_right_to_left",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "new_idle_1",
+          "seconds": 6,
+          "states": 8
+        },
+        {
+          "name": "new_idle_2",
+          "seconds": 5,
+          "states": 8
+        },
+        {
+          "name": "new_idle_3",
+          "seconds": 6.5,
+          "states": 8
+        },
+        {
+          "name": "new_idle_4",
+          "seconds": 10,
+          "states": 8
+        },
+        {
+          "name": "picnic",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "pre_parallel0",
+          "seconds": 4,
+          "states": 8
+        },
+        {
+          "name": "run",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "sit",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "sleep",
+          "seconds": 0.36666667461395264,
+          "states": 8
+        },
+        {
+          "name": "sneak",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "sneaking",
+          "seconds": 3,
+          "states": 8
+        },
+        {
+          "name": "swim",
+          "seconds": 1.2999999523162842,
+          "states": 8
+        },
+        {
+          "name": "swim_stand",
+          "seconds": 1.2999999523162842,
+          "states": 8
+        },
+        {
+          "name": "swing_hand",
+          "seconds": 0.36666667461395264,
+          "states": 8
+        },
+        {
+          "name": "use_mainhand",
+          "seconds": 0.36666667461395264,
+          "states": 8
+        },
+        {
+          "name": "use_mainhand:gohei",
+          "seconds": 0.6666666865348816,
+          "states": 8
+        },
+        {
+          "name": "use_offhand",
+          "seconds": 0.36666667461395264,
+          "states": 8
+        },
+        {
+          "name": "walk",
+          "seconds": 1,
+          "states": 8
+        }
+      ],
+      "guiAuto": true,
+      "manualMouth": true,
+      "leverAlternates": true,
+      "tour": true
+    }
+  ],
+  "errors": [],
+  "mobile": true
+}

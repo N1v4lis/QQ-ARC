@@ -1,0 +1,13 @@
+{
+  "animations": 46,
+  "hiddenUI": true,
+  "drag": true,
+  "dragDoesNotClick": true,
+  "twoSecondWindow": true,
+  "tripleClickAnger": true,
+  "linkedMouth": true,
+  "calmsAfterSixSeconds": true,
+  "manualExpression": true,
+  "mobileNoOverflow": true,
+  "errors": []
+}

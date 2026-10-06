@@ -1,0 +1,31 @@
+{
+  "copies": [
+    {
+      "file": "Models/Blender/winefox-large-lever.blend",
+      "identical_to_latest_source": true,
+      "sha256": "4264dede80ff30aff47e04ff77ef280e43063f11fd90bfdddd177597a8bfb2bc"
+    },
+    {
+      "file": "Models/GLB/winefox-large-lever.glb",
+      "identical_to_latest_source": true,
+      "sha256": "3edf99e64eec801ee0e924a03eff8f98e358d24db9c74851ee462cd47f62f053"
+    },
+    {
+      "file": "Models/Blender/snowfox-large-lever.blend",
+      "identical_to_latest_source": true,
+      "sha256": "6fc2b61bec64c43679a0830611e16a6784e2c89ce273a65f748d9ae91bb3d40d"
+    },
+    {
+      "file": "Models/GLB/snowfox-large-lever.glb",
+      "identical_to_latest_source": true,
+      "sha256": "8bdb33630d40a3d6dc557d8db7f94f31d591a72b79c5986b197e6ce21cce2723"
+    }
+  ],
+  "web_model_copies_identical": true,
+  "variants": 2,
+  "animations_each": 46,
+  "joints": 203,
+  "expression_nodes": 7,
+  "channels_per_clip": 616,
+  "no_blend_backups": true
+}
