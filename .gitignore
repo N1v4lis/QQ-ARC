@@ -1,0 +1,13 @@
+/_backup/
+/_ref/
+/shots/
+/node_modules/
+/dist/
+/.env
+/.env.*
+!/.env.example
+*.log
+*.bak
+*.bak-*
+Thumbs.db
+.DS_Store

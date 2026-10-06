@@ -1,0 +1,187 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   01-base.css — 基础层（重置 + 全局控件形态）
+   ═══════════════════════════════════════════════════════════════════════════
+   为什么需要它：旧皮肤（styles/_legacy-style.css）被放在最低的 @layer legacy 里，
+   凡是"旧皮肤有、新样式没接管"的地方都会漏出浏览器默认外观（右上角带切角的
+   输入框、灰色按钮、蓝色下划线链接）。这一层把**所有全局控件**一次性定下来，
+   后面各组件文件就只需要管"这个组件长什么样"，不用重复写控件基线。
+
+   与移植逻辑的关系：本文件不改任何 id/class 的语义，只改外观。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 文本与链接 ─────────────────────────────────────────────────────────── */
+a { color: var(--q-accent); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 650; line-height: 1.35; color: var(--q-fg); }
+h1 { font-size: 20px; }
+h2 { font-size: 17px; }
+h3 { font-size: 15px; }
+h4 { font-size: 13.5px; }
+
+p { margin: 0 0 8px; }
+
+code, kbd, samp, pre {
+  font-family: var(--q-font-code);
+  font-size: 0.94em;
+}
+code {
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-xs);
+  padding: 0.5px 4px;
+  color: var(--q-fg);
+}
+pre {
+  background: var(--q-bg-base);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-md);
+  padding: 10px 12px;
+  overflow: auto;
+  margin: 0 0 10px;
+}
+
+hr { border: 0; border-top: 1px solid var(--q-line-1); margin: 14px 0; }
+
+/* ── 表单控件基线（旧皮肤的输入框/按钮/下拉全部在这里换掉）───────────────── */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+textarea,
+select {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--q-fg);
+  background: var(--q-bg-input);
+  border: 1px solid var(--q-line-2);
+  border-radius: var(--q-r-md);
+  padding: 6px 10px;
+  line-height: 1.5;
+  outline: none;
+  transition:
+    border-color var(--q-mo-fast) var(--q-ease),
+    box-shadow var(--q-mo-fast) var(--q-ease),
+    background-color var(--q-mo-fast) var(--q-ease);
+}
+input::placeholder, textarea::placeholder { color: var(--q-fg-4); }
+input:hover:not(:disabled), textarea:hover:not(:disabled), select:hover:not(:disabled) {
+  border-color: var(--q-line-3);
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--q-accent);
+  box-shadow: 0 0 0 3px var(--q-accent-soft);
+}
+input:disabled, textarea:disabled, select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--q-bg-1);
+}
+textarea { resize: vertical; min-height: 64px; }
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 26px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23979da6' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+select option { background: var(--q-bg-2); color: var(--q-fg); }
+select[multiple] { padding-right: 10px; background-image: none; }
+
+/* 勾选框 / 单选框：用 accent-color 一次对齐品牌蓝，不重画 */
+input[type='checkbox'], input[type='radio'] {
+  accent-color: var(--q-accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  vertical-align: -2px;
+  margin: 0 2px 0 0;
+}
+input[type='range'] { accent-color: var(--q-accent); cursor: pointer; }
+
+label { color: var(--q-fg-2); }
+label:hover { color: var(--q-fg); }
+
+/* 按钮基线：新皮肤里 .btn 有自己的形态；这里兜住没有类名的裸按钮 */
+button {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--q-fg);
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-2);
+  border-radius: var(--q-r-md);
+  padding: 5px 12px;
+  cursor: pointer;
+  text-align: left;               /* 按钮默认居中会让整页文字排版不齐（见下方说明） */
+  transition:
+    background-color var(--q-mo-fast) var(--q-ease),
+    border-color var(--q-mo-fast) var(--q-ease),
+    color var(--q-mo-fast) var(--q-ease),
+    transform var(--q-mo-fast) var(--q-ease);
+}
+button:hover:not(:disabled) { background: var(--q-bg-3); border-color: var(--q-line-3); }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+/* ⚠️ 浏览器默认 button 是 text-align:center。这个应用里大量按钮承载的是
+   "左对齐的标题/菜单项"（侧栏入口、模块卡、设置项），默认居中会让整列看起来
+   像被缩进过。统一左对齐，真正需要居中的地方（如 .egg-hot）单独覆盖。 */
+
+/* ── 表格基线（用量页 / 账号页大量使用）────────────────────────────────── */
+table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--q-fg-2);
+  font-size: 11.5px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--q-line-2);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--q-bg-base);
+  z-index: 2;
+}
+td { padding: 7px 10px; border-bottom: 1px solid var(--q-line-1); color: var(--q-fg); }
+tbody tr { transition: background-color var(--q-mo-fast) var(--q-ease); }
+tbody tr:hover { background: var(--q-bg-hover); }
+
+/* ── details / summary（工具调用、折叠卡大量使用）───────────────────────── */
+summary { cursor: pointer; color: var(--q-fg-2); }
+summary:hover { color: var(--q-fg); }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::marker { content: ''; }
+
+/* ── 通用徽标 ───────────────────────────────────────────────────────────── */
+.badge, .tag, .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: var(--q-r-full);
+  font-size: 11px;
+  line-height: 1.7;
+  border: 1px solid var(--q-line-2);
+  background: var(--q-bg-2);
+  color: var(--q-fg-2);
+  white-space: nowrap;
+}
+.badge.ok, .tag.ok { color: var(--q-ok-hi); border-color: var(--q-ok-line); background: var(--q-ok-soft); }
+.badge.warn, .tag.warn { color: var(--q-warn-hi); border-color: var(--q-warn-line); background: var(--q-warn-soft); }
+.badge.err, .tag.err { color: var(--q-err); border-color: var(--q-err-line); background: var(--q-err-soft); }
+.badge.ac, .tag.ac { color: var(--q-accent-hi); border-color: var(--q-accent-line); background: var(--q-accent-soft); }
+
+/* ── 字段行（设置页到处在用 .field + label + input 的组合）─────────────── */
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.field > label { font-size: 12px; }
+.field-hint, .hint, .sub, .dim { color: var(--q-fg-3); font-size: 11.5px; line-height: 1.6; }
+
+/* 行内字段（label 在左、控件在右）*/
+.row { display: flex; align-items: center; gap: 8px; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.spacer { flex: 1 1 auto; }
+
+/* ── 滚动容器 ───────────────────────────────────────────────────────────── */
+.scroll-y { overflow-y: auto; min-height: 0; }
+
+/* 长文本换行策略：URL / 模型名 / 路径不该撑破卡片 */
+.wrap-anywhere { overflow-wrap: anywhere; word-break: break-word; }

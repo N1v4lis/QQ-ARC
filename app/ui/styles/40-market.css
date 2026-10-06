@@ -1,0 +1,671 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   40-market.css — 剩余组件接管（SnowLuma / 用量 / 工具与技能 / 桌面端 …）
+   ═══════════════════════════════════════════════════════════════════════════
+   这个文件是"最后一公里"：把**还靠旧皮肤兜底**的那些类逐个接过来，
+   让新样式系统真正覆盖到每一个渲染出来的节点。
+
+   清单来源（可复现）：`node tools/inventory-classes.mjs`
+     · 它会打印"旧皮肤没有、新样式也没接管"与"仍靠旧皮肤兜底"两段，逐条对着写。
+     · 全量对照表在 docs/class-inventory.txt。
+
+   为什么非要全部接管、而不是"能看就行"：
+   旧皮肤的颜色是靠 --ac/--bd/--tx 这些**别名**映射到新色板的（所以配色不会跑偏），
+   但版式（间距/圆角/层级/动效）还是 2026-09 那套。混在一起就是
+   "这块是新的、那块是旧的"的割裂感 —— 也就是"不像重构过"。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══ 用量页 ══════════════════════════════════════════════════════════════ */
+
+.usage-wrap { display: block; }
+.usage-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.usage-h3 { font-size: 15px; font-weight: 650; margin: 0; }
+.usage-days {
+  display: flex;
+  gap: 3px;
+  margin-left: auto;
+  padding: 2px;
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-1);
+  border: 1px solid var(--q-line-1);
+}
+.usage-days button, .usage-days .day-btn {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: var(--q-r-full);
+  background: transparent;
+  color: var(--q-fg-2);
+  font-size: 11.5px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--q-mo-fast) var(--q-ease), color var(--q-mo-fast) var(--q-ease);
+}
+.usage-days button:hover { background: var(--q-bg-hover); color: var(--q-fg); }
+.usage-days button.active { background: var(--q-accent); color: #fff; font-weight: 600; }
+
+.uc-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  height: 17px;
+  border-radius: var(--q-r-xs);
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-1);
+  font-size: 10.5px;
+  color: var(--q-fg-2);
+  font-family: var(--q-font-code);
+}
+
+/* ═══ SnowLuma 面板 ═══════════════════════════════════════════════════════
+   2026-10-04：从独立页签整合进「设置 → OneBot（SnowLuma）」。
+   样式基本复用，只加一条**嵌在设置页里**的调整，见下面的 .snowluma-pane-embedded。 */
+
+.snowluma-page-card,
+.snowluma-qq-section {
+  background: var(--q-bg-1);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-lg);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+/* ── 嵌在设置表单里的形态 ────────────────────────────────────────────────
+   在独立页签里，这块内容自己撑满一页、外卡片是"页面主卡"；
+   搬进设置页后它落在 #settings-form 里，**设置表单本身已经是内容区**，
+   再套一层带背景+边框+大内边距的外卡就成了"卡中卡"：左边距多一倍、视觉也重。
+   所以嵌在设置里时：去掉外层卡片的背景/边框/内边距，让里面的子卡直接落在表单上。
+   注意只针对外层（.snowluma-page-card / .snowluma-qq-section），
+   内部的 .sl-log-block、日志框等保持原样。 */
+.snowluma-pane-embedded .snowluma-page-card,
+.snowluma-pane-embedded .snowluma-qq-section {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 14px;
+}
+/* 面板自带的 h2 标题：**保留显示**（2026-10-05 改）。
+   之前它被隐藏是因为"设置页已有同名 h3，会出现两个标题"；
+   但那个 h3 现在被涂成透明（去重，见 30-settings.css），
+   于是这个 h2 才是"OneBot 区块里那块内容"的真正标题，必须可见。
+   样式（字号/间距/颜色）在 30-settings.css 里定义。 */
+.snowluma-state-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  padding: 6px 0;
+}
+.snowluma-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.snowluma-logs-view {
+  background: var(--q-bg-base);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-md);
+  max-height: 320px;
+  overflow: auto;
+  padding: 8px 10px;
+}
+.sl-log-block { font-family: var(--q-font-code); font-size: 11px; line-height: 1.6; padding: 2px 0; }
+.sl-log-head { display: flex; align-items: center; gap: 8px; color: var(--q-fg); }
+
+/* ── 日志区折叠（2026-10-05 加）────────────────────────────────────────────
+   折叠时**只渲染最近 5 行**（不是限高），所以这里不需要 height/overflow 处理；
+   这一块只负责：折叠按钮的箭头朝向、以及"显示 N / 共 M 行"的计数样式。
+   为什么把计数放在标题栏：折叠后只有 5 行，不给总数会让用户以为日志丢了。 */
+.sl-log-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-xs);
+  background: transparent;
+  color: var(--q-fg-3);
+  cursor: pointer;
+  transition: color var(--q-mo-fast) var(--q-ease), border-color var(--q-mo-fast) var(--q-ease), transform var(--q-mo-base) var(--q-ease-out);
+}
+.sl-log-toggle:hover { color: var(--q-accent); border-color: var(--q-accent-line); }
+.sl-log-toggle:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 1px; }
+.sl-log-toggle .sl-chev { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+/* 折叠时箭头朝右（"点开"），展开时朝下（"收起"） */
+.sl-log-block.sl-folded .sl-log-toggle .sl-chev { transform: rotate(-90deg); }
+.sl-log-count { margin-left: auto; font-variant-numeric: tabular-nums; }
+/* 折叠态给正文一点视觉暗示：顶部一道渐隐，表示"上面还有内容" */
+.sl-log-block.sl-folded .snowluma-logs-view {
+  border-left: 2px solid var(--q-line-2, var(--q-line-1));
+}
+.sl-log-level {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 5px;
+  height: 15px;
+  border-radius: var(--q-r-xs);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.sl-log-level.info { background: var(--q-accent-soft); color: var(--q-accent); }
+.sl-log-level.warn { background: var(--q-warn-soft); color: var(--q-warn); }
+.sl-log-level.error { background: var(--q-err-soft); color: var(--q-err); }
+.sl-app-logs { font-family: var(--q-font-code); font-size: 11px; }
+.sl-sep { height: 1px; background: var(--q-line-1); margin: 10px 0; }
+
+/* ═══ 工具与技能页 ════════════════════════════════════════════════════════ */
+
+.tool-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.tool-title { font-size: 14px; font-weight: 650; }
+.tool-summary { font-size: 11.5px; color: var(--q-fg-3); }
+.tool-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+
+.tool-list { display: flex; flex-direction: column; gap: 4px; }
+.tool-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-md);
+  background: var(--q-bg-1);
+  transition: border-color var(--q-mo-fast) var(--q-ease), background-color var(--q-mo-fast) var(--q-ease);
+}
+.tool-card:hover { border-color: var(--q-line-3); background: var(--q-bg-2); }
+.tool-icon { flex: 0 0 auto; font-size: 14px; line-height: 1; }
+.tool-name { font-family: var(--q-font-code); font-size: 11.5px; font-weight: 600; color: var(--q-fg); }
+.tool-meta { font-size: 11px; color: var(--q-fg-3); margin-left: auto; }
+.tool-dep, .tool-skill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  height: 16px;
+  border-radius: var(--q-r-xs);
+  font-size: 10px;
+  border: 1px solid var(--q-line-2);
+  color: var(--q-fg-3);
+  background: var(--q-bg-2);
+}
+.tool-skill { color: var(--q-accent); border-color: var(--q-accent-line); background: var(--q-accent-soft); }
+
+.tool-category {
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-lg);
+  background: var(--q-bg-1);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.tool-category-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 13px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--q-fg);
+  transition: background-color var(--q-mo-fast) var(--q-ease);
+}
+.tool-category-header:hover { background: var(--q-bg-hover); }
+.tool-category-arrow {
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--q-fg-3);
+  border-bottom: 1.5px solid var(--q-fg-3);
+  transform: rotate(-45deg);
+  transition: transform var(--q-mo-base) var(--q-ease-out);
+  flex: 0 0 auto;
+}
+.tool-category.expanded .tool-category-arrow { transform: rotate(45deg); }
+.tool-category-name { flex: 1 1 auto; min-width: 0; }
+.tool-category-count {
+  font-size: 10.5px;
+  color: var(--q-fg-3);
+  padding: 0 7px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-1);
+  font-variant-numeric: tabular-nums;
+}
+.tool-category-toggle { flex: 0 0 auto; }
+.tool-category .tool-list { padding: 6px 10px 10px; }
+
+/* ═══ 开关（.switch）═════════════════════════════════════════════════════
+   结构由 06-settings-render.js 的 switchHtml() 生成，**不要改**：
+     <label class="switch"><input type=checkbox><span class="track"><span class="thumb"></span></span>…</label>
+   即：复选框被视觉隐藏，真正显示的是 .track 里的 .thumb，
+   选中态靠 `.switch input:checked ~ .track` 这种**兄弟选择器**驱动。
+
+   ⚠️ 上一版我在这里犯了个错，值得记下来：
+   我把 .switch 写成一个"自带胶囊背景 + ::after 当滑块的容器"，同时又把
+   `.track` 定义成"整条轨道"（height:6px、宽度靠 flex 撑开）。
+   结果 .switch 里真正的 .track 被撑到 200px 宽、6px 高，而复选框又是隐藏的
+   —— 开关看起来就是一个被压扁的胶囊，滑块错位到边上（用户截图里那一排）。
+   教训：**覆盖别人组件的外观前先看它的 DOM 结构**；我这个 .track 的规则本来
+   只想给峰谷滑条用，却因为选择器太宽泛污染了所有开关。 */
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 2px 0;
+  user-select: none;
+  flex: 0 0 auto;
+}
+/* 复选框只负责状态，不参与视觉（键盘仍可聚焦，见下面的 :focus-visible） */
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.switch .track {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-3);
+  border: 1px solid var(--q-line-2);
+  transition: background-color var(--q-mo-base) var(--q-ease), border-color var(--q-mo-base) var(--q-ease);
+}
+.switch .thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform var(--q-mo-base) var(--q-ease-spring), background-color var(--q-mo-base) var(--q-ease);
+}
+.switch input:checked ~ .track { background: var(--q-accent); border-color: var(--q-accent); }
+.switch input:checked ~ .track .thumb { transform: translateX(16px); }
+/* 键盘可达：藏在视觉外的复选框聚焦时，把焦点环画到轨道上 */
+.switch input:focus-visible ~ .track {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 2px;
+}
+.switch:hover .track { border-color: var(--q-line-4); }
+.switch input:disabled ~ .track { opacity: 0.5; cursor: not-allowed; }
+/* 旧皮肤给开关留了较大的内边距，卡头里那排开关会显得零散 */
+.setcard-head .switch, .setcard-head .switch .track { flex: 0 0 auto; }
+.ac-peak-btn .switch, .switch[style*='padding:0'] { padding: 0; }
+
+/* ═══ 桌面端设置（主题选择等）════════════════════════════════════════════ */
+
+.theme-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.theme-option {
+  flex: 1 1 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 10px;
+  border: 1.5px solid var(--q-line-2);
+  border-radius: var(--q-r-lg);
+  background: var(--q-bg-2);
+  color: var(--q-fg-2);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--q-mo-fast) var(--q-ease);
+}
+.theme-option:hover { border-color: var(--q-line-4); color: var(--q-fg); transform: translateY(-1px); }
+.theme-option.active, .theme-option.on {
+  border-color: var(--q-accent);
+  background: var(--q-accent-soft);
+  color: var(--q-accent);
+  font-weight: 600;
+}
+/* 主题缩略图：一小块真实配色的示意 */
+.theme-option .thumb {
+  width: 100%;
+  height: 40px;
+  border-radius: var(--q-r-sm);
+  border: 1px solid var(--q-line-2);
+  background: linear-gradient(135deg, var(--q-bg-2) 0 50%, var(--q-bg-base) 50% 100%);
+}
+.t-ico { font-size: 16px; line-height: 1; }
+
+/* ═══ 峰谷档位滑条（tier-*）═══════════════════════════════════════════════ */
+
+.tier-wrap, .ac-tier-wrap { display: flex; align-items: center; gap: 10px; }
+/* ═══ 峰谷档位滑条（tier-*）═══════════════════════════════════════════════
+   ⚠️ 这个组件**必须**沿用旧皮肤的那套结构，不能按我的想象重写：
+     节点（09-community.js:277-285 生成）：
+       .ac-tier-wrap
+         ├─ .tier-btn …              （档位按钮）
+         └─ .ac-tier-wrap > .track?  ← 见下
+       .tier-scale                  ← 真正的滑条容器（position:relative; height:42px）
+         ├─ .tier-band[.d2/.d3/.d4] 各档区间，**inline style 给 left/width(%)**
+         ├─ .tier-knob.knob-valley  **inline style 给 left(%)**
+         └─ .tier-knob.knob-peak    **inline style 给 left(%)**
+   关键点（上一版全踩了，导致"滑条被干飞"）：
+     1. `.tier-knob` 是靠 **left:% + margin-left** 定位的竖条，JS 拖拽时直接写 left。
+        我上一版给它加了 `top:50%` + `transform:translate(-50%,-50%)`，
+        于是它被同时用 left% 和 transform 定位，位置彻底错乱、飞出轨道。
+     2. `.tier-band` 必须 `display:flex; align-items:center` 才能显示档位数字，
+        上一版只给了底色，数字就没了。
+     3. `.track` 这个名字**被开关（.switch .track）复用**！
+        我上一版把 `.track` 当峰谷轨道写成 height:6px/宽度撑开，
+        结果把所有开关的轨道也压成 6px（用户截图里开关错位就是同一处根因）。
+        → 现在一律用 `.ac-tier-wrap` / `.tier-scale` 限定，绝不再裸写 `.track`。
+
+   这些值与旧皮肤保持一致（只是换了配色令牌）：改之前先看
+   _legacy-style.css 里 .tier-scale/.tier-knob 的定义。
+
+   ⚠️ 布局方向也是 bug 根源（用户截图里"滑条被干飞"的真正原因）：
+   DOM 是 `.ac-tier-wrap > ( .tier-scale, .tier-read, .hint.ac-target )`（见
+   09-community.js:274-292）。旧皮肤没给 .ac-tier-wrap 定方向，我上一版把它写成
+   `display:flex`（默认 row），于是滑条与右边那段读数**并排**：
+   读数里是一句带 <br> 的长描述，min-width:auto 撑到 380px 且不收缩，
+   滑条虽写了 `flex:1` 但可用空间被吃光 → 实测被压成 **2px 宽**，
+   而滑块按 left:% 定位、百分比基于 2px，自然"飞出轨道"。
+   → 必须是 `flex-direction: column`（滑条独占一行、读数在下一行），
+     并给滑条 `align-self:stretch` + `min-width`，确保它真的能展开。 */
+.ac-tier-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.tier-scale {
+  position: relative;
+  height: 42px;
+  background: var(--q-bg-base);
+  border: 1px solid var(--q-line-2);
+  border-radius: var(--q-r-sm);
+  overflow: hidden;
+  cursor: pointer;
+  align-self: stretch;
+  width: 100%;
+  min-width: 220px;
+}
+.tier-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* ⚠️ 显式钉死高度（2026-10-04）：只写 top/bottom 时，任何一条更靠后、
+     或特异性更高的外部规则只要给 `.tier-band.d2` 之类加个 height，
+     区间就会被压扁、文字被 flex 居中到滑条**外面**（用户看到的"文字飞走了"）。
+     当时真凶是 30-settings.css 里给小圆点写的
+     `.ac-tier-wrap .d2/.d3/.d4 { width:4px; height:4px }` —— 它误命中了档位区间。
+     这里用 `height: 100%` + `!important` 守住高度：布局性属性不该被"装饰性"规则改掉。
+     宽度仍由 inline style 的 left/width(%) 决定，不受影响。 */
+  height: 100% !important;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  padding-right: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  /* ⚠️ 对比度是按**实际渲染底**量的（2026-10-04 用户反馈"看不清"）：
+     上一版把区间底色写成 `--q-accent-soft`，而浅色主题下那个令牌是
+     **12% 透明度的蓝**（#4176e61f）—— 叠在近白底上仍是近白，
+     于是 `.d4` 的蓝字压在自己的蓝底上 = 对比度 **1.00**（字完全看不见），
+     `.d3` 的深灰字压在半透明蓝上也只有 1.37。第一档灰字 3.55 也偏低。
+     现在：底色改成不透明的浅蓝/浅灰（`color-mix` 与底色混合），
+     文字统一用主文字色，四档的文字对比度都 ≥ 4.5。 */
+  color: var(--q-fg);
+}
+/* 逐档给**不透明**的底色：直接和滑条底混，避免"半透明叠半透明"算不清对比度 */
+.tier-band { background: color-mix(in srgb, var(--q-fg) 6%, var(--q-bg-base)); }
+.tier-band.d2 { background: color-mix(in srgb, var(--q-fg) 10%, var(--q-bg-base)); }
+.tier-band.d3 { background: color-mix(in srgb, var(--q-accent) 14%, var(--q-bg-base)); color: var(--q-fg); }
+.tier-band.d4 { background: color-mix(in srgb, var(--q-accent) 24%, var(--q-bg-base)); color: var(--q-fg); }
+/* 档位数字比说明文字更显眼一点（用户扫的是"现在第几档"） */
+.tier-band { letter-spacing: 0.2px; }
+.tier-sep { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--q-line-2); }
+/* 竖条滑块：定位完全交给 inline style 的 left（JS 负责），
+   这里只给尺寸与外观，**不要**再动 top/transform。 */
+.tier-knob {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 5px;
+  height: 32px;
+  margin-top: -16px;
+  margin-left: -2px;
+  background: var(--q-accent);
+  border: 0;
+  border-radius: 3px;
+  box-shadow: 0 0 12px -3px var(--q-accent);
+  cursor: grab;
+  /* 弹簧缓动滑动（预设/键盘跳档时的招牌动画）；拖动时由 JS 临时置 transition:none */
+  transition: left var(--q-mo-base) var(--q-ease-spring), background-color var(--q-mo-base) var(--q-ease);
+}
+.tier-knob:active { cursor: grabbing; }
+.tier-knob.knob-peak { opacity: 0.85; }
+/* 读数行（滑条下方一行）：
+     [ 峰 1 档 · 谷 4 档 ]  [ 高峰：…  / 低谷：… ]  ……留白……  [ 当前编辑：… ]
+   DOM 已调整为 `.tier-read` 内三个兄弟：.tr-big / .tr-txt / .hint.ac-target
+   （见 09-community.js 的 renderActiveEditor）。
+   ⚠️ 曾经的做法是把 .ac-target 放在 .tier-read **外面**、用负上边距把它"拽"上来 ——
+      峰谷双点模式下读数有两行，负边距一算不准就悬在说明文字中间，
+      看着像滑条区域被糊住（用户截图）。现在改成真正的三列 flex，
+      任何行数下都不会错位，也不再依赖脆弱的负边距。 */
+.tier-read {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 10px;
+}
+.tier-read .tr-big {
+  flex: 0 0 auto;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--q-accent);
+  font-family: var(--q-font-code);
+  font-variant-numeric: tabular-nums;   /* 档位数字等宽，拖动时不会左右抖 */
+  white-space: nowrap;
+  line-height: 1.45;
+}
+.tier-read .tr-txt {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--q-fg-2);
+  line-height: 1.65;
+  /* 说明可能换行（峰谷双点两行），不裁剪 */
+}
+/* 「当前编辑：…」：靠最右、垂直居中于整行 */
+.tier-read .hint.ac-target {
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--q-fg-3);
+  white-space: nowrap;
+  line-height: 1.65;
+  pointer-events: none;        /* 它只是提示，不该抢整行点击 */
+}
+.tier-read .hint.ac-target:empty { display: none; }
+/* 峰谷双点模式下说明有两行，读数行更高 —— 负边距随之调整，避免压到说明 */
+.ac-tier-wrap > .hint.ac-target:empty { display: none; }
+.tier-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-2);
+  color: var(--q-fg-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--q-mo-fast) var(--q-ease);
+}
+.tier-btn:hover { color: var(--q-fg); border-color: var(--q-line-4); }
+.tier-btn.on, .tier-btn.active { background: var(--q-accent-soft); border-color: var(--q-accent-line); color: var(--q-accent); }
+.tier-bar, .tier-param { background: var(--q-bg-1); border: 1px solid var(--q-line-1); border-radius: var(--q-r-md); padding: 12px 14px; }
+.tier-params { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.tier-param.dim { opacity: 0.42; }
+.tier-param label { display: block; font-size: 12.5px; margin-bottom: 4px; }
+.tier-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* ═══ 活跃设置编辑器里的操作行（取消 / 保存）═══════════════════════════════
+   DOM 是 `<div class="field" style="display:flex;gap:8px;align-items:center">`
+   里放「取消」「保存」两个按钮 + 一段说明（09-community.js:302-306）。
+   内联写的 display:flex 是 row，但**被 01-base.css 的 `.field{flex-direction:column}`
+   覆盖了**（内联只设了 display，没设方向）→ 两个按钮各占一行、说明掉到第三行
+   （用户反馈"改成并排"就是这个）。
+   修法：把方向写进样式表，用 `#ac-editor`（**注意是 id 不是 class** ——
+   第一次我写成 `.ac-editor` 完全不匹配，白改一轮）限定，不动移植层的 JS 结构。
+   说明文字单独放到下一行，避免把两个按钮挤到中间。 */
+#ac-editor .field {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+#ac-editor .field > .hint {
+  flex: 1 1 100%;          /* 说明强制换行到按钮下面 */
+  margin-left: 0;
+}
+#ac-editor .field > .btn { flex: 0 0 auto; width: auto; }
+
+/* ⚠️ `.ac-target` 的布局由上面 `.tier-read .hint.ac-target` 定义（它在读数行里靠右）。
+   这里只保留"作为 flex 容器时"的兜底，不再声明 display:flex ——
+   否则会把那个 span 变成块级 flex，右对齐失效（曾经同时存在两条规则互相打架）。 */
+.ac-target { align-items: center; gap: 8px; }
+.ac-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.ac-peak-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; }
+.persona-chat-item, .persona-chat-model {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--q-fg-2);
+  padding: 4px 0;
+}
+.persona-chat-model { font-family: var(--q-font-code); font-size: 11px; color: var(--q-fg-3); }
+
+/* ═══ 备用模型行 ═════════════════════════════════════════════════════════ */
+
+.pc-rows, .fb-rows { display: flex; flex-direction: column; gap: 6px; }
+.fb-model-pick { min-width: 180px; }
+.fb-del {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--q-r-sm);
+  border: 1px solid var(--q-err-line);
+  background: var(--q-err-soft);
+  color: var(--q-err);
+  cursor: pointer;
+}
+.fb-del:hover { background: color-mix(in srgb, var(--q-err) 22%, transparent); }
+
+/* ═══ 技能卡上的版本号 ═══════════════════════════════════════════════════ */
+
+.skill-card__ver {
+  font-family: var(--q-font-code);
+  font-size: 10px;
+  color: var(--q-fg-3);
+  padding: 0 5px;
+  border-radius: var(--q-r-xs);
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-1);
+  vertical-align: middle;
+  font-weight: 400;
+}
+.mcard-gear, .mcard-upload {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--q-r-sm);
+  border: 1px solid var(--q-line-2);
+  background: var(--q-bg-2);
+  color: var(--q-fg-2);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--q-mo-fast) var(--q-ease);
+}
+.mcard-gear:hover, .mcard-upload:hover { background: var(--q-accent); color: #fff; border-color: var(--q-accent); }
+
+/* 折叠卡：关闭态**直接不渲染内容**（display:none），而不是靠行高 + overflow 裁 ──
+   ⚠️ 这是"滑条仍被遮挡"的最终根因（2026-10-04，绕了四轮）：
+     旧皮肤的做法是 `grid-template-rows: 0fr` + 内容 `overflow: hidden`。
+     但旧皮肤整张被放进了 layer(legacy)，而**未分层样式胜过分层样式** ——
+     我用 `.setcard-body{display:grid}` 覆盖后，那条 `overflow:hidden` 就失效了。
+     实测：关闭卡的 body 只有 14px 高，里面的 `.field` 却有 73px，
+     内容**照常绘制**到卡外 —— 在真实 Electron 窗口里就压在下面「活跃设置」
+     的滑条上（用户截图里能看到"思考强度"的下拉框浮在滑条中间）。
+     中间试过补 min-height:0 / overflow:hidden 等，但 Chromium 在这种
+     "grid 轨道塌缩 + 子元素 min-content" 组合下的裁剪行为并不稳定。
+   → 结论：别依赖"裁掉"，直接**不渲染**。`display:none` 没有任何裁剪歧义：
+       内容不参与布局、不绘制、不可能盖住任何东西。代价是少了高度过渡动画，
+       所以给展开态补一段轻微淡入（观感上仍然是"展开"而不是"啪一下出现"）。 */
+.setcard.fold > .setcard-body.fold-body { display: grid; }
+.setcard.fold:not(.open) > .setcard-body.fold-body { display: none; }
+.setcard.fold.open > .setcard-body.fold-body {
+  animation: qFoldIn var(--q-mo-base) var(--q-ease-out) both;
+}
+@keyframes qFoldIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: none; }
+}
+/* 关闭态的内边距归零（开着 display:none 时已无意义，但切回瞬间要干净） */
+.setcard-body.fold-body { overflow: hidden; border-top: 0; }
+.setcard-body.fold-body:not(.bt) { padding: 0; }
+.setcard.open > .setcard-body > .fold-inner { padding: 14px 16px 16px; border-top: 0; }
+
+/* ═══ 技能页分块（sk-*）══════════════════════════════════════════════════ */
+
+.sk-block { margin-bottom: 14px; }
+.sk-row, .sk-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 4px 0;
+  color: var(--q-fg-2);
+}
+
+/* ═══ 复选框 ═════════════════════════════════════════════════════════════ */
+
+.tool-checkbox, .category-checkbox {
+  accent-color: var(--q-accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+/* ═══ 零碎状态类 ═════════════════════════════════════════════════════════ */
+
+.enabled { color: var(--q-ok); }
+.disabled { color: var(--q-fg-4); }
+.short { font-size: 11px; color: var(--q-fg-3); }
+/* ⚠️ 旧的独立读数规则已删除（2026-10-04）：
+   原来这里还有 `.tr-big { font-size:17px; font-weight:650 }` 和
+   `.tr-txt { font-size:11.5px }` —— 它们排在 `.tier-read .tr-*` 之后，
+   虽然特异性更低，但同一属性上很容易让人以为"新规则没生效"。
+   现在读数样式只在 `.tier-read .tr-*` 一处定义，改起来不会两处打架。 */
+.has-custom, .has-extra { display: flex; align-items: center; gap: 8px; }

@@ -1,0 +1,118 @@
+QQ Agent 新 UI · Electron 无边框外壳验证
+工作区  E:\QQ Agent Dev\qq-agent-ui-next
+安装目录 E:\QQ Agent
+被测文件 app/electron/main.js / app/electron/preload.cjs
+
+【验收1】不使用 Windows 原生标题栏（frame:false / hasShadow:false / 不开 skipTaskbar）
+  ✓ BrowserWindow 选项里有 frame: false  —— app/electron/main.js:274  frame: false,（另有 3 处是讲解注释，不计：行 144/159/270）
+  ✓ BrowserWindow 选项里有 hasShadow: false  —— app/electron/main.js:277  hasShadow: false,
+  ✓ 没有任何 skipTaskbar: true（窗口仍在任务栏可见/可找回）  —— grep skipTaskbar 命中 1 处，均为注释：app/electron/main.js:272 // 注意这里**没有**开 skipTaskbar：那是"不在任务栏显示应用按钮"，
+  · 无边框后缩放热区：app/electron/main.js:279  thickFrame: true,
+
+【验收2】三个窗口动作在 qqa-window 里分别落到 minimize / maximize|unmaximize / close
+  ✓ case 'minimize' → w.minimize()  —— app/electron/main.js:192
+  ✓ case 'toggle-maximize' → w.isMaximized()) w.unmaximize(); else w.maximize()  —— app/electron/main.js:195
+  ✓ case 'close' → w.close()  —— app/electron/main.js:204
+  ✓ close 臂里没有 hide()/quit()（不绕过 closeToTray 与 before-quit 清理链）  —— case 'close': w.close(); break;
+  · closeToTray 判定仍在 close 事件里：app/electron/main.js:344  if (!quitting && core?.getConfig().server?.closeToTray !== false) {
+
+【验收3】窗口状态回推（7 个事件 + 销毁时不抛错）
+  ✓ 存在统一注册事件数组的 for-of  —— app/electron/main.js:312  for (const ev of ['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen', 'show', 'focus', 'blur']) {
+  ✓ 7 个事件一个不少  —— maximize/unmaximize/enter-full-screen/leave-full-screen/show/focus/blur
+  ✓ 这些事件绑定的都是 pushWindowState
+  ✓ pushWindowState() 已定义  —— app/electron/main.js:179
+  ✓ pushWindowState 有 isDestroyed 守卫 + try/catch（窗口销毁中不抛错）  —— function pushWindowState() { try { if (!mainWindow || mainWindow.isDestroyed()) return; mainWindow.webContents.send('qqa
+
+【验收4】预加载桥 window.qqAgentShell 的契约
+  ✓ 暴露 refocus  —— app/electron/preload.cjs:20
+  ✓ 暴露 captchaNetProbe  —— app/electron/preload.cjs:24
+  ✓ 暴露 captchaInterceptorStatus  —— app/electron/preload.cjs:26
+  ✓ 暴露 controls  —— app/electron/preload.cjs:32
+  ✓ 暴露 windowState  —— app/electron/preload.cjs:44
+  ✓ 暴露 onMaximizeChange  —— app/electron/preload.cjs:45
+  ✓ controls.send 走白名单集合  —— app/electron/preload.cjs:13  const WINDOW_ACTIONS = new Set(['minimize', 'maximize', 'unmaximize', 'toggle-maximize', 'close']);
+  ✓ send() 入口做了白名单判断  —— app/electron/preload.cjs:40  if (!WINDOW_ACTIONS.has(String(action))) return;
+  · ipcRenderer 调用点 10 处；主进程侧通道：app-refocus / qqa-captcha-net-probe / qqa-captcha-interceptor-status / qqa-window / qqa-window-state
+
+【验收5】语法与加载检查（含"假绿"负向对照）
+  ✓ main.js（拷成 .mjs 后 node --check）退出码 0  —— 无输出
+  ✓ preload.cjs（node --check，CommonJS）退出码 0  —— 无输出
+  ✓ 负向对照：故意写坏的 .mjs 被拦下（退出码非 0）  —— 退出码 1
+  · 对照：同一份坏文件存成 .js 时 node --check 退出码 0 → 假绿，不能用来查 main.js（ESM）
+
+【附加】真实代码运行时验证（Electron 桩：跑真字节，不碰真进程）
+  ✓ [main.js] 启动链跑到底（窗口 + 托盘都建起来）
+  ✓ [main.js] 只创建了 1 个主窗口  —— 实际 1
+  ✓ [main.js] 运行时：BrowserWindow options.frame === false  —— frame=false
+  ✓ [main.js] 运行时：options.hasShadow === false  —— hasShadow=false
+  ✓ [main.js] 运行时：没有开启 skipTaskbar  —— skipTaskbar=undefined
+  ✓ [main.js] 运行时：contextIsolation=true / nodeIntegration=false 未被破坏
+  ✓ [main.js] 运行时：preload 指向 preload.cjs  —— C:\Users\Suli\AppData\Local\Temp\qqa-verify-vv8al8\main-CETmWY\electron\preload.cjs
+  ✓ [main.js] 运行时：应用菜单已移除（Menu.setApplicationMenu 被调用）
+  ✓ [main.js] 主进程注册了 qqa-window 监听  —— 注册数 1
+  ✓ [main.js] 动作 minimize → BrowserWindow.minimize()  —— 调用序列 [minimize]
+  ✓ [main.js] 动作后回推了窗口状态  —— pushed=1
+  ✓ [main.js] 未最大化时 toggle-maximize → maximize()  —— 调用序列 [maximize]
+  ✓ [main.js] 已最大化时 toggle-maximize → unmaximize()  —— 调用序列 [unmaximize]
+  ✓ [main.js] 动作 close → BrowserWindow.close()  —— 调用序列 [close, hide]
+  ✓ [main.js] close 没有直接 app.quit()
+  ✓ [main.js] closeToTray=true 时缩到托盘（close 事件被 preventDefault + hide，窗口未销毁）  —— hide=true prevented=true
+  ✓ [main.js] 未知动作 quit 被忽略，不触发任何窗口调用  —— 调用序列 []
+  ✓ [main.js] 窗口事件 maximize → 推送窗口状态
+  ✓ [main.js] 窗口事件 unmaximize → 推送窗口状态
+  ✓ [main.js] 窗口事件 enter-full-screen → 推送窗口状态
+  ✓ [main.js] 窗口事件 leave-full-screen → 推送窗口状态
+  ✓ [main.js] 窗口事件 show → 推送窗口状态
+  ✓ [main.js] 窗口事件 focus → 推送窗口状态
+  ✓ [main.js] 窗口事件 blur → 推送窗口状态
+  ✓ [main.js] 状态载荷是 {maximized,fullScreen,visible,focused} 四个布尔值  —— {"maximized":false,"fullScreen":false,"visible":true,"focused":true}
+  ✓ [main.js] did-finish-load 时 show + focus + 首次同步状态  —— 调用序列 [show, focus]
+  ✓ [main.js] 主进程注册了 qqa-window-state 的 invoke 处理器
+  ✓ [main.js] qqa-window-state 返回状态快照  —— {"maximized":false,"fullScreen":false,"visible":true,"focused":true}
+  ✓ [main.js] closeToTray=false 时 close 真的销毁窗口（不 hide）  —— 调用序列 [close] destroyed=true
+  ✓ [main.js] 窗口已销毁时再推状态：pushWindowState 不抛错
+  ✓ [main.js] 窗口已销毁时收到 qqa-window：静默返回，不抛错
+  ✓ [main.js] 窗口已销毁时查询 qqa-window-state：返回全 false 而不抛错
+  ✓ [main.js] 整条链上没有 fatal（uncaughtException 分支未触发）
+  ✓ [main.js] 托盘/自启等既有功能仍在（applyAutoStart 跑到）
+  ✓ [main.js] 验证码域重定向拦截器仍注册（未回退）
+  · [main.js] 桩机断言 35/35 通过
+  ✓ [preload.cjs] contextBridge 暴露了 window.qqAgentShell
+  ✓ [preload.cjs] 契约字段存在：refocus  —— typeof=function
+  ✓ [preload.cjs] 契约字段存在：captchaNetProbe  —— typeof=function
+  ✓ [preload.cjs] 契约字段存在：captchaInterceptorStatus  —— typeof=function
+  ✓ [preload.cjs] 契约字段存在：controls  —— typeof=object
+  ✓ [preload.cjs] 契约字段存在：windowState  —— typeof=function
+  ✓ [preload.cjs] 契约字段存在：onMaximizeChange  —— typeof=function
+  ✓ [preload.cjs] controls 是对象
+  ✓ [preload.cjs] refocus() → ipcRenderer.send(app-refocus)  —— app-refocus
+  ✓ [preload.cjs] captchaNetProbe() → invoke(qqa-captcha-net-probe)  —— INVOKE:qqa-captcha-net-probe
+  ✓ [preload.cjs] captchaInterceptorStatus() → invoke(qqa-captcha-interceptor-status)  —— INVOKE:qqa-captcha-interceptor-status
+  ✓ [preload.cjs] windowState() → invoke(qqa-window-state)  —— INVOKE:qqa-window-state
+  ✓ [preload.cjs] controls.minimize 是函数
+  ✓ [preload.cjs] controls.minimize() → send(qqa-window, minimize)  —— qqa-window / minimize
+  ✓ [preload.cjs] controls.maximize 是函数
+  ✓ [preload.cjs] controls.maximize() → send(qqa-window, maximize)  —— qqa-window / maximize
+  ✓ [preload.cjs] controls.unmaximize 是函数
+  ✓ [preload.cjs] controls.unmaximize() → send(qqa-window, unmaximize)  —— qqa-window / unmaximize
+  ✓ [preload.cjs] controls.toggle-maximize 是函数
+  ✓ [preload.cjs] controls.toggle-maximize() → send(qqa-window, toggle-maximize)  —— qqa-window / toggle-maximize
+  ✓ [preload.cjs] controls.close 是函数
+  ✓ [preload.cjs] controls.close() → send(qqa-window, close)  —— qqa-window / close
+  ✓ [preload.cjs] controls.send 放行了白名单动作  —— [minimize, maximize, unmaximize, toggle-maximize, close]
+  ✓ [preload.cjs] controls.send 把非白名单动作全部挡掉  —— 拒绝 [quit, hide, destroy, reload, devtools, exec, __proto__]
+  ✓ [preload.cjs] quit / hide / destroy / __proto__ 都在拒绝名单里
+  ✓ [preload.cjs] onMaximizeChange 返回取消订阅函数
+  ✓ [preload.cjs] 收到 qqa-window-state 后回调 (maximized, state)  —— [true,{"maximized":true,"fullScreen":false,"visible":true,"focused":true}]
+  ✓ [preload.cjs] 取消订阅后不再回调（removeListener 已调用）
+  ✓ [preload.cjs] onMaximizeChange 传非函数时返回空函数而不是抛错
+  ✓ [preload.cjs] 渲染层回调抛错被吞掉，不会把异常甩回主进程
+  · [preload.cjs] 桩机断言 30/30 通过
+  ✓ preload 白名单动作 ⊆ 主进程 qqa-window 处理的动作  —— 放行 [minimize, maximize, unmaximize, toggle-maximize, close] / 主进程处理 [minimize, toggle-maximize, maximize, unmaximize, close]
+
+【验收6】安装目录与工作区逐字节一致（sha256）
+  ✓ app/electron/main.js sha256 一致  —— 工作区 76077745683d / 安装版 76077745683d（逐字节相同）
+  ✓ app/electron/preload.cjs sha256 一致  —— 工作区 a6a9962f757d / 安装版 a6a9962f757d（逐字节相同）
+
+────────────────────────────────────────────────────────────────
+结果：全部通过（验收 1–6，含附加的桩机运行时断言）

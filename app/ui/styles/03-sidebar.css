@@ -1,0 +1,371 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   03-sidebar.css — 左侧导航（#tabs 换皮成竖排侧栏）
+   ═══════════════════════════════════════════════════════════════════════════
+   DOM 结构（关键：三块必须包在同一个 .q-sidebar 列里）：
+     .q-body
+       ├─ .q-sidebar        （整条侧栏，一个 flex 列，宽度 = --q-sidebar-w）
+       │    ├─ .q-rail-top   （折叠开关）
+       │    ├─ #tabs.q-side  （导航容器：**里面只有 .tab**）
+       │    └─ .q-side-foot  （金句/意见/市场入口）
+       └─ #layout.q-main
+
+   ⚠️ 三个必须记住的约束：
+   1. ID 必须叫 #tabs、子项必须叫 .tab[data-tab] —— 移植来的 11-init.js 靠
+      `$$('.tab')` 绑事件、switchTab 靠 `.classList.toggle('active')` 切页签。
+   2. 旧皮肤里有**未分层**的 `#tabs{height:44px}` 与 `.tab{height:100%;padding:0 13px}`。
+      分层样式输给未分层的 ID 规则，所以本文件里凡涉及 #tabs / .tab 的规则
+      都带 `#tabs` 前缀（ID 级对 ID 级，靠"后写者胜"）。
+   3. `.q-sidebar` 必须是一个整体列：曾经把三块直接摊在 .q-body 下，
+      结果 .q-body 变成 4 列，导航与入口列各占一条竖带、内容区被挤到 583px 处。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══ .q-body：顶栏一行 + (侧栏 | 内容区) 一行 ═══════════════════════════════
+   ⚠️ 2026-10-04 改用 **grid** 而不是 flex-wrap（这段历史值得记）：
+     功能工具栏横跨整窗、独占一行，侧栏与内容区在第二行 —— 这是两行两列的网格，
+     grid 能一句话说清：
+         rows:  auto     1fr     ← 工具栏按内容高，第二行吃掉剩余高度
+         cols:  auto     1fr     ← 侧栏按内容宽，内容区吃掉剩余宽度
+     之前用 flex-wrap 时踩到两个坑：
+       1. 长内容（会话页签的 .list-pane，overflow: visible）会把**内联尺寸**传上来，
+          这一行的两个子项被 `align-items: stretch` 撑到与内容等高 →
+          侧栏连同底部入口（金句上传/意见收集/市场…）被推到 y=2844~3095，
+          而视口只有 900px，用户"看不见这些按钮"。（实测数字）
+       2. 改用 `align-items: flex-start` + `height: 100%` 后，`height: 100%`
+          解析的是**整行**高度而不是"剩余高度"，于是侧栏比可用空间高 44px（工具栏那截），
+          底部两个按钮仍然被裁掉。
+     grid 没有这两个歧义：轨道尺寸就是可用空间，子项默认 stretch 到自己的轨道。
+     高度由容器决定、内容各自内部滚动，不会反向被内容决定。 */
+.q-body {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 工具栏：横跨两列，独占第一行 */
+.q-body > .q-tb-status { grid-column: 1 / -1; grid-row: 1; }
+/* 侧栏：第二行第一列 */
+.q-body > .q-sidebar { grid-column: 1; grid-row: 2; min-height: 0; }
+/* 内容区：第二行第二列，吃掉剩余宽高 */
+.q-body > .q-main { grid-column: 2; grid-row: 2; min-width: 0; min-height: 0; }
+
+/* 整条侧栏：宽度由它统一控制，内部三块跟着走 */
+.q-sidebar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: var(--q-sidebar-w);
+  min-width: var(--q-sidebar-w);
+  min-height: 0;
+  overflow: hidden;
+  /* ⚠️ 2026-10-04「颜色连续」改版（用户反馈：不是每一个导航栏的颜色都是连续的）：
+     原来侧栏用 --q-bg-sidebar，它在**深色下比 --q-bg-base 亮一档**
+     （#1b1b1c vs #151517，浅色下两者恰好同值所以看不出来）→
+     整个左侧是一块"比别人亮的板子"，加上侧栏里"当前页签"又是一块更亮的填充，
+     三层深浅叠在一起，看着就是"颜色不连续"。
+     现在全站统一到 --q-bg-base：顶栏 / 功能条 / 侧栏 / 内容区**同一个底色**。
+     侧栏与内容区之间的分界不再靠"换底色"或"画竖线"表达，而是靠内容本身
+     （导航文字 vs 列表内容）。 */
+  background: var(--q-bg-base);
+  border-right: 0;
+  position: relative;
+  z-index: 20;
+  transition: width var(--q-mo-slow) var(--q-ease-out), min-width var(--q-mo-slow) var(--q-ease-out);
+}
+
+/* ── 折叠开关所在的顶部条 ───────────────────────────────────────────────── */
+.q-rail-top {
+  flex: 0 0 auto;
+  padding: 8px 0 4px;
+}
+#q-side-toggle.q-side-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 外边距 8 → 6px、内边距 9 → 8px：与 .q-side-scroll 的新内边距对齐 */
+  margin: 0 6px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--q-r-md);
+  background: transparent;
+  color: var(--q-fg-3);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--q-mo-fast) var(--q-ease);
+}
+#q-side-toggle svg { width: 17px; height: 17px; flex: 0 0 auto; }
+#q-side-toggle:hover { background: var(--q-bg-nav-hover); color: var(--q-fg); }
+.q-side-toggle-tx { overflow: hidden; }
+
+/* ── 导航本体 ───────────────────────────────────────────────────────────── */
+#tabs.q-side {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  align-items: stretch;
+  gap: 0;
+  padding: 4px 0 8px;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border-right: 0;
+  border-bottom: 0;
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+}
+
+#tabs .q-side-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  /* 组间 6 → 12px（2026-10-05 用户要求"分类间隔可以大一点"）。
+     注意区分两个层级：
+       · 组间（这里）= **分类之间**的呼吸，用户这次的诉求；
+       · 组内 .q-side-group 的 gap = 同分类条目间距（保持 2px 不动）。
+     只放大组间、不动组内，分类的"成组感"才出得来 ——
+     如果连组内也一起放大，整列就变成均匀排布、分组的视觉边界反而消失了。 */
+  gap: 12px;
+  /* 左右内边距 8 → 6px：侧栏收窄到 168px 后，这 4px 是直接让给文字的 */
+  padding: 0 6px;
+  scrollbar-width: thin;
+}
+
+/* ── 导航分组 ─────────────────────────────────────────────────────────────
+   ⚠️ 2026-10-04 改版：分组改用**显式容器**，不再用 `nth-child(n)` 打间距。
+   为什么必须改：nth-child 按"第几个"算，插入/删除一项整组边界就错位；
+   而用户明确说"后续要删改元素"。容器分组把"这几项属于一类"变成结构事实。
+   （历史：这里原来还画过两条 1px 分隔线，2026-10-04 因"导航栏颜色要连续"去掉了；
+     分组语义一直由间距承担，现在间距也交给容器管。） */
+#tabs .q-side-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;          /* 组内项间距 */
+  min-width: 0;
+}
+/* 第一组不需要额外的上方留白（.q-side-scroll 的 padding 已经给了） */
+#tabs .q-side-group:first-child { margin-top: 0; }
+
+#tabs.q-side .tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* 图标与文字间距 10 → 8px：侧栏收到 168px 后，这 2px 让给文字更实在 */
+  gap: 8px;
+  width: 100%;
+  height: auto;
+  flex: 0 0 auto;
+  /* 6px 纵向保持可点高度（项高仍 ≥26px）；横向 10 → 8px 同上是让宽 */
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--q-r-md);
+  background: transparent;
+  color: var(--q-fg-2);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: none;
+  transition: color var(--q-mo-fast) var(--q-ease);
+}
+/* ⚠️ 悬停/激活**不再填充底色**（原来 hover 与 active 都是不透明填充，
+   在整片同色的导航里就是两块"颜色不一样"的方块）。
+   现在靠**主色文字 + 左侧强调条**表达状态 —— 底色始终与全站一致，
+   用户要的"颜色连续"就成立了。 */
+#tabs.q-side .tab:hover { background: transparent; color: var(--q-fg); }
+#tabs.q-side .tab:hover .tab-ico { color: var(--q-fg); }
+#tabs.q-side .tab.active {
+  background: transparent;
+  color: var(--q-accent);
+  font-weight: 650;
+  box-shadow: none;            /* 旧皮肤用 inset 下划线表示激活，竖排导航不要 */
+}
+#tabs.q-side .tab.active .tab-tx { color: var(--q-accent); }
+
+/* 激活态左侧强调条：从 0 高度"长出来"，比直接切换颜色更有存在感 */
+#tabs.q-side .tab::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 0 3px 3px 0;
+  background: var(--q-accent);
+  transform: translateY(-50%);
+  transition: height var(--q-mo-base) var(--q-ease-spring);
+}
+#tabs.q-side .tab.active::before { height: 62%; }
+
+.tab-ico {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  opacity: 0.8;
+  transition: opacity var(--q-mo-fast) var(--q-ease), transform var(--q-mo-base) var(--q-ease-spring), color var(--q-mo-base) var(--q-ease);
+}
+#tabs.q-side .tab:hover .tab-ico { opacity: 1; transform: scale(1.08); }
+#tabs.q-side .tab.active .tab-ico { opacity: 1; color: var(--q-accent); }
+
+.tab-tx {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--q-mo-base) var(--q-ease);
+}
+
+/* ── 侧栏底部：社区 / 市场入口 ──────────────────────────────────────────── */
+.q-side-foot {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  /* 左右 8 → 6px：与 .q-side-scroll 对齐，把宽度让给底部入口的文字 */
+  padding: 10px 6px 12px;
+  width: 100%;
+  /* ⚠️ 2026-10-04：原来这里有一条 `border-top` 把底部入口区隔开。
+     它是一根横贯侧栏的线，"颜色不连续"的观感一部分来自它。
+     去掉后底部入口与上方导航共用同一片底色，靠间距区分即可。
+     （`.q-side-foot` 本来就没有自己的 background，一直是透明的。） */
+  border-top: 0;
+  background: transparent;
+}
+.q-side-foot .nav-btn {
+  height: auto;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 10px;
+  /* 一律透明：旧皮肤给 .nav-btn 的是"实心胶囊"（尤其 .nav-btn-hot 是蓝底白字），
+     放在侧栏里会变成一排按钮。这里把形态定死，各入口只用文字颜色区分。 */
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--q-fg-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  justify-content: flex-start;
+}
+/* ⚠️ 选择器不能写成 `#tabs.q-side .q-side-foot .nav-btn`：
+   .q-side-foot 是 #tabs 的**兄弟**（见 index.html 的结构说明），不是后代。
+   写错的表现是"规则明明在、浏览器也说没匹配"，排查起来很费时间。
+   现在的写法靠"新样式在旧皮肤之前加载、旧皮肤被 @import 进 layer(legacy)"
+   来取胜（层里的规则输给未分层规则），特指度只要不低于旧皮肤即可。
+   旧皮肤里 .nav-btn 系列最高是 (0,2,0)（如 .nav-btn.nav-btn-hot），
+   所以下面带双类的那几条单独写，保证不输。 */
+#tabs.q-side .q-side-foot .nav-btn,
+.q-side-foot .nav-btn {
+  background: transparent;
+  border-color: transparent;
+}
+.q-side-foot .nav-btn:hover { background: var(--q-bg-nav-hover); color: var(--q-fg); border-color: transparent; }
+.q-side-foot .nav-btn.nav-btn-market { color: var(--q-accent); }
+.q-side-foot .nav-btn.nav-btn-market:hover { background: var(--q-accent-soft); color: var(--q-accent-hi); }
+.q-side-foot .nav-btn.nav-btn-persona { color: var(--q-warn); }
+.q-side-foot .nav-btn.nav-btn-persona:hover { background: var(--q-warn-soft); }
+.q-side-foot .nav-btn.nav-btn-hot { color: var(--q-ok); }
+.q-side-foot .nav-btn.nav-btn-hot:hover { background: var(--q-ok-soft); filter: none; }
+/* 每个入口左侧一个 3px 的色条：收起成 rail 后光靠颜色也认得出是哪一个。
+   注意这里**不要**再给 .nav-btn 画 border —— 旧皮肤给它的是"胶囊按钮"形态
+   （1px 边框 + 圆角 + 高 26px），会在侧栏里排成一串小方块。 */
+.q-side-foot .nav-btn::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 9px;
+  background: currentColor;
+  opacity: 0.55;
+  flex: 0 0 auto;
+  transition: height var(--q-mo-base) var(--q-ease-spring), opacity var(--q-mo-fast) var(--q-ease);
+}
+.q-side-foot .nav-btn:hover::before { height: 15px; opacity: 1; }
+/* 「确认金句」是勾选模式下才出现的强调按钮 */
+#tabs.q-side #quote-confirm-btn {
+  background: var(--q-accent);
+  color: #fff;
+  justify-content: center;
+  font-weight: 600;
+  box-shadow: 0 2px 8px #5686fe40;
+}
+#tabs.q-side #quote-confirm-btn:hover { background: var(--q-accent-hi); color: #fff; }
+
+/* ═══ 折叠形态（rail，60px 图标栏）════════════════════════════════════════
+   文字用 display:none 收起（opacity+width 会在过渡中途出现半个字）。
+   tooltip 由 .tab 与 .nav-btn 的 title 属性提供。 */
+html[data-nav='collapsed'] { --q-sidebar-w: var(--q-sidebar-w-rail); }
+html[data-nav='collapsed'] #q-side-toggle { justify-content: center; margin: 0 10px; padding: 6px; }
+html[data-nav='collapsed'] .q-side-toggle-tx,
+html[data-nav='collapsed'] .tab-tx { display: none; }
+html[data-nav='collapsed'] .q-side-foot { align-items: center; padding: 8px 8px 10px; }
+/* rail 里的社区入口收成一列小圆点：点得到、靠颜色区分，名字看 title */
+html[data-nav='collapsed'] .q-side-foot .nav-btn {  width: 32px;
+  height: 24px;
+  padding: 0;
+  justify-content: center;
+  font-size: 0;
+  position: relative;
+}
+html[data-nav='collapsed'] .q-side-foot .nav-btn::before {
+  margin: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0.9;
+}
+html[data-nav='collapsed'] #tabs .q-side-scroll { padding: 0 9px; }
+html[data-nav='collapsed'] #tabs.q-side .tab { justify-content: center; padding: 8px 0; }
+html[data-nav='collapsed'] #tabs .q-side-scroll > .tab:nth-child(4)::after,
+html[data-nav='collapsed'] #tabs .q-side-scroll > .tab:nth-child(6)::after { display: none; }
+
+/* ── 窄窗口自动 rail ────────────────────────────────────────────────────── */
+@media (max-width: 880px) {
+  :root { --q-sidebar-w: var(--q-sidebar-w-rail); }
+  .q-side-toggle-tx, .tab-tx { display: none; }
+  .q-side-foot .nav-btn { width: 32px; height: 24px; padding: 0; justify-content: center; font-size: 0; }
+  .q-side-foot .nav-btn::before { margin: 0; width: 8px; height: 8px; border-radius: 50%; opacity: 0.9; }
+  #q-side-toggle { justify-content: center; margin: 0 10px; padding: 6px; }
+  #tabs .q-side-scroll { padding: 0 9px; }
+  #tabs.q-side .tab { justify-content: center; padding: 8px 0; }
+  #tabs .q-side-scroll > .tab:nth-child(4)::after,
+  #tabs .q-side-scroll > .tab:nth-child(6)::after { display: none; }
+  .q-side-foot { align-items: center; }
+}
+
+/* ── 极窄：抽屉式覆盖 ───────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .q-sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 232px;
+    min-width: 232px;
+    transform: translateX(-100%);
+    transition: transform var(--q-mo-slow) var(--q-ease-out);
+    box-shadow: var(--q-elev-prominent);
+  }
+  html[data-nav='expanded'] .q-sidebar { transform: none; }
+  html[data-nav='expanded'] .tab-tx,
+  html[data-nav='expanded'] .q-side-toggle-tx { display: inline; }
+  html[data-nav='expanded'] .q-side-foot .nav-btn { width: 100%; justify-content: flex-start; font-size: 12.5px; padding: 7px 10px; }
+  html[data-nav='expanded'] .q-side-foot .nav-btn::before { margin-right: 8px; width: 3px; height: 12px; border-radius: 2px; }
+  html[data-nav='expanded'] #tabs.q-side .tab { justify-content: flex-start; padding: 8px 10px; }
+}

@@ -1,0 +1,408 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   30-settings.css — 设置页（二级导航 + 折叠卡 + 表单行）
+   ═══════════════════════════════════════════════════════════════════════════
+   设置页是"整页重建"式的：点左侧一项 → renderSettings() 把 #settings-form
+   整个 innerHTML 换掉。所以这里只做**外观**，不碰任何行为。
+
+   结构（由 06-settings-render.js 生成，类名不可改）：
+     #settings-sidebar
+       .settings-runstate   运行状态小卡
+       .settings-menu       .settings-menu-item[data-section] ×10 + .egg-hot
+     #settings-form
+       h3#settings-*        区块标题
+       p.setsub             一句话说明
+       .setcard.fold        折叠卡（.setcard-head/.sc-ico/.sc-tt/.sc-val/.chev-r/.setcard-body）
+       .field / .field-row / .checkbox-row / table   表单行
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══ 二级导航 ═════════════════════════════════════════════════════════════ */
+
+.settings-sidebar { padding: 12px 10px 24px; }
+
+.settings-runstate {
+  background: var(--q-bg-1);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-lg);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.settings-runstate .rs-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--q-fg-3);
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+}
+.settings-runstate .rs-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--q-fg);
+  line-height: 1.7;
+}
+.settings-runstate .rs-row.muted { color: var(--q-fg-3); font-size: 11.5px; }
+.settings-runstate .dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+
+.settings-menu { display: flex; flex-direction: column; gap: 1px; }
+
+.settings-menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--q-r-md);
+  background: transparent;
+  color: var(--q-fg-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--q-mo-fast) var(--q-ease), color var(--q-mo-fast) var(--q-ease);
+}
+.settings-menu-item:hover { background: var(--q-bg-nav-hover); color: var(--q-fg); }
+.settings-menu-item.active {
+  background: var(--q-bg-nav-active);
+  color: var(--q-fg);
+  font-weight: 600;
+  border-color: var(--q-line-2);
+}
+/* 激活项左侧短竖条 */
+.settings-menu-item.active::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 0 3px 3px 0;
+  background: var(--q-accent);
+}
+.settings-menu-item .update-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--q-err);
+  margin-left: auto;
+  animation: qBreathe 1.6s var(--q-ease) infinite;
+}
+/* 彩蛋按钮：保留一点玩心，但和菜单项同构 */
+.settings-menu-item.egg-hot {
+  margin-top: 10px;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--q-accent) 0%, var(--q-accent-lo) 100%);
+  border-color: transparent;
+  box-shadow: 0 2px 10px #5686fe40;
+}
+.settings-menu-item.egg-hot:hover { filter: brightness(1.08); color: #fff; }
+
+/* ═══ 表单区 ══════════════════════════════════════════════════════════════ */
+
+#settings-form h3 {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.4;
+  margin: 0 0 4px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   「撤销本次设置」按钮：与区块标题**同一行**，且不改变区块高度。
+
+   起因（用户原话）："撤销本次设置不应该动页面内容高度，并且它的位置应该
+   聊天设置文字的旁边。"
+
+   原来它被 `form.prepend()` 成 `#settings-form` 的第一个子元素，
+   自身有按钮高度 → 一出现就把整块内容往下顶一截（页面高度跳一下）。
+
+   现在：JS 把它插到区块标题 `<h3>` 之后，CSS 让 h3 变成
+   `display:flex` 的"标题行"，按钮作为它的第二个子项排在文字右边。
+   因为 h3 的行高（1.4 × 16px ≈ 22px）本来就**大于**按钮高度（btn-small 26px？
+   见下），所以按钮不会把这一行撑高 —— 高度增量是 0。
+
+   ⚠️ 按钮取"幽灵"样式（透明底）而不是实心按钮：
+      它浮在内容顶上且是**唯一**会突然出现的东西，实心块会让标题行显得很跳。
+      幽灵样式下它只在被指向时才有存在感。
+   ⚠️ `.settings-undo-btn` 原来是空的（没有任何规则），
+      所以按钮吃的是通用 `.btn` 样式 —— 那种高度必然会撑高行。
+      这里显式把高度压到与 h3 行高一致或更小。
+   ══════════════════════════════════════════════════════════════════════════ */
+#settings-form h3.settings-h3-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* 标题文字包一层，保证按钮始终贴在行的**右端**，长标题换行也不会挤到按钮 */
+#settings-form h3.settings-h3-row > .settings-h3-text {
+  min-width: 0;
+}
+.settings-undo-btn {
+  flex: 0 0 auto;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 11.5px;
+  line-height: 18px;
+  border-radius: var(--q-r-sm);
+  background: transparent;
+  border: 1px solid var(--q-line-2);
+  color: var(--q-fg-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--q-mo-fast) var(--q-ease), border-color var(--q-mo-fast) var(--q-ease), background-color var(--q-mo-fast) var(--q-ease);
+}
+.settings-undo-btn:hover {
+  color: var(--q-fg);
+  border-color: var(--q-line-4);
+  background: var(--q-bg-2);
+}
+.settings-undo-btn:focus-visible {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 2px;
+}
+
+/* ── OneBot 区块的标题去重（2026-10-05）───────────────────────────────────
+   背景：autoFoldSettings 会把区块内容收进一张折叠卡，并**把区块标题复制到卡头**
+   （`.sc-tt h4`，源码见 12-concept2-ui.js 的 `pageTitle`）。
+   于是同一个标题出现两次：
+     · 表单里的 `<h3 id="settings-onebot">`（原文案，直接子元素）
+     · 折叠卡头的 `<h4>`（复制品）
+   而这枚 h3 同时又是仪表盘卡片"定位高亮"的锚点（`#settings-onebot`），
+   所以**不能从 DOM 里删掉** —— 删了高亮就找不到目标。
+
+   做法：保留元素在布局中（占位不变，不影响任何几何断言），只把**文字涂透明**。
+   视觉上只剩卡头那一处标题，DOM 里锚点还在。
+   ⚠️ 选择器必须写 `>`：这枚 h3 是 `#settings-form` 的**直接子元素**
+      （实测路径就是 H3 → #settings-form）；写成 `.setcard .fold-inner > h3` 匹配不到。
+   （不用 `visibility:hidden`：那会让选区/焦点行为更绕；也不改 font-size —— 会动布局占位。）
+
+   同时把面板自带的 `<h2>`（"SnowLuma（OneBot 网关）"）显示出来 ——
+   它才是"卡里这块内容"的真正标题，说明卡头里的 OneBot 是页面级区块名。 */
+#settings-form > h3#settings-onebot {
+  color: transparent;
+}
+.snowluma-pane-embedded h2 {
+  display: block;
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--q-fg);
+}
+#settings-form .setsub { margin: 0 0 16px; }
+
+/* ── 折叠卡 ──
+   开合用 grid-template-rows 0fr→1fr 过渡（12-concept2-ui.js 负责加 .open），
+   这里只定义两种状态的外观与过渡时长。
+   ⚠️ 关闭态"裁剪内容"的那几条在 40-market.css 里（配套 overflow），
+      缺了它们会出现"高度是 0 但内容漏出来盖住下一张卡"的问题 —— 详见那边注释。 */
+.setcard {
+  background: var(--q-bg-1);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-lg);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color var(--q-mo-base) var(--q-ease), box-shadow var(--q-mo-base) var(--q-ease);
+}
+.setcard:hover { border-color: var(--q-line-3); }
+.setcard.open { box-shadow: var(--q-elev-panel); }
+
+.setcard-head {
+  display: flex;
+  align-items: center;
+  /* ⚠️ gap 必须是 0，间距全部由各子元素自己的 margin 控制。
+     原因：卡头里有个"控件组"（峰谷时段 / 档位参数 / 统一设置）需要
+     **紧贴标题块**（用户要求把那组按钮往左挪），而 .sc-tt 是 flex:1 会吸走剩余空间 ——
+     只要统一 gap，控件组左边就永远留出 gap 的宽度、右边又和摘要贴在一起。
+     用 margin 逐个控制后，就能做到"标题后紧跟控件、控件与摘要之间留白"。 */
+  gap: 0;
+  padding: 12px 15px;
+  min-height: 56px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--q-mo-fast) var(--q-ease);
+}
+.setcard-head:hover { background: var(--q-bg-hover); }
+/* 展开后头部与内容之间的一条分隔线 */
+.setcard.open > .setcard-head { border-bottom: 1px solid var(--q-line-1); }
+
+/* 卡头里各块的标准间距：图标 → 标题 → 控件组（紧贴）→ 摘要 → 箭头 */
+.setcard-head > .sc-ico { margin-right: 11px; }
+.setcard-head > .sc-tt { margin-right: 12px; }
+/* 控件组：往左靠（左外边距 0），与右侧摘要之间留出弹性空白 */
+.setcard-head > .sc-val { margin-left: 12px; }
+.setcard-head > .chev-r { margin-left: 10px; }
+
+.sc-ico {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--q-r-md);
+  background: var(--q-accent-soft);
+  color: var(--q-accent);
+  font-size: 15px;
+  line-height: 1;
+}
+.sc-ico.gray { background: var(--q-bg-2); color: var(--q-fg-3); }
+
+.sc-tt { flex: 1 1 auto; min-width: 0; }
+.sc-tt h4 {
+  font-size: 13.5px;
+  font-weight: 650;
+  color: var(--q-fg);
+  margin: 0;
+  line-height: 1.4;
+}
+.sc-sub {
+  font-size: 11px;
+  color: var(--q-fg-3);
+  margin-top: 2px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+/* 右侧摘要值（例如当前模型名）：等宽字体，避免每行抖动 */
+.sc-val {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  color: var(--q-fg-3);
+  font-family: var(--q-font-code);
+  max-width: 32%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.setcard-head .chev-r { flex: 0 0 auto; font-size: 13px; }
+.setcard.open .chev-r { transform: rotate(90deg); }
+
+.setcard-head .switch, .setcard-head .badge, .setcard-head button { flex: 0 0 auto; }
+
+.setcard-body { transition: grid-template-rows var(--q-mo-base) var(--q-ease-out); }
+.fold-inner { min-height: 0; }
+.setcard.open > .setcard-body > .fold-inner { padding: 14px 16px 16px; }
+
+/* 折叠卡里的表单行 */
+.setcard-body .field { margin-bottom: 12px; }
+.setcard-body .field:last-child { margin-bottom: 0; }
+.setcard-body > .fold-inner > *:last-child { margin-bottom: 0; }
+
+/* ── 行内字段 ── */
+.field label { font-size: 12px; color: var(--q-fg-2); font-weight: 500; }
+
+/* ── 模型价格卡（pc-* 系列）── */
+.price-card, .model-price-card {
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-lg);
+  overflow: hidden;
+  margin-top: 12px;
+  background: var(--q-bg-1);
+}
+.pc-title { font-size: 12.5px; font-weight: 650; padding: 10px 14px 0; }
+.pc-head, .pc-row {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(3, minmax(90px, 1fr)) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--q-line-1);
+}
+.pc-head { color: var(--q-fg-3); font-size: 11px; font-weight: 600; background: var(--q-bg-base); }
+.pc-row:last-child { border-bottom: 0; }
+.pc-row:hover { background: var(--q-bg-hover); }
+.pc-model { font-family: var(--q-font-code); font-size: 11.5px; color: var(--q-fg); overflow-wrap: anywhere; }
+.pc-label { color: var(--q-fg-3); font-size: 11px; }
+.pc-unit { color: var(--q-fg-3); font-size: 10.5px; }
+.pc-note { font-size: 10.5px; color: var(--q-fg-3); padding: 6px 14px 10px; }
+.pc-official-on { color: var(--q-ok); font-size: 11px; }
+
+/* ── 人设分群按钮组 ── */
+.persona-chat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.persona-chat-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--q-line-2);
+  border-radius: var(--q-r-md);
+  background: var(--q-bg-2);
+  color: var(--q-fg-2);
+  font-family: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--q-mo-fast) var(--q-ease);
+}
+.persona-chat-btn:hover { border-color: var(--q-accent-line); color: var(--q-fg); background: var(--q-accent-soft); }
+.persona-chat-btn.active { border-color: var(--q-accent); color: var(--q-accent); background: var(--q-accent-soft); font-weight: 600; }
+.persona-pick, .inp { font-size: 12px; }
+.persona-role-text { font-family: var(--q-font-code); font-size: 11px; }
+
+/* ── 白名单挑选行 ── */
+.allow-pick-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.allow-pick-msg { font-size: 11.5px; color: var(--q-fg-3); }
+
+/* ── 群设置行（ac-* 系列：按群设模型 / 峰谷 / 档位）── */
+.ac-group-buttons { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.ac-group-btn {
+  padding: 4px 9px;
+  border: 1px solid var(--q-line-2);
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-2);
+  color: var(--q-fg-2);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--q-mo-fast) var(--q-ease);
+}
+.ac-group-btn:hover { border-color: var(--q-line-4); color: var(--q-fg); }
+.ac-group-btn.active, .ac-group-btn.on {
+  background: var(--q-accent-soft);
+  border-color: var(--q-accent-line);
+  color: var(--q-accent);
+  font-weight: 600;
+}
+/* 卡头控件组（峰谷时段 / 档位参数 / 统一设置）：
+   旧皮肤已经用了 `margin-right: auto`（把空白推到它右边），但那条在 layer(legacy) 里，
+   而**未分层样式胜过分层样式** —— 我写的 `margin-left: auto` 反而把它拉到了右侧。
+   现在明确 margin-right: auto，让控件组紧跟在标题后面（用户要求往左挪）。 */
+.ac-head-controls { display: flex; align-items: center; gap: 8px; margin-left: 0; margin-right: auto; }
+.ac-head-div { width: 1px; align-self: stretch; min-height: 16px; background: var(--q-line-2); margin: 0 10px 0 2px; }
+/* 有控件组的卡头：标题块不再吸走剩余空间（否则控件组会被推到右边） */
+.setcard-head.has-extra > .sc-tt { flex: 0 1 auto; }
+.setcard-head.has-extra > .ac-head-controls { flex: 0 0 auto; }
+.ac-peak-btn { font-size: 11px; padding: 3px 8px; }
+
+/* ⚠️⚠️ 这里原来有一条 `.ac-tier-wrap .d2, .ac-tier-wrap .d3, .ac-tier-wrap .d4
+   { width:4px; height:4px; border-radius:50%; background: var(--q-line-4) }`
+   —— 我本意是给"分群按钮上的小圆点"（有单独设置的群）做指示器，
+   但**它同时命中了档位区间**：那些区间的 class 正是 `tier-band d2 / d3 / d4`。
+   于是第 2/3/4 档的区间被压成 4×4 的圆点，文字被 flex 居中到滑条外面 ——
+   用户看到的"2、3、4 档的文字飞走了"。
+   第 1 档的 class 只有 `tier-band`（没有 d2/d3/d4），所以安然无恙 ——
+   这也正好解释了"为什么只有后三档出问题"。
+
+   教训：`d1/d2/d3/d4` 这种**单字母+数字**的类名太容易撞车。
+   现在这条规则已删除；真正的小圆点若还需要，请用带前缀的专用类名
+   （例如 `.ac-group-dot--has-own`），不要用 `.d2` 这种通用名。
+   排查方式：probe-tier-bands.mjs 逐档打印盒子的 height/top/bottom，
+   一眼就能看出"盒子高度被谁改小了"。 */
+
+/* ── 锁定态 ── */
+.setcard.locked { opacity: 0.62; }
+.setcard.locked .setcard-head { cursor: not-allowed; }
+
+/* ── 表单里的输入宽度 ── */
+.field > input:not([type='checkbox']):not([type='radio']),
+.field > select { width: 100%; }
+.field > textarea { width: 100%; }

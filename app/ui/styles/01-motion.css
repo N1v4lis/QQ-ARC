@@ -1,0 +1,177 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   01-motion.css — 动效层
+   ═══════════════════════════════════════════════════════════════════════════
+   设计口径（全部来自 00-tokens.css 的 --q-mo-* / --q-ease*）：
+     · 入场：慢一档、带一点位移 → 让"出现了"这件事被看见（--q-mo-slow）
+     · 出场：快一档、位移更小   → 离开不该拖沓（--q-mo-base）
+     · 悬停/按下：最快一档      → 手感干脆（--q-mo-fast）
+   为什么统一在这里定义：散落在各文件里的 transition 会各写各的时长，
+   最后就是"有的地方 120ms 有的地方 400ms"，看起来像没做完。
+
+   ⚠️ 与移植逻辑的接口（不能改语义）：
+     · .view             —— switchTab 用它切页；.view.active 才显示
+     · .view.leaving     —— 旧视图交叉淡出，animationend 后由 JS 摘掉
+     · .tab.active       —— 页签高亮
+     · .hidden           —— 全局隐藏约定（JS 到处在用 classList.add('hidden')）
+   本文件只改这三者的"过程"，不改终态归属。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 关键帧 ─────────────────────────────────────────────────────────────── */
+
+/* 视图入场：6px 上移 + 淡入（对齐 00-core.js 的 UI_IN_FRAMES 语汇） */
+@keyframes qViewIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* 视图出场：旧页签交叉淡出。JS 会在 animationend 后摘掉 .leaving */
+@keyframes qViewOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+/* 列表项入场：轻微的横向推进，用于会话/消息/卡片列表的首批渲染 */
+@keyframes qItemIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* 浮层入场：缩放 + 淡入（弹窗、菜单、下拉） */
+@keyframes qPopIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* 遮罩淡入 */
+@keyframes qFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 骨架屏扫光：DSH 的 --dsw-alias-bg-skeleton 就是这个用途 */
+@keyframes qShimmer {
+  from { background-position: -220% 0; }
+  to   { background-position: 220% 0; }
+}
+
+/* 旋转（加载指示器） */
+@keyframes qSpin { to { transform: rotate(360deg); } }
+
+/* 呼吸：连接中/等待态的圆点 */
+@keyframes qBreathe {
+  0%, 100% { opacity: 0.45; transform: scale(0.9); }
+  50%      { opacity: 1;    transform: scale(1.05); }
+}
+
+/* 数字/徽标更新时的一次性强调 */
+@keyframes qTick {
+  from { opacity: 0.35; transform: translateY(-2px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── 视图切换 ───────────────────────────────────────────────────────────── */
+.view { display: none; }
+.view.active {
+  display: flex;
+  animation: qViewIn var(--q-mo-slow) var(--q-ease-out) both;
+}
+/* 交叉淡出：旧视图暂留 ~200ms。JS 在 animationend 时摘 .leaving；
+   若动画被浏览器跳过（标签页不可见等），fill:both 保证它最终是透明的。 */
+.view.leaving {
+  display: flex;
+  animation: qViewOut var(--q-mo-base) var(--q-ease) both;
+  pointer-events: none;
+}
+
+/* ── 页签/导航反馈 ──────────────────────────────────────────────────────── */
+.tab, .nav-btn, .btn, .icon-btn, .list-head-btn {
+  transition:
+    background-color var(--q-mo-fast) var(--q-ease),
+    border-color var(--q-mo-fast) var(--q-ease),
+    color var(--q-mo-fast) var(--q-ease),
+    box-shadow var(--q-mo-base) var(--q-ease),
+    transform var(--q-mo-fast) var(--q-ease);
+}
+.tab:active, .nav-btn:active, .btn:active, .icon-btn:active { transform: translateY(1px) scale(0.985); }
+
+/* 点击后的涟漪式强调（由 shell/99-shell-boot.js 加 .q-tap，180ms 后自行摘掉） */
+.tab.q-tap, .nav-btn.q-tap { animation: qTick var(--q-mo-fast) var(--q-ease-out) both; }
+
+/* ── 列表项入场 ─────────────────────────────────────────────────────────
+   只给"首批渲染"一个轻量错峰：靠 nth-child 前若干项。
+   全量列表（几百条 session-item）逐项动画会掉帧，所以只在可视前 12 项生效。 */
+.session-item, .chat-item, .mem-item, .sk-item, .pl-item, .usage-card, .setcard {
+  animation-fill-mode: both;
+}
+.session-item:nth-child(-n+12), .chat-item:nth-child(-n+12), .mem-item:nth-child(-n+12) {
+  animation: qItemIn var(--q-mo-base) var(--q-ease-out) both;
+}
+.session-item:nth-child(2), .chat-item:nth-child(2), .mem-item:nth-child(2) { animation-delay: 12ms; }
+.session-item:nth-child(3), .chat-item:nth-child(3), .mem-item:nth-child(3) { animation-delay: 24ms; }
+.session-item:nth-child(4), .chat-item:nth-child(4), .mem-item:nth-child(4) { animation-delay: 36ms; }
+.session-item:nth-child(5), .chat-item:nth-child(5), .mem-item:nth-child(5) { animation-delay: 48ms; }
+.session-item:nth-child(n+6), .chat-item:nth-child(n+6), .mem-item:nth-child(n+6) { animation-delay: 60ms; }
+
+/* ── 浮层 ──────────────────────────────────────────────────────────────── */
+.model-modal-overlay, .loading-overlay {
+  animation: qFadeIn var(--q-mo-base) var(--q-ease-out) both;
+}
+.model-modal, .loading-card {
+  animation: qPopIn var(--q-mo-slow) var(--q-ease-out) both;
+}
+/* 弹窗关闭：JS 移除节点，这里给"正在关闭"用的类留一个钩子（可选） */
+.model-modal-overlay.q-closing { animation: qFadeIn var(--q-mo-fast) var(--q-ease) reverse both; }
+
+/* ── 骨架屏 / 加载 ──────────────────────────────────────────────────────── */
+.q-skeleton, .skeleton {
+  background-image: linear-gradient(
+    100deg,
+    var(--q-bg-skeleton) 30%,
+    color-mix(in srgb, var(--q-fg) 8%, transparent) 50%,
+    var(--q-bg-skeleton) 70%
+  );
+  background-size: 220% 100%;
+  animation: qShimmer 1.4s linear infinite;
+  border-radius: var(--q-r-sm);
+}
+.loading-spinner, .q-spin { animation: qSpin 900ms linear infinite; }
+
+/* ── 状态点 ─────────────────────────────────────────────────────────────── */
+.dot { transition: background-color var(--q-mo-base) var(--q-ease), box-shadow var(--q-mo-base) var(--q-ease); }
+.dot-on { box-shadow: 0 0 0 3px var(--q-ok-soft); }
+.dot-wait { animation: qBreathe 1.6s var(--q-ease) infinite; }
+
+/* 数字变化时轻推一下（刷新状态栏/用量时看得见"数据更新了"） */
+#usage-label, #search-count-label { transition: color var(--q-mo-base) var(--q-ease); }
+
+/* ── 拖拽改变宽度时不要动画（否则跟手感极差）───────────────────────────── */
+.q-resizing *, .q-resizing *::before, .q-resizing *::after {
+  transition: none !important;
+  animation: none !important;
+  cursor: col-resize !important;
+}
+
+/* ── 主题切换的"从按钮扩散"（View Transitions）─────────────────────────────
+   shell/00-theme.js 改用 View Transitions + clip-path 圆形揭示：
+   扩散的是**界面本身**（新状态快照从按钮位置展开），不是往界面上盖一层颜色。
+   浏览器为此生成的 ::view-transition-* 层默认是 fixed + 全屏，
+   虽然本身不接收指针事件，这里仍显式声明一遍：
+     · pointer-events: none —— 保证任何元素都不会被它拦住（用户明确要求）
+     · 关掉浏览器默认的交叉淡入 —— 我们的圆形揭示本身就是完整过渡，
+       再叠一层淡入会让前半程发灰、看着像"蒙了一层"。
+   注意：优先级要压过浏览器对这些伪元素的默认样式，所以用 !important。 */
+::view-transition-group(root),
+::view-transition-image-pair(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  pointer-events: none !important;
+  animation: none !important;
+  mix-blend-mode: normal !important;
+}
+/* 旧状态在下、新状态在上：圆形揭示的"新"必须盖在"旧"上才成立 */
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+/* ── 滚动容器渐隐边缘：让"还有内容"这件事自己说话 ───────────────────────── */
+.q-scroll-fade {
+  mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
+}

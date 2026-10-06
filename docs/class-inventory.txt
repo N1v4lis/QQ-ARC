@@ -1,0 +1,16 @@
+blue-button	MISSING	shell
+edge-branding-text	MISSING	shell
+edge-logo	MISSING	shell
+error-code	MISSING	shell
+footer	MISSING	shell
+hidden	new	shell
+icon	MISSING	shell
+icon-elixir-thinking	MISSING	shell
+interstitial-wrapper	MISSING	shell
+left-footer	MISSING	shell
+nav-wrapper	MISSING	shell
+suggested-left	MISSING	shell
+suggestion-body	MISSING	shell
+suggestion-header	MISSING	shell
+suggestions	MISSING	shell
+text-button	MISSING	shell

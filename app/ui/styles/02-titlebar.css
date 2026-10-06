@@ -1,0 +1,452 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   02-titlebar.css — 自绘标题栏（"不使用 Windows 自带任务栏"的关键）
+   ═══════════════════════════════════════════════════════════════════════════
+   Electron 侧 BrowserWindow 用 frame:false：原生标题栏与右上角
+   关闭/最小化/最大化 三个按钮**整体不存在**。页面里的 #topbar 就是唯一的标题栏。
+
+   ⚠️ 2026-10-04 改版（用户要求）：标题栏**只保留**「品牌 + 拖动区 + 三个窗口按钮」，
+     原先挤在右上角的全部功能控件（连接状态 / 账号 / 模型入口 / 用量 / 搜索 /
+     就绪点 / 主题 / 暂停）已移到**内容区顶部的一条工具栏**（.q-body > .q-tb-status，
+     见 index.html）。这样做的好处：
+       · 标题栏回到"真正的标题栏"职责，符合原生窗口的肌肉记忆；
+       · 窄窗口下功能条有了整整一行的宽度，不必再把胶囊带压成横向滚动。
+
+   ⚠️ 选择器为什么带 #topbar 前缀：
+      旧皮肤（最低层 @layer legacy）里有未分层的 `#topbar{height:52px; padding:0 16px}`。
+      分层样式**永远输给**未分层的 ID 选择器，所以新规则必须自己也是 ID 级。
+      这也是本项目里唯一需要这种处理的两个容器之一（另一个是 #tabs）。
+      工具栏搬出 #topbar 之后就不再受这条影响，因此下面工具栏相关规则
+      改用 `.q-body > .q-tb-status`（更高特异性、不依赖旧皮肤的层叠关系）。
+
+   拖动规则：-webkit-app-region:drag 只能给"没有交互元素"的容器；里面任何
+   按钮/下拉/可点区域都必须 no-drag，否则点不动（无边框窗口最经典的坑）。
+   工具栏现在在内容区里，**完全不需要** drag 相关处理。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.q-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--q-bg-base);
+  position: relative;
+}
+
+/* 浏览器里没有窗口按钮与拖动区 → 标题栏收窄
+   （shell/99-shell-boot.js 会摘掉 #q-winctl 并打上 data-shell=browser） */
+html[data-shell='browser'] { --q-titlebar-h: 48px; }
+
+#topbar.q-titlebar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--q-titlebar-h);
+  min-height: var(--q-titlebar-h);
+  padding: 0 0 0 10px;
+  /* ⚠️ 2026-10-04「无痕」改版（用户要求：任务栏与主体之间不要缝）：
+     原来标题栏和功能条各有一条 `border-bottom: 1px solid`，与侧栏的 1px 竖线
+     接在一起会形成两个明显的"井"字接口。现在**横向接缝全部改用背景色深浅**表达，
+     不再画线：
+       · 标题栏 + 功能条 = 同一层顶栏（--q-bg-sidebar）
+       · 内容区 = --q-bg-base（比顶栏略亮一档）
+     两者本来就同色（bg-sidebar 当前就是 bg-base 的值），所以合并成整体后
+     整条顶栏与内容区**完全同色**，一滴接缝都看不见；
+     右侧与侧栏的交界仍保留侧栏那条竖线（那是"导航 / 内容"的结构分界，
+     去掉会让左侧导航和内容糊在一起，反而不舒服）。 */
+  /* ⚠️ 用 --q-bg-base（**内容区底色**）而不是 --q-bg-sidebar。
+     两个令牌在浅色下恰好同值（#f9fafb），但在**暗色下不同**：
+       --q-bg-sidebar = --s-nb-900 = #1b1b1c
+       --q-bg-base    = --s-nb-950 = #151517
+     差 6 级明度 → 功能条与内容区之间会出现一条横贯整窗的色差线。
+     像素采样实测（tools/check-seamless-pixels.mjs）：暗色下 y=92 处
+     rgb(27,27,28) → rgb(21,21,23)。浅色下因为同值所以看不到，很容易漏掉。
+     现在整条顶栏（标题栏 + 功能条）一律用内容区底色 —— 与下方内容区**完全同色**，
+     横向接缝彻底消失（"无痕"）。 */
+  /* ⚠️ 顶栏底色走**独立令牌** `--q-bg-titlebar`（缺省回落到 --q-bg-base）。
+     为什么独立一个令牌：这里被两版需求来回拉过，各自的理由都成立 ——
+       · 2026-10-04「无痕」：暗色下 --q-bg-base(#151517) 与 --q-bg-sidebar(#1b1b1c)
+         差 6 级明度，顶栏若用 sidebar 就会横贯整窗一条色差线 → 当时统一到 base。
+       · 2026-10-06：用户要求"任务栏的底色应该和导航栏一致，而不是和主体内容一致"
+         （像素采样确认 MC 亮色下顶栏 rgb(216,216,216) 是不透明的，而侧栏/内容区
+          都是 62% 半透明的 --q-bg-1，顶栏确实比它们都沉）。
+     用一个令牌把这件事变成"可调"：以后要再调，只改 32-theme.css 里的覆写，
+     不用碰这条背景声明与布局。 */
+  background: var(--q-bg-titlebar, var(--q-bg-base));
+  border-bottom: 0;
+  user-select: none;
+  position: relative;
+  z-index: 40;
+  transition: background-color var(--q-mo-base) var(--q-ease);
+  /* ── 拖动流畅性（2026-10-04 优化）────────────────────────────────────
+     拖动无边框窗口时，Chromium 每个 tick 都要重绘"窗口边缘那一圈"。
+     如果这层没有独立成合成层，重绘会牵连到整个内容区一起走一遍布局/绘制，
+     表现就是"拖起来发飘、卡卡的"。下面几条把开销压到最小：
+       · will-change: transform → 提前给标题栏建独立合成层
+       · contain: layout paint    → 把这层的布局/绘制与内容区隔离
+       · transform: translateZ(0)→ 强制 GPU 合成（老引擎也认这条）
+     注意：`will-change` 不要写在大量元素上，合成层太多反而更慢 ——
+     这里只给"始终在拖动热区里"的两个容器（标题栏、侧栏）加。 */
+  will-change: transform;
+  contain: layout paint;
+  transform: translateZ(0);
+}
+
+/* ── 可拖动区 ───────────────────────────────────────────────────────────── */
+#q-tb-drag.q-tb-drag {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  align-self: stretch;
+  padding-right: 12px;
+  min-width: 0;
+  -webkit-app-region: drag;
+}
+#q-tb-drag > * { -webkit-app-region: no-drag; }
+
+.q-tb-logo {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: linear-gradient(150deg, var(--q-accent) 0%, var(--q-accent-lo) 100%);
+  color: #fff;
+  box-shadow: 0 1px 4px #5686fe4d;
+  flex: 0 0 auto;
+  transition: transform var(--q-mo-base) var(--q-ease-spring), box-shadow var(--q-mo-base) var(--q-ease);
+}
+.q-tb-logo svg { width: 15px; height: 15px; }
+.q-tb-logo:hover { transform: rotate(-8deg) scale(1.06); box-shadow: 0 3px 10px #5686fe66; }
+
+.q-tb-brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* 旧皮肤给 .brand 加了个 ::before 的"Q"方块 —— 新标题栏已经有 logo，
+   那个方块会变成第二个图标，必须关掉。 */
+#topbar .brand::before { display: none; }
+.q-tb-brand .brand {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  color: var(--q-fg);
+  white-space: nowrap;
+  gap: 0;
+}
+.q-tb-brand .brand-sub { color: var(--q-fg-3); font-weight: 500; }
+.q-tb-sub {
+  font-size: 11px;
+  color: var(--q-fg-3);
+  padding: 1px 7px;
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-1);
+  white-space: nowrap;
+  transition: background-color var(--q-mo-base) var(--q-ease), color var(--q-mo-base) var(--q-ease);
+}
+
+/* 空白可拖动区（把右侧控件顶到最右） */
+.q-tb-spacer { flex: 1 1 auto; align-self: stretch; -webkit-app-region: drag; min-width: 12px; }
+
+/* ═══ 功能工具栏（顶栏第二行，横跨整窗）═════════════════════════════════════
+   从标题栏搬来的状态/功能控件。要点：
+     · 它是 .q-body 的第一个 flex 子项、`flex: 0 0 100%` —— 独占一整行，
+       横跨**整个窗口宽度**（含侧栏上方），与标题栏连成一条连续的顶栏。
+       放在 .q-main 里的话它会在侧栏右边界处断掉，看着有个凹口（不"无痕"）。
+     · 无下边框，且与标题栏同底色 = 两者视觉上就是一条 84px 高的顶栏。
+     · 左内边距与标题栏一致（10px），右端与窗口按钮对齐，纵向不留缝。
+   选择器用 `.q-body > .q-tb-status`：特异性高于旧皮肤的分层规则，
+   也不再需要原来的 `#topbar` ID 前缀。 */
+.q-body > .q-tb-status {
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: var(--q-toolbar-h, 44px);
+  padding: 0 10px;
+  /* 与标题栏、内容区**完全同底色**（--q-bg-base），且不画下边框 ——
+     整条顶栏 84px 与下方内容区连成一片，看不到任何横向接缝。
+     （详见标题栏那段的说明：暗色下 --q-bg-sidebar 与 --q-bg-base 不同值，
+       用前者会露出一条色差线。） */
+  background: var(--q-bg-base);
+  border-bottom: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  z-index: 30;
+  transition: background-color var(--q-mo-base) var(--q-ease);
+}
+.q-body > .q-tb-status::-webkit-scrollbar { display: none; }
+.q-body > .q-tb-status .sep {
+  width: 1px;
+  height: 13px;
+  background: var(--q-line-2);
+  flex: 0 0 auto;
+  opacity: 0.75;
+}
+.q-body > .q-tb-status .top-chips { flex: 0 1 auto; }
+/* 右端控件贴最右（与标题栏的窗口按钮同一条右边线） */
+.q-body > .q-tb-status > .readiness-dots { margin-left: auto; }
+
+/* ═══ 工具栏内的控件样式 ═══════════════════════════════════════════════════
+   ⚠️ 2026-10-04：这批规则原先都写在 `#topbar …` 下（因为控件原来在标题栏里）。
+      控件搬到 `.q-body > .q-tb-status` 之后，`#topbar …` 就**一条都匹配不上**了 ——
+      现象是工具栏里的胶囊全部退化成无样式的裸文字/裸下拉。
+      这里统一换成 `.q-body > .q-tb-status …`。用了 `> ` 是为了不误伤内容区里
+      同名的通用类（例如设置页里的 `.btn`、`.muted`）。 */
+
+.q-body > .q-tb-status .top-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 3px;
+  border-radius: var(--q-r-full);
+}
+.q-body > .q-tb-status .top-chips > * { white-space: nowrap; flex: 0 0 auto; }
+
+/* 状态胶囊：把每个标签做成一枚细小药丸，信息密度高但一眼能扫 */
+.q-body > .q-tb-status .muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: var(--q-r-full);
+  border: 1px solid transparent;
+  background: var(--q-bg-2);
+  color: var(--q-fg-2);
+  font-size: 11.5px;
+  transition: all var(--q-mo-fast) var(--q-ease);
+}
+.q-body > .q-tb-status .muted:hover { border-color: var(--q-line-3); color: var(--q-fg); }
+/* 合并后的用量胶囊（内含「今日：…」+ 分隔符 + 「搜索：…」）：
+   两个内层 span 保持普通文字，间距由胶囊自身的 gap 控制 ——
+   `.muted` 是 inline-flex + gap:6px，正好够用，不需要给内层再加 padding。 */
+.q-body > .q-tb-status #usage-chip { padding: 0 10px; }
+
+.q-body > .q-tb-status #model-label.tb-nav { cursor: pointer; }
+.q-body > .q-tb-status #model-label.tb-nav:hover {
+  color: var(--q-accent-hi);
+  border-color: var(--q-accent-line);
+  background: var(--q-accent-soft);
+}
+
+/* ── 可点的胶囊（入口型标签）─────────────────────────────────────────────
+   「OneBot 已连接」「今日：… 搜索：…」整枚胶囊可点，跳到对应页面。
+   视觉上必须和 model-label 一致（同样的 hover 反馈），用户才知道"这里能点"。
+   注意：内层 span 由 01-boot.js 刷新文字，所以点击监听必须挂在**胶囊容器**上。 */
+.q-body > .q-tb-status .tb-nav { cursor: pointer; }
+.q-body > .q-tb-status .tb-nav:hover {
+  color: var(--q-accent-hi);
+  border-color: var(--q-accent-line);
+  background: var(--q-accent-soft);
+}
+.q-body > .q-tb-status .tb-nav:focus-visible {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 1px;
+}
+/* 用量胶囊里的内联分隔符（原来「用量」和「搜索」是两枚独立胶囊）。
+   宽度/高度比外层的 .sep 小一点，因为它夹在同一枚胶囊内部。 */
+.q-body > .q-tb-status .sep-inline {
+  width: 1px;
+  height: 11px;
+  background: var(--q-line-3);
+  flex: 0 0 auto;
+  margin: 0 2px;
+}
+
+/* 账号下拉：胶囊化，去掉系统 select 的方框感 */
+.q-body > .q-tb-status .tb-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 24px;
+  background: var(--q-bg-2);
+  color: var(--q-fg);
+  border: 1px solid var(--q-line-2);
+  border-radius: var(--q-r-full);
+  padding: 0 24px 0 10px;
+  font-size: 11.5px;
+  font-family: inherit;
+  cursor: pointer;
+  max-width: 200px;
+  text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23979da6' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  transition: border-color var(--q-mo-fast) var(--q-ease), background-color var(--q-mo-fast) var(--q-ease);
+}
+.q-body > .q-tb-status .tb-select:hover { border-color: var(--q-accent-line); color: var(--q-fg); background-color: var(--q-bg-3); }
+.q-body > .q-tb-status .tb-select:focus { outline: none; border-color: var(--q-accent); box-shadow: 0 0 0 2px var(--q-accent-soft); }
+.q-body > .q-tb-status .tb-select option { background: var(--q-bg-2); color: var(--q-fg); }
+
+/* 连接状态点 */
+.q-body > .q-tb-status .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+  background: var(--q-fg-4);
+}
+.q-body > .q-tb-status .dot-on { background: var(--q-ok); box-shadow: 0 0 0 3px var(--q-ok-soft); }
+.q-body > .q-tb-status .dot-wait { background: var(--q-warn); animation: qBreathe 1.6s var(--q-ease) infinite; }
+.q-body > .q-tb-status .dot-off { background: var(--q-fg-4); }
+
+/* 就绪进度：4 个圆点（QQ / SnowLuma / OneBot / 配置） */
+.q-body > .q-tb-status .readiness-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-2);
+  flex: 0 0 auto;
+}
+.q-body > .q-tb-status .readiness-dots .rdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--q-line-4);
+  cursor: pointer;
+  transition: background-color var(--q-mo-base) var(--q-ease), transform var(--q-mo-fast) var(--q-ease-spring);
+}
+.q-body > .q-tb-status .readiness-dots .rdot:hover { transform: scale(1.6); }
+.q-body > .q-tb-status .readiness-dots .rdot.on { background: var(--q-ok); }
+.q-body > .q-tb-status .readiness-dots .rdot.wait { background: var(--q-warn); animation: qBreathe 1.6s var(--q-ease) infinite; }
+
+/* ── 图标按钮 / 小按钮 ──────────────────────────────────────────────────── */
+.q-body > .q-tb-status .icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--q-r-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--q-fg-2);
+  cursor: pointer;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.q-body > .q-tb-status .icon-btn svg { width: 16px; height: 16px; }
+.q-body > .q-tb-status .icon-btn:hover { background: var(--q-bg-hover); color: var(--q-fg); border-color: var(--q-line-1); }
+
+/* 主题按钮：图标跟**实际主题**（亮=太阳 / 暗=月亮），颜色只作辅助区分 */
+.q-body > .q-tb-status #theme-btn[data-theme='light'] { color: var(--q-warn); }
+.q-body > .q-tb-status #theme-btn[data-theme='dark'] { color: var(--q-accent-hi); }
+
+.q-body > .q-tb-status .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: var(--q-r-md);
+  border: 1px solid var(--q-line-2);
+  background: var(--q-bg-2);
+  color: var(--q-fg);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.q-body > .q-tb-status .btn:hover { background: var(--q-bg-3); border-color: var(--q-line-3); }
+.q-body > .q-tb-status .btn-small { height: 26px; padding: 0 11px; font-size: 12px; }
+
+/* 工具栏右端的对齐（`margin-left: auto` 那条写在上面 .q-tb-status 定义处，
+   这里不再重复 —— 同一属性写两遍很容易让人以为改了没生效）。 */
+
+/* ── 重载界面按钮（标题栏 logo 旁边）─────────────────────────────────────
+   放在 #q-tb-drag 内部，所以必须显式 no-drag ——
+   #q-tb-drag 自身是拖动热区（-webkit-app-region: drag），
+   子元素虽然有 `#q-tb-drag > * { no-drag }` 兜底，这里再写一遍是因为
+   它是个**新加的交互元素**，漏掉就点不动（无边框窗口最经典的坑）。
+   尺寸跟 .q-tb-logo 呼应（24px），视觉上像品牌区的一部分。 */
+.q-reload {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-left: 2px;
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: var(--q-r-sm);
+  background: transparent;
+  color: var(--q-fg-3);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  transition: color var(--q-mo-fast) var(--q-ease),
+              background-color var(--q-mo-fast) var(--q-ease),
+              border-color var(--q-mo-fast) var(--q-ease),
+              transform var(--q-mo-base) var(--q-ease-spring);
+}
+.q-reload svg { width: 14px; height: 14px; }
+.q-reload:hover {
+  color: var(--q-accent);
+  background: var(--q-bg-hover);
+  border-color: var(--q-line-1);
+}
+.q-reload:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 1px; }
+/* 按下去的旋转反馈：确认"点到了"。
+   定 240ms、转半圈 —— 再长会挡住 reload 本身，再短看不出来。 */
+.q-reload.is-spinning { animation: qReloadSpin 420ms var(--q-ease-out); }
+@keyframes qReloadSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── 窗口控制按钮 ───────────────────────────────────────────────────────── */
+.q-winctl {
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  margin-left: 4px;
+  -webkit-app-region: no-drag;
+}
+.q-wbtn {
+  width: 46px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--q-fg-2);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color var(--q-mo-fast) var(--q-ease), color var(--q-mo-fast) var(--q-ease);
+}
+.q-wbtn svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.q-wbtn:hover { background: var(--q-bg-hover); color: var(--q-fg); }
+/* 关闭键悬停用系统红（Windows 上的肌肉记忆），形态与其余两键一致 */
+.q-wclose:hover { background: #e81123; color: #fff; }
+.q-wbtn:focus-visible { outline: 2px solid var(--q-accent); outline-offset: -2px; }
+
+/* 最大化 / 还原 图标按 html[data-maximized] 切换 */
+.q-wbtn .q-ico-restore { display: none; }
+html[data-maximized='1'] .q-wbtn .q-ico-max { display: none; }
+html[data-maximized='1'] .q-wbtn .q-ico-restore { display: block; }
+
+/* ── 窄窗口：工具栏已经能横向滚动，这里只做"信息降级" ─────────────────────
+   （原来这些规则是为了把胶囊带压进 40px 高的标题栏，现在有一整行可用，
+     阈值可以放宽些：先隐藏"次要补充信息"，再隐藏"可推断的状态文本"。） */
+@media (max-width: 1020px) {
+  .q-tb-sub { display: none; }
+  .q-body > .q-tb-status #search-count-label { display: none; }
+}
+@media (max-width: 860px) {
+  .q-body > .q-tb-status #onebot-label { display: none; }
+  .q-body > .q-tb-status #usage-label { display: none; }
+}

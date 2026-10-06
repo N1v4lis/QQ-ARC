@@ -1,0 +1,627 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   32-theme.css — 「主题」卡页的外观 + Minecraft 皮肤的整体风格
+
+   两层内容，注意区分：
+   ① `.th-*`   —— 主题卡页自己的控件（皮肤卡片 / 亮度档 / 二级字段）。永远生效。
+   ② `html[data-skin='minecraft'] ...` —— Minecraft **皮肤**的覆盖规则。
+      只在选中 MC 皮肤时生效；默认皮肤完全不受影响。
+
+   为什么皮肤做成"一堆覆盖规则"而不是换一套独立 CSS：
+     界面有 40+ 个样式文件，重写一遍既不可能维护、也会让"改一处要改两处"。
+     皮肤的本质是**在同一套结构上换配色与质感**，用 CSS 变量覆盖 + 少量质感规则
+     正好对上这件事。变量在 --q-* 命名空间下（见 00-tokens.css），
+     所以覆盖它们就等于换了整套配色。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══ ⓪ 打包字体（第 7 段）═══════════════════════════════════════════════
+   需求："中文和英文字体均更改成 Minecraft 中的风格，默认使用我电脑中的
+         Minecraft AE 字体，并将其打包至主题内（如其他用户在其他电脑使用本
+         QQ Agent 客户端，也可以正常看到字体）"。
+
+   ⚠️ 为什么是**两份**字体，而不是"一份同时支持中英文的"：
+     最初只打包了 `[苦力怕论坛]Minecraft(同时支持中英文).ttf`（注册名
+     "Minecraft AE Pixel"，15.4MB）。它确实同时覆盖中英，但用户随后报告
+     **"很多冒号变成不可读的乱码，而存档和记忆里的冒号正常"**。
+     实测定位（tools/probe-font-render.mjs 把它画出来看）：
+     那份字体的 **ASCII 标点字形是坏的** ——
+       `:` 画出来像 `u`，`(` 像 `C`，`/` 像 `i`，`%` 也变形。
+     而中文汉字部分完全正常，所以"存档/记忆"里的中文冒号（全角 `：`）没问题。
+     系统里另有一份 `Minecraft-1.ttf`（注册名 "Minecraft"，仅 14KB）——
+     它的 ASCII 标点**完全正确**且字形更干净，但没有中文。
+
+     结论：**拉丁标点用 Minecraft-1.ttf，中文交给 CJK 那份**。
+     `font-family` 天然支持按字形逐字回退：浏览器先在前面的字体里找字形，
+     找不到才往后走。实测（tools/probe-font-chain2.mjs 逐字比对字形签名）：
+       ASCII 标点/数字/拉丁字母 → 全部来自 "Minecraft"
+       汉字与全角标点           → 全部来自 "Minecraft AE Pixel"
+     这是"两份字体各管一段"的正确形态，而不是简单地把某一份换成另一份。
+
+   ⚠️ font-display: swap
+     15MB 的 CJK 字体首次加载要一点时间。用 swap 让文字先用系统字体渲染、
+     字体到位后自动替换 —— 而不是 block（那段等待期整屏无字）。
+   ⚠️ 字体链末尾必须留系统兜底
+     万一文件缺失/损坏，后面的项会接住，界面不会变豆腐块。 */
+@font-face {
+  font-family: 'Minecraft AE';
+  src: url('/assets/mc/fonts/minecraft-latin.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+/* ⚠️ CJK 那份必须**限定 unicode-range**，只让它管汉字。
+   为什么：它的**标点字形普遍是坏的** —— 半角 `:` 画成 `u`、`(` 画成 `C`、
+   `/` 画成 `i`；全角 `）`/`％`/`＃` 也变形；`¥` 是个折线块。
+   而它唯一不可替代的是汉字。
+   限制区间后，"两边各用自己正常的部分"这件事由浏览器自动完成，
+   不需要任何 JS 参与：
+
+     Latin (Minecraft AE)      → ASCII、货币(¥€£¢)、数学(±×÷≤≥≈)、箭头、全角标点（实测都正确）
+     CJK   (Minecraft AE CJK)  → 只负责 汉字 / 扩展A / 兼容汉字
+
+   实测依据（tools/probe-font-symbols.mjs 与 probe-font-fullwidth.mjs 出的对照图）：
+     · Latin 的 `：` `（` `）` `，` `。` `「」【】《》` 全部正常，且是方块像素体；
+     · CJK 的这些符号形状错乱（`）` 像缺角方块）—— 所以绝不能让它接管标点。 */
+@font-face {
+  font-family: 'Minecraft AE CJK';
+  src: url('/assets/mc/fonts/minecraft-ae.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF;
+}
+
+:root {
+  /* MC 字体链：拉丁（标点/货币/数学/全角标点都正确）→ 汉字 → 系统同名注册字体 → 系统兜底。
+     顺序不能颠倒：把 CJK 那份放前面会让 ASCII 与全角标点又变回坏字形。 */
+  --q-font-mc: 'Minecraft AE', 'Minecraft AE CJK', 'Minecraft', 
+               'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+}
+
+/* ═══ ① 主题卡页控件 ══════════════════════════════════════════════════════ */
+
+.th-skins {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.th-skin {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 10px;
+  text-align: left;
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-md);
+  background: var(--q-bg-2);
+  cursor: pointer;
+  transition: border-color var(--q-mo-fast) var(--q-ease), background-color var(--q-mo-fast) var(--q-ease);
+}
+.th-skin:hover { border-color: var(--q-accent-line); background: var(--q-bg-nav-hover); }
+.th-skin:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
+.th-skin.is-on { border-color: var(--q-accent); background: var(--q-accent-soft); }
+
+/* 缩略预览：纯 CSS 画的小界面示意（不用截图，永远和当前配色同步） */
+.th-skin-preview {
+  flex: 0 0 auto;
+  width: 86px;
+  height: 60px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--q-r-sm);
+  border: 1px solid var(--q-line-1);
+  background: var(--q-bg-base);
+}
+.th-pv-row { height: 11px; flex: 0 0 auto; background: var(--q-bg-3, var(--q-bg-2)); }
+.th-pv-body { flex: 1 1 auto; display: flex; min-height: 0; }
+.th-pv-side { flex: 0 0 22px; display: flex; flex-direction: column; gap: 2px; padding: 3px; }
+.th-pv-main { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; padding: 4px; }
+.th-pv-bar { height: 4px; border-radius: 1px; background: var(--q-line-2, var(--q-line-1)); }
+.th-pv-bar.th-pv-on { background: var(--q-accent); }
+.th-pv-card { flex: 1 1 auto; border-radius: 2px; background: var(--q-bg-1); border: 1px solid var(--q-line-1); }
+/* MC 预览：方块化的色块，草绿 + 泥土棕，示意"像素风" */
+.th-prev-minecraft .th-pv-blk { height: 5px; background: var(--q-line-1); }
+.th-prev-minecraft .th-pv-blk.th-pv-on { background: var(--q-mc-grass, #6aa84f); }
+.th-prev-minecraft .th-pv-top { background: var(--q-mc-grass, #6aa84f); }
+.th-prev-minecraft .th-pv-side { background: var(--q-mc-dirt, #8b6b45); }
+.th-prev-minecraft .th-pv-main { background: var(--q-mc-stone, #c6c6c6); }
+
+.th-skin-text { display: flex; flex-direction: column; gap: 3px; justify-content: center; min-width: 0; }
+.th-skin-name { font-size: 13px; font-weight: 650; color: var(--q-fg); display: flex; align-items: center; gap: 6px; }
+.th-skin-desc { font-size: 11.5px; color: var(--q-fg-3); line-height: 1.5; }
+.th-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--q-r-full);
+  background: var(--q-accent);
+  color: #fff;
+}
+
+/* 亮度档：分段控件，与 dashboard 的区间选择器同一套观感（保持全站一致） */
+.th-modes {
+  display: inline-flex;
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-2);
+  overflow: hidden;
+}
+.th-mode {
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--q-fg-3);
+  cursor: pointer;
+  transition: background-color var(--q-mo-fast) var(--q-ease), color var(--q-mo-fast) var(--q-ease);
+}
+.th-mode + .th-mode { border-left: 1px solid var(--q-line-1); }
+.th-mode:hover { background: var(--q-bg-nav-hover); color: var(--q-fg); }
+.th-mode:focus-visible { outline: 2px solid var(--q-accent); outline-offset: -2px; }
+.th-mode.is-on { background: var(--q-accent); color: #fff; font-weight: 600; }
+
+.th-note {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--q-fg-3);
+}
+.th-note code {
+  font-family: var(--q-font-code);
+  background: var(--q-bg-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* 二级设置里的字段行：标签 | 控件 | 读数 */
+.th-sub { padding-top: 4px; }
+.th-sub-last { padding-bottom: 2px; }
+.th-field {
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 8px;
+  border-radius: var(--q-r-md);
+}
+.th-field:hover { background: var(--q-bg-2); }
+.th-field-block { grid-template-columns: minmax(120px, 180px) minmax(0, 1fr); align-items: start; }
+.th-field-label { font-size: 12.5px; color: var(--q-fg); }
+.th-field-label small { display: block; font-size: 11px; color: var(--q-fg-3); font-weight: 400; }
+.th-field-val { font-size: 11.5px; color: var(--q-fg-3); text-align: right; font-variant-numeric: tabular-nums; }
+
+.th-range { width: 100%; accent-color: var(--q-accent); }
+.th-select {
+  width: 100%;
+  max-width: 280px;
+  font-size: 12px;
+  padding: 5px 8px;
+  color: var(--q-fg);
+  background: var(--q-bg-1);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-sm);
+}
+
+/* 背景缩略图选择 */
+.th-bgs { display: flex; flex-wrap: wrap; gap: 8px; }
+.th-bg {
+  width: 96px;
+  height: 54px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--q-line-1);
+  border-radius: var(--q-r-sm);
+  background: var(--q-bg-2);
+  cursor: pointer;
+  transition: border-color var(--q-mo-fast) var(--q-ease), transform var(--q-mo-fast) var(--q-ease);
+}
+.th-bg:hover { border-color: var(--q-accent-line); transform: translateY(-1px); }
+.th-bg.is-on { border-color: var(--q-accent); }
+.th-bg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ═══ ② Minecraft 皮肤 ═══════════════════════════════════════════════════ */
+
+/* 皮肤自带的调色板。放在 :root 上是为了让"缩略预览"也能取到这几个色
+   （预览块在设置页里，那时皮肤可能还没被选中）。 */
+:root {
+  --q-mc-grass: #6aa84f;
+  --q-mc-dirt: #8b6b45;
+  --q-mc-stone: #c6c6c6;
+  --q-mc-stone-dark: #8f8f8f;
+  --q-mc-wood: #9c7a4a;
+  --q-mc-wood-dark: #6b5432;
+  --q-mc-slot: #1e1e1f;
+  --q-mc-slot-edge: #0d0d0e;
+  --q-mc-panel: #c6c6c6;
+  --q-mc-panel-edge: #565656;
+  --q-mc-text: #2b2b2b;
+  --q-mc-text-dim: #555;
+  --q-mc-gold: #fcd34d;
+}
+
+/* ── 亮色：MC 的"石头 GUI"配色 ────────────────────────────────────────────
+   Minecraft 的背包/工作台界面就是这套：石灰面板 + 深灰边框 + 深色字。
+   之所以能直接当亮色主题用：它天然是高对比浅色面板，
+   正文放上去可读性和默认亮色皮肤是一个量级。 */
+html[data-skin='minecraft'][data-theme='light'] {
+  /**
+   * ⚠️ 这组值在 2026-10-06 整体**提亮过一档**。
+   *    用户反馈："Minecraft 主题的亮色模式有点灰蒙蒙的。"
+   *    原来 base=#d8d8d8 / bg1=#c6c6c6 是照 MC 经典 GUI 的"深灰石板"取的，
+   *    但用在整个应用界面上时，大面积中灰 + 中灰卡片会显得又闷又脏。
+   *    现在 base 提到 #ebebeb、卡片面提到 #f6f6f6（**比底更亮**，卡片浮起来），
+   *    线条仍保持中性灰以便与像素边框配合。
+   *    与 MC 原版 GUI 的"石板灰"确实有差别，但可读性与观感优先。
+   */
+  --q-bg-base: #ebebeb;
+  --q-bg-1: #f6f6f6;
+  --q-bg-2: #e2e2e2;
+  --q-bg-3: #d2d2d2;
+  --q-line-1: #c2c2c2;
+  --q-line-2: #9e9e9e;
+  --q-fg: #1f1f1f;
+  --q-fg-2: #3a3a3a;
+  --q-fg-3: #5c5c5c;
+  --q-accent: #2f7d32;
+  --q-accent-hi: #3d9440;
+  --q-accent-soft: #b9dcba;
+  --q-accent-line: #4e8b51;
+  --q-bg-sidebar: #f6f6f6;
+  --q-bg-nav-hover: #e4e4e4;
+  --q-ok: #2f7d32;
+  --q-warn: #8a6a12;
+  --q-warn-soft: #e2cf9a;
+  --q-ok-soft: #a9d3aa;
+  --q-danger: #9c3a2f;
+  --q-danger-soft: #dcb0aa;
+  --q-notice-bg: #b4762a;
+  --q-notice-badge: #141414;
+  /* 顶栏与导航栏同色（用户 2026-10-06 要求），见 02-titlebar.css 的令牌说明 */
+  --q-bg-titlebar: #f6f6f6;
+  /* 像素风：直角。MC 的 GUI 里没有圆角。 */
+  --q-r-xs: 0px;
+  --q-r-sm: 0px;
+  --q-r-md: 0px;
+  --q-r-lg: 0px;
+  --q-r-full: 0px;
+}
+
+/* ── 暗色：MC 的"洞穴 / 夜晚"配色 ────────────────────────────────────────
+   深灰石板 + 金色点缀（火把光）。这是 MC 皮肤**自带**的暗色，
+   与默认皮肤的暗色无关 —— 可读性按正文对比度校验过。 */
+html[data-skin='minecraft'][data-theme='dark'] {
+  --q-bg-base: #1a1a1c;
+  --q-bg-1: #26262a;
+  --q-bg-2: #303036;
+  --q-bg-3: #3b3b42;
+  --q-line-1: #4a4a52;
+  --q-line-2: #5c5c66;
+  --q-fg: #e6e6e6;
+  --q-fg-2: #cfcfcf;
+  --q-fg-3: #a6a6ad;
+  --q-accent: #5bbd5f;
+  --q-accent-hi: #74d378;
+  --q-accent-soft: #2f4b31;
+  --q-accent-line: #417a44;
+  --q-bg-sidebar: #26262a;
+  --q-bg-nav-hover: #35353b;
+  /* 顶栏与导航栏同色（同亮色区的说明） */
+  --q-bg-titlebar: #26262a;
+  --q-ok: #5bbd5f;
+  --q-warn: #e0b34a;
+  --q-warn-soft: #4a3d1c;
+  --q-ok-soft: #2b452c;
+  --q-danger: #e07a6c;
+  --q-danger-soft: #4a2924;
+  --q-notice-bg: #c9821c;
+  --q-notice-badge: #0f0f10;
+  --q-r-xs: 0px;
+  --q-r-sm: 0px;
+  --q-r-md: 0px;
+  --q-r-lg: 0px;
+  --q-r-full: 0px;
+}
+
+/* ── 像素化边框质感 ──────────────────────────────────────────────────────
+   MC 的 GUI 元素是"凸起/凹陷"的立体块：上左亮、下右暗。
+   用 box-shadow 的 inset 组合模拟，比 border 更像（border 四边同色就没有立体感）。 */
+html[data-skin='minecraft'] .setcard,
+html[data-skin='minecraft'] .dash-card,
+html[data-skin='minecraft'] .dash-box,
+html[data-skin='minecraft'] .market-card {
+  border: 2px solid var(--q-mc-panel-edge);
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.35), inset -2px -2px 0 rgba(0, 0, 0, 0.22);
+}
+html[data-skin='minecraft'][data-theme='dark'] .setcard,
+html[data-skin='minecraft'][data-theme='dark'] .dash-card,
+html[data-skin='minecraft'][data-theme='dark'] .dash-box,
+html[data-skin='minecraft'][data-theme='dark'] .market-card {
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.07), inset -2px -2px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* 按钮：凹陷槽 + 悬停凸起（MC 里按钮按下的视觉就是"槽"） */
+html[data-skin='minecraft'] .btn {
+  border: 2px solid var(--q-mc-panel-edge);
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.3), inset -2px -2px 0 rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+}
+html[data-skin='minecraft'] .btn:active {
+  box-shadow: inset -2px -2px 0 rgba(255, 255, 255, 0.25), inset 2px 2px 0 rgba(0, 0, 0, 0.28);
+}
+
+/* 输入框：MC 的输入槽是纯黑底 + 深色描边 */
+html[data-skin='minecraft'] input[type='text'],
+html[data-skin='minecraft'] input[type='number'],
+html[data-skin='minecraft'] input[type='password'],
+html[data-skin='minecraft'] textarea,
+html[data-skin='minecraft'] select {
+  background: var(--q-mc-slot);
+  color: #e8e8e8;
+  border: 2px solid var(--q-mc-slot-edge);
+}
+html[data-skin='minecraft'] input::placeholder,
+html[data-skin='minecraft'] textarea::placeholder { color: #7a7a7a; }
+
+/* 内容区背景：MC 皮肤下允许铺背景图（透明度由 --mc-bg-opacity 控制）。
+   只在 data-mc-bg='on' 且已选到图时生效 —— 没有图就不画，避免出现一层灰。
+   `--mc-bg-image` 由 02-mc-theme.js 写到根元素（选了哪张就写哪张的 url）。
+
+   ⚠️ 只把图画在 #layout 上是**看不见的**：
+      .q-main 里的卡片、以及 #q-shell 的底色都是不透明的，
+      它们会把图完全盖住（实测浅色/深色截图里都看不到背景）。
+      所以还要做两件事才让"背景图"这个功能真正成立：
+        ① 把承载内容的"面"（shell / 主区 / 卡片 / 侧栏 / 工具栏）调成半透明；
+        ② 深色模式下让图**压暗**（multiply 混合），否则亮图会把暗色界面顶花。 */
+html[data-skin='minecraft'][data-mc-bg='on'] {
+  /* ⚠️ 遮罩厚度由 JS 算好写进来（--mc-mask = 1 − 透明度），不在这里用 calc。
+     理由见 02-mc-theme.js 的 applyToDocument：
+     getComputedStyle 不求解含 var 的 calc() 自定义属性，会原样返回字符串，
+     使"透明度方向"无法验证 —— 而这里确实踩过一次反向。
+     「透明度 35%」= 图可见度 35% = 同色遮罩盖 65%。 */
+  --mc-mask: 0.65;
+  /* 承载内容的"面"的透出程度：让底下的图能被看见。
+     0.62 是试出来的平衡点：
+       · 再低（0.45 试过）→ 图从卡片里透出来，浅色模式下数字/标签的对比度
+         被背景的明暗斑块干扰，"信息可辨"这条守不住（实测截图里卡片内能看到背景纹理）；
+       · 再高（0.8）→ 表面几乎不透，只有卡片之间的缝隙能看到图，
+         "背景图"这个功能就形同虚设。
+     固定值而非跟透明度联动：它控制"界面自身让多少"，用户调的是"图有多少"，
+     两者相乘才是最终可见度。给固定值让"调透明度"的效果线性可预期。 */
+  --mc-surface-alpha: 0.62;
+}
+
+/* ── 把各个"面"变半透明 ──────────────────────────────────────────────────
+   这几条是背景图能否被看见的关键，不是装饰。
+   用 `:where()` 把特指度压到最低（0），这样任何既有规则都能覆盖它 ——
+   避免"皮肤把某个地方弄花了却很难改回去"。 */
+html[data-skin='minecraft'][data-mc-bg='on'] :where(#q-shell, .q-main, #layout, .q-body, .q-sidebar, .q-tb-status, .view, #topbar.q-titlebar) {
+  background-color: color-mix(in srgb, var(--q-bg-1) calc(var(--mc-surface-alpha) * 100%), transparent);
+}
+html[data-skin='minecraft'][data-mc-bg='on'] :where(.setcard, .dash-card, .dash-box, .market-card, .list-pane, .settings-sidebar, .q-side-foot) {
+  background-color: color-mix(in srgb, var(--q-bg-1) calc(var(--mc-surface-alpha) * 100%), transparent);
+}
+/* 正文底（.dash-pane 等）本来是最深的那层，也让它透 */
+html[data-skin='minecraft'][data-mc-bg='on'] :where(.dash-pane) {
+  background-color: color-mix(in srgb, var(--q-bg-base) 30%, transparent);
+}
+
+html[data-skin='minecraft'][data-mc-bg='on'] #layout,
+html[data-skin='minecraft'][data-mc-bg='on'] .q-main {
+  background-image: var(--mc-bg-image, none);
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+/* 背景图之上叠一层同色半透明遮罩：这样"图可见"与"字可读"能同时成立。
+   用 linear-gradient 叠而不是 background-color：
+   background-color 会被 background-image 盖住（图片在上层），
+   而 gradient 是"图层"，可以和图片按顺序叠。 */
+html[data-skin='minecraft'][data-mc-bg='on'][data-theme='light'] #layout,
+html[data-skin='minecraft'][data-mc-bg='on'][data-theme='light'] .q-main {
+  background-image:
+    linear-gradient(rgba(216, 216, 216, var(--mc-mask)), rgba(216, 216, 216, var(--mc-mask))),
+    var(--mc-bg-image, none);
+}
+/* 深色模式：图必须**压暗**，否则一张明亮的日间截图会把暗色界面顶得发花。
+   multiply 让图与底色相乘 → 亮的变暗、暗的仍暗，整张图落进暗色调里。 */
+html[data-skin='minecraft'][data-mc-bg='on'][data-theme='dark'] #layout,
+html[data-skin='minecraft'][data-mc-bg='on'][data-theme='dark'] .q-main {
+  background-image:
+    linear-gradient(rgba(22, 22, 24, var(--mc-mask)), rgba(22, 22, 24, var(--mc-mask))),
+    var(--mc-bg-image, none);
+  background-blend-mode: multiply, normal;
+  background-color: rgba(22, 22, 24, 0.75);
+}
+
+/* 字体：MC 皮肤默认用打包进来的字体（见本文件顶部的 @font-face）。 */
+html[data-skin='minecraft'][data-mc-font='on'] body {
+  font-family: var(--q-font-mc);
+}
+
+/* ── MC 皮肤下的正文：字号 +1px、加一点字距、略降对比度（2026-10-05）────────
+   用户反馈："英文和数字能否细一些，太粗了堆在一块，可读性下降很多"。
+
+   像素字体**只有一档字重**（打包的 TTF 只有一个 weight，`font-weight:300`
+   合成不出更细的笔画 —— 实测对比图里 300 与 400 完全一样），所以"变细"这条路
+   走不通。真正的问题也不是笔画粗细，而是**字距为 0 时数字串糊成一片**：
+   `100,673,301` 这种长数字在小字号 + 无字距下几乎读不出来。
+
+   三件事按"实测对照图"选出来的组合（tools/probe-font-weight.mjs）：
+     · 字号 14 → 15px：同样的笔画宽度占的比例下降，视觉上更轻；
+     · 字距 +0.3px：数字与字母之间留出气口，长数字串一眼可辨（这是关键一条）；
+     · 前景 #e6e6e6 → #d0d0d0（仅深色）：纯白像素字在深底上"压得慌"。
+   浅色皮肤下前景不动 —— 深灰字在石灰底上本来就是合适的对比度。
+   ⚠️ 用 :where() 把特指度压到 0，任何既有规则都能覆盖它，不会把别的组件弄花。 */
+html[data-skin='minecraft'] :where(body) {
+  font-size: 15px;
+  letter-spacing: 0.3px;
+}
+/* 数字与字母最密集的地方（表格/读数/金额）再多给一点点 */
+html[data-skin='minecraft'] :where(.db-value, .db-sub, .dc-ytick, .usage-num, td, th, code, pre) {
+  letter-spacing: 0.4px;
+}
+/* 深色：把纯白压下来一档 */
+html[data-skin='minecraft'][data-theme='dark'] :where(body) {
+  color: #d0d0d0;
+}
+
+/* ── Beta 提示条：跟随主题换字体（2026-10-05 用户要求）─────────────────────
+   用户原话："MC 主题的 Beta 测试栏位可以换成 MC 同款字体，跟着主题走是没问题的，
+              默认改回原有宋体（现在的感叹号标志和字体信息等等保存到默认的主题中）"。
+
+   怎么做：`--q-font-tarkov` 是 Beta 提示条专用字体变量（默认皮肤下 = Bender + 宋体，
+   见 00-tokens.css 与 21-dashboard.css 的说明）。**只在 MC 皮肤下覆盖这一个变量**，
+   于是：
+     · 默认皮肤 → 仍是 Bender + 宋体，感叹号徽章、字号、字距等全部原样不动；
+     · Minecraft 皮肤 → 换成 MC 字体（拉丁 + 汉字两份串联）。
+   这是最小改动面：不需要动 21-dashboard.css 里那一整套为宋体调过的字号/字距，
+   它们对 MC 字体同样适用（都是像素/点阵风，对整数 px 缩放敏感）。
+   ⚠️ 徽章（.dash-beta-badge 的六边形 + 感叹号）是 SVG，不受字体影响，
+      所以"感叹号标志"在两个主题下都保持原样 —— 正是用户要的"保存到默认的主题中"。 */
+html[data-skin='minecraft'] {
+  --q-font-tarkov: var(--q-font-mc);
+}
+
+/* ═══ ③ 拉杆开关（第 5 段）═══════════════════════════════════════════════
+   需求："开关功能采用拉杆，木质/石质按钮开关"。
+   MC 的拉杆结构：一块石座（底板）+ 一根木杆 + 杆顶的握把。
+   开 = 杆向右倾、红石亮起；关 = 杆向左倾、暗。
+   实现上**不换 DOM**，只用 CSS 把原来的 checkbox 视觉替换掉 ——
+   这样所有既有逻辑（change 事件、checked 状态、label 关联）全部照旧，
+   零风险。checkbox 本体 opacity:0 但仍在原位，可点、可聚焦、可用键盘。 */
+html[data-skin='minecraft'] input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 34px;
+  height: 18px;
+  margin: 0 2px 0 0;
+  vertical-align: middle;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+/* 石座底板 */
+html[data-skin='minecraft'] input[type='checkbox']::before {
+  content: '';
+  position: absolute;
+  inset: 6px 0 0 0;
+  height: 12px;
+  background: #8f8f8f;
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.35), inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+}
+/* 木质拉杆 + 顶端握把 */
+html[data-skin='minecraft'] input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 16px;
+  top: 0;
+  left: 3px;
+  background: linear-gradient(#b08c58, #8b6b45 45%, #6b5432);
+  box-shadow: -1px 0 0 rgba(0, 0, 0, 0.35);
+  transform-origin: 4px 14px;
+  transform: rotate(-38deg);
+  transition: transform var(--q-mo-base) var(--q-ease-out);
+}
+html[data-skin='minecraft'] input[type='checkbox']:checked::after {
+  transform: rotate(38deg);
+}
+/* 开态：底板透出一点红石光（MC 拉杆开启的视觉信号） */
+html[data-skin='minecraft'] input[type='checkbox']:checked::before {
+  background: #a0522d;
+  box-shadow: inset 2px 2px 0 rgba(255, 200, 160, 0.4), inset -2px -2px 0 rgba(0, 0, 0, 0.3), 0 0 6px rgba(220, 90, 40, 0.55);
+}
+html[data-skin='minecraft'] input[type='checkbox']:focus-visible::before {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 2px;
+}
+html[data-skin='minecraft'] input[type='checkbox']:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 拉杆需要一点左侧留白，否则握把会压到前面的文字 */
+html[data-skin='minecraft'] .checkbox-row { display: flex; align-items: center; gap: 9px; }
+html[data-skin='minecraft'] .checkbox-row label { cursor: pointer; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   开关（.switch）在 MC 皮肤下也要变成**拉杆**，和二级设置里的一致。
+
+   起因（用户原话）："所有开关都应该用二级设置中的小拉杆形式（包括动效），
+   如图一所示的开关仍然为原版，极度违和。"
+
+   为什么原来不是：MC 的拉杆样式是画在 **`input[type=checkbox]` 自身**上的
+   （`::before` 石座 + `::after` 木杆，见上面那段）。而 `.switch` 组件把它的
+   复选框**视觉隐藏**了（`opacity:0; width:0; height:0`，见 40-market.css），
+   显示的其实是 `.track` + `.thumb` —— 所以拉杆根本画不出来，
+   落回默认的"胶囊 + 圆点"，和旁边的真拉杆放在一起就非常违和。
+
+   做法：把 `.track` 当石座、`.thumb` 当木杆，只做平移（左右各 8px 为"推/拉"），
+   视觉语言与真拉杆一致（灰石凹槽 + 木色握把 + 开态红石光）。
+   ⚠️ 只做平移不做旋转：像真拉杆那样绕底端转 38° 会把握把甩出 22px 高的轨道，
+      在卡头那种紧凑行里会盖到旁边的文字，得不偿失。
+
+   选择器带 `html[data-skin=…]` 前缀是**必须**的：40-market.css 里的
+   `.switch .track` 是普通类选择器，特指度 (0,2,0)，裸写同名规则压不过它。
+   ══════════════════════════════════════════════════════════════════════════ */
+html[data-skin='minecraft'] .switch .track {
+  width: 30px;
+  height: 18px;
+  border-radius: 0;
+  background: #8f8f8f;
+  border: 0;
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.35), inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+  transition: background-color var(--q-mo-base) var(--q-ease), box-shadow var(--q-mo-base) var(--q-ease);
+}
+html[data-skin='minecraft'] .switch .thumb {
+  top: 1px;
+  left: 1px;
+  width: 8px;
+  height: 16px;
+  border-radius: 0;
+  background: linear-gradient(#b08c58, #8b6b45 45%, #6b5432);
+  box-shadow: -1px 0 0 rgba(0, 0, 0, 0.35);
+  transition: transform var(--q-mo-base) var(--q-ease-out), background var(--q-mo-base) var(--q-ease);
+}
+/* 开态：石座透出红石光，木杆被推到右端 */
+html[data-skin='minecraft'] .switch input:checked ~ .track {
+  background: #a0522d;
+  border-color: transparent;
+  box-shadow: inset 2px 2px 0 rgba(255, 200, 160, 0.4), inset -2px -2px 0 rgba(0, 0, 0, 0.3), 0 0 6px rgba(220, 90, 40, 0.55);
+}
+html[data-skin='minecraft'] .switch input:checked ~ .track .thumb { transform: translateX(20px); background: linear-gradient(#c39a63, #9a774c 45%, #775c37); }
+html[data-skin='minecraft'] .switch input:focus-visible ~ .track { outline: 2px solid var(--q-accent); outline-offset: 2px; }
+html[data-skin='minecraft'] .switch input:disabled ~ .track { opacity: 0.5; }
+
+
+/* ── 滑条：MC 的滑条是"凹槽 + 方钮" ───────────────────────────────────── */
+html[data-skin='minecraft'] input[type='range'] {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+html[data-skin='minecraft'] input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  background: #2a2a2c;
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.6), inset -1px -1px 0 rgba(255, 255, 255, 0.12);
+}
+html[data-skin='minecraft'] input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 18px;
+  margin-top: -6px;
+  background: linear-gradient(#c6c6c6, #8f8f8f);
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.5), inset -2px -2px 0 rgba(0, 0, 0, 0.35);
+}
+html[data-skin='minecraft'] input[type='range']:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--q-accent);
+}
+
+/* 滚动条也方块化（MC 里没有圆角滚动条） */
+html[data-skin='minecraft'] * { scrollbar-color: #8f8f8f #c6c6c6; }
+html[data-skin='minecraft'][data-theme='dark'] * { scrollbar-color: #565656 #26262a; }

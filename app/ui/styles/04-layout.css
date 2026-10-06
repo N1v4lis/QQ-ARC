@@ -1,0 +1,250 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   04-layout.css — 内容区骨架
+   ═══════════════════════════════════════════════════════════════════════════
+   移植逻辑对布局的硬约定（一条都不能违反）：
+     · #layout 里放 .view；.view.active 才显示 —— 由 01-motion.css 管
+     · 每个 .view 内部自己决定分栏：#view-sessions/#view-chats/#view-memory
+       是「左列表 + 右详情」，其余是单栏
+     · 列表宽度由 .list-resizer 拖动，最终写到 --list-w（12-concept2-ui.js 负责）
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.q-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: var(--q-bg-base);
+}
+
+/* 视图本身撑满内容区 */
+.q-main > .view { flex: 1 1 auto; min-height: 0; min-width: 0; }
+
+/* ── 列表 + 详情 两栏视图 ───────────────────────────────────────────────── */
+#view-sessions, #view-chats, #view-memory { flex-direction: row; }
+
+.list-pane {
+  flex: 0 0 auto;
+  width: var(--list-w, 300px);
+  min-width: 210px;
+  max-width: 60vw;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+  background: var(--q-bg-base);
+  border-right: 1px solid var(--q-line-1);
+}
+
+.list-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  letter-spacing: 0.4px;
+  text-transform: none;
+  border-bottom: 1px solid var(--q-line-1);
+  background: var(--q-bg-base);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.list-head > span:first-child { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-head-btn {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-family: inherit;
+  border: 1px solid var(--q-line-2);
+  border-radius: var(--q-r-sm);
+  background: var(--q-bg-1);
+  color: var(--q-fg-2);
+  cursor: pointer;
+}
+.list-head-btn:hover { background: var(--q-bg-2); color: var(--q-fg); border-color: var(--q-line-3); }
+
+#session-items, #chat-items, #memory-items {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.list-more { flex: 0 0 auto; padding: 8px 12px; font-size: 11.5px; text-align: center; }
+
+/* 拖动条：默认几乎不可见，悬停时亮起来（不抢视觉但找得到） */
+.list-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 6;
+  background: transparent;
+  transition: background-color var(--q-mo-fast) var(--q-ease);
+}
+.list-resizer:hover, .list-resizer.q-dragging { background: var(--q-accent-line); }
+
+.detail-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: var(--q-bg-base);
+}
+
+.empty-hint {
+  margin: auto;
+  color: var(--q-fg-3);
+  font-size: 13px;
+  padding: 24px;
+  text-align: center;
+  max-width: 420px;
+  line-height: 1.8;
+}
+
+/* ── 单栏视图（用量 / 技能 / 插件 / SnowLuma / 账号）────────────────────── */
+.usage-pane, .snowluma-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px 40px;
+  display: block;
+}
+
+/* 内容最大宽度：DSH 式的"内容有栏宽，不铺满超宽屏" */
+.usage-pane > *, .snowluma-pane > * { max-width: 1100px; margin-left: auto; margin-right: auto; }
+
+/* ── 账号页：由 loadAccountsPage() 直接写入 #view-accounts ──────────────── */
+#view-accounts {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 24px 40px;
+}
+#view-accounts > * { max-width: 1240px; margin-left: auto; margin-right: auto; }
+
+/* ── 设置页：二级导航 + 表单 ────────────────────────────────────────────── */
+#view-settings { flex-direction: row; }
+
+.settings-sidebar {
+  flex: 0 0 auto;
+  width: 216px;
+  min-width: 216px;
+  overflow-y: auto;
+  padding: 14px 10px 24px;
+  border-right: 1px solid var(--q-line-1);
+  background: var(--q-bg-base);
+}
+.settings-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 26px 56px;
+}
+.settings-pane > * { max-width: 1000px; }
+
+/* 设置页二级导航项（06-settings-render.js 生成，这里只做外观） */
+.settings-sidebar .ss-item,
+.settings-sidebar [data-section] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  margin-bottom: 2px;
+  border-radius: var(--q-r-md);
+  color: var(--q-fg-2);
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color var(--q-mo-fast) var(--q-ease), color var(--q-mo-fast) var(--q-ease);
+}
+.settings-sidebar .ss-item:hover,
+.settings-sidebar [data-section]:hover { background: var(--q-bg-nav-hover); color: var(--q-fg); }
+.settings-sidebar .ss-item.active,
+.settings-sidebar [data-section].active {
+  background: var(--q-bg-nav-active);
+  color: var(--q-fg);
+  font-weight: 600;
+  border-color: var(--q-line-2);
+}
+
+/* ── 全局横幅（暂停 / 未连接）────────────────────────────────────────────── */
+.banner {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--q-titlebar-h) + 8px);
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(760px, calc(100vw - 48px));
+  padding: 9px 14px;
+  border-radius: var(--q-r-lg);
+  border: 1px solid var(--q-warn-line);
+  /* 不透明底（不用 backdrop-filter）：banner 是浮在内容上的常驻元素，
+     带模糊会让"每帧都要重算模糊"跟着窗口拖动一起卡。见 20-content.css 的同类说明。 */
+  background: color-mix(in srgb, var(--q-warn) 12%, var(--q-bg-2));
+  color: var(--q-fg);
+  font-size: 12.5px;
+  box-shadow: var(--q-elev-prompt, var(--q-elev-prominent));
+}
+.banner.hidden { display: none; }
+
+/* ── 启动遮罩 ───────────────────────────────────────────────────────────── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--q-bg-base) 88%, transparent);
+  backdrop-filter: blur(3px);
+}
+.loading-overlay.hidden { display: none; }
+.loading-card {
+  width: min(560px, calc(100vw - 48px));
+  padding: 26px 28px;
+  border-radius: var(--q-r-xl);
+  border: 1px solid var(--q-line-2);
+  background: var(--q-bg-1);
+  box-shadow: var(--q-elev-prominent);
+  text-align: center;
+}
+.loading-title { font-size: 16px; font-weight: 650; margin-bottom: 6px; }
+.loading-sub { color: var(--q-fg-2); font-size: 12.5px; margin-bottom: 18px; }
+.loading-spinner {
+  width: 26px;
+  height: 26px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 2px solid var(--q-line-3);
+  border-top-color: var(--q-accent);
+}
+.loading-logs {
+  margin: 18px 0 0;
+  max-height: 160px;
+  overflow: auto;
+  text-align: left;
+  font-family: var(--q-font-code);
+  font-size: 11px;
+  color: var(--q-fg-3);
+  background: var(--q-bg-base);
+  border-radius: var(--q-r-md);
+  padding: 10px 12px;
+  white-space: pre-wrap;
+}
+
+/* ── 通用小工具 ─────────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+.muted { color: var(--q-fg-2); }

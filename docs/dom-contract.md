@@ -1,0 +1,264 @@
+﻿# 新 UI 的 DOM 契约（自动生成，勿手改）
+
+生成命令：`node tools/extract-dom-contract.mjs > docs/dom-contract.md`
+
+规则：`app/ui/app/*.js` 是从线上控制台**原样移植**过来的逻辑层。
+新壳（index.html）与新版 CSS 必须让下面每个选择器都能解析到语义相同的节点；
+做不到的地方必须在 `docs/port-deviations.md` 里逐条登记，不能默默改行为。
+
+## $() / $$() 选择器（176）
+
+- `.category-checkbox` — 07-settings-events.js
+- `.chat-item` — 04-archive-usage.js, 05-memory-settings.js
+- `.hc-fix-btn` — 07-settings-events.js
+- `.mem-del-chat` — 05-memory-settings.js
+- `.mem-del-imp` — 05-memory-settings.js
+- `.mem-edit-imp` — 05-memory-settings.js
+- `.mem-refresh-imp` — 05-memory-settings.js
+- `.model-modal-overlay` — 08-modals.js
+- `.persona-chat-btn` — 07-settings-events.js
+- `.prompt-preview-content` — 06-settings-render.js
+- `.session-abort-btn` — 02-sse-sessions.js
+- `.session-item` — 02-sse-sessions.js
+- `.session-retry-btn` — 02-sse-sessions.js
+- `.session-wait[data-until]` — 02-sse-sessions.js
+- `.skill-toggle` — 07-settings-events.js
+- `.tab` — 00-core.js, 11-init.js
+- `.tool-category-header` — 07-settings-events.js
+- `.tool-checkbox` — 07-settings-events.js
+- `.vbadge` — 07-settings-events.js
+- `.view` — 00-core.js
+- `.view.active` — 00-core.js
+- `#ac-editor` — 07-settings-events.js
+- `#add-fallback-row-btn` — 07-settings-events.js
+- `#add-search-provider-btn` — 07-settings-events.js
+- `#add-search-provider-hint` — 07-settings-events.js
+- `#apibychat-rows` — 07-settings-events.js
+- `#app-log-level` — 03-snowluma.js
+- `#app-logs-refresh-btn` — 03-snowluma.js
+- `#banner` — 00-core.js
+- `#banner-resume-btn` — 00-core.js
+- `#banner-resume-read-btn` — 00-core.js
+- `#batch-price-btn` — 07-settings-events.js
+- `#blocklist-btn` — 07-settings-events.js
+- `#cfg-allowallwhenempty` — 08-modals.js
+- `#cfg-baseurl-value` — 07-settings-events.js
+- `#cfg-custom-sp-key` — 07-settings-events.js
+- `#cfg-custom-sp-key-toggle` — 07-settings-events.js
+- `#cfg-customrules` — 07-settings-events.js, 08-modals.js
+- `#cfg-mem-model` — 08-modals.js
+- `#cfg-mem-model-pick` — 07-settings-events.js
+- `#cfg-mem-provider` — 08-modals.js
+- `#cfg-mem-usechat` — 07-settings-events.js, 08-modals.js
+- `#cfg-model` — 05-memory-settings.js, 07-settings-events.js, 08-modals.js
+- `#cfg-persona-pick` — 07-settings-events.js, 08-modals.js
+- `#cfg-persona-unified` — 07-settings-events.js
+- `#cfg-price-cached` — 05-memory-settings.js
+- `#cfg-price-in` — 05-memory-settings.js
+- `#cfg-price-out` — 05-memory-settings.js
+- `#cfg-roletext` — 07-settings-events.js, 08-modals.js
+- `#cfg-searchprovider` — 07-settings-events.js
+- `#cfg-tools-enabled` — 07-settings-events.js
+- `#cfg-useofficialprice` — 05-memory-settings.js, 07-settings-events.js, 08-modals.js
+- `#chat-clear-btn` — 04-archive-usage.js
+- `#chat-del-bar` — 04-archive-usage.js
+- `#chat-del-cancel-btn` — 04-archive-usage.js
+- `#chat-del-confirm-btn` — 04-archive-usage.js
+- `#chat-del-count` — 04-archive-usage.js
+- `#chat-del-mode-btn` — 04-archive-usage.js
+- `#chat-detail` — 04-archive-usage.js
+- `#chat-items` — 04-archive-usage.js
+- `#chat-msg-body` — 04-archive-usage.js
+- `#chat-msg-more` — 04-archive-usage.js
+- `#chat-testsend-btn` — 04-archive-usage.js
+- `#check-update-btn` — 07-settings-events.js
+- `#custom-provider-manage` — 07-settings-events.js
+- `#del-persona-btn` — 07-settings-events.js
+- `#del-search-provider-btn` — 07-settings-events.js
+- `#fallback-model-rows` — 07-settings-events.js
+- `#fallback-model-rows .fb-model-pick` — 08-modals.js
+- `#feedback-btn` — 10-feedback.js
+- `#json-mode-btn` — 02-sse-sessions.js
+- `#loading-logs` — 00-core.js
+- `#loading-overlay` — 00-core.js
+- `#loading-status` — 00-core.js
+- `#mc-apikey` — 07-settings-events.js
+- `#mc-baseurl` — 07-settings-events.js
+- `#mc-model-pick` — 07-settings-events.js
+- `#mc-vision-hint` — 02-sse-sessions.js
+- `#mem-add-imp-btn` — 05-memory-settings.js
+- `#mem-consolidate-btn` — 02-sse-sessions.js, 05-memory-settings.js
+- `#mem-consolidate-status` — 02-sse-sessions.js, 05-memory-settings.js
+- `#mem-load-members-btn` — 05-memory-settings.js
+- `#mem-members` — 05-memory-settings.js
+- `#mem-members-status` — 05-memory-settings.js
+- `#mem-model-box` — 07-settings-events.js
+- `#mem-model-hint` — 08-modals.js
+- `#memory-detail` — 05-memory-settings.js
+- `#memory-items` — 05-memory-settings.js
+- `#mi-imps` — 05-memory-settings.js
+- `#mi-name` — 05-memory-settings.js
+- `#mi-nickname` — 05-memory-settings.js
+- `#mi-note` — 05-memory-settings.js
+- `#mi-qq` — 05-memory-settings.js
+- `#mn-note` — 05-memory-settings.js
+- `#model-label` — 01-boot.js, 08-modals.js, 11-init.js
+- `#model-price-card` — 05-memory-settings.js
+- `#model-vision-hint` — 07-settings-events.js
+- `#new-persona-btn` — 07-settings-events.js
+- `#new-sp-apikey` — 07-settings-events.js
+- `#new-sp-baseurl` — 07-settings-events.js
+- `#new-sp-model` — 07-settings-events.js
+- `#new-sp-name` — 07-settings-events.js
+- `#new-sp-type` — 07-settings-events.js
+- `#onebot-dot` — 01-boot.js
+- `#onebot-label` — 01-boot.js
+- `#open-datadir-btn` — 07-settings-events.js
+- `#open-global-persona-btn` — 07-settings-events.js
+- `#open-model-config-btn` — 07-settings-events.js
+- `#open-model-manage-btn` — 07-settings-events.js
+- `#open-site-btn` — 10-feedback.js
+- `#open-snowluma-btn` — 07-settings-events.js
+- `#pause-btn` — 01-boot.js
+- `#pc-model` — 05-memory-settings.js
+- `#pc-note` — 05-memory-settings.js
+- `#peak-preset-hint` — 00-core.js
+- `#persona-perchat-box` — 07-settings-events.js
+- `#persona-pick-hint` — 07-settings-events.js, 08-modals.js
+- `#persona-plaza-btn` — 10-feedback.js
+- `#persona-unified-box` — 07-settings-events.js
+- `#pick-apply` — 08-modals.js
+- `#pick-cancel` — 08-modals.js
+- `#pick-friends-btn` — 07-settings-events.js
+- `#pick-groups-btn` — 07-settings-events.js
+- `#pick-result` — 08-modals.js
+- `#plugin-market-btn` — 10-feedback.js
+- `#price-feed-refresh-btn` — 07-settings-events.js
+- `#price-feed-status` — 05-memory-settings.js, 07-settings-events.js
+- `#provider-hint` — 05-memory-settings.js, 08-modals.js
+- `#qq-hint` — 03-snowluma.js
+- `#qq-start-btn` — 03-snowluma.js
+- `#qq-stop-btn` — 03-snowluma.js
+- `#quick-start-btn` — 03-snowluma.js, 07-settings-events.js
+- `#quick-start-hint` — 03-snowluma.js
+- `#quote-btn` — 10-feedback.js
+- `#quote-confirm-btn` — 10-feedback.js
+- `#readiness-dots .rdot` — 01-boot.js
+- `#reset-data-btn` — 07-settings-events.js
+- `#reset-data-hint` — 07-settings-events.js
+- `#search-count-label` — 01-boot.js
+- `#search-provider-action-hint` — 07-settings-events.js
+- `#session-broadcast-btn` — 10-feedback.js
+- `#session-clear-btn` — 10-feedback.js
+- `#session-count` — 02-sse-sessions.js
+- `#session-delete-btn` — 02-sse-sessions.js
+- `#session-detail` — 02-sse-sessions.js, 10-feedback.js
+- `#session-items` — 02-sse-sessions.js
+- `#session-more` — 02-sse-sessions.js
+- `#settings-form` — 06-settings-render.js, 07-settings-events.js
+- `#settings-sidebar` — 06-settings-render.js
+- `#skill-market-btn` — 10-feedback.js
+- `#skills-cleanup-btn` — 06-settings-render.js
+- `#sl-hint` — 03-snowluma.js
+- `#sl-open-folder-btn` — 03-snowluma.js
+- `#sl-open-webui-btn` — 03-snowluma.js
+- `#sl-refresh-btn` — 03-snowluma.js
+- `#sl-start-btn` — 03-snowluma.js
+- `#sl-stop-btn` — 03-snowluma.js
+- `#snowluma-hint` — 07-settings-events.js
+- `#snowluma-page` — 03-snowluma.js
+- `#test-api-btn` — 07-settings-events.js
+- `#test-api-result` — 07-settings-events.js
+- `#test-search-provider-btn` — 07-settings-events.js
+- `#test-send-text` — 04-archive-usage.js
+- `#theme-btn` — 00-core.js, 11-init.js
+- `#theme-picker` — 07-settings-events.js
+- `#tools-disable-all` — 07-settings-events.js
+- `#tools-enable-all` — 07-settings-events.js
+- `#tools-reset` — 07-settings-events.js
+- `#update-current` — 07-settings-events.js
+- `#update-hint` — 07-settings-events.js
+- `#usage-label` — 01-boot.js
+- `#usage-page` — 04-archive-usage.js
+- `#usage-page [data-range]` — 04-archive-usage.js
+- `#usage-page #runs-card` — 04-archive-usage.js
+- `#usage-refresh-btn` — 04-archive-usage.js
+- `input[type=checkbox]:checked` — 08-modals.js
+
+## getElementById（9）
+
+- `account-switch` — 01-boot.js
+- `accounts-add-btn` — 07-settings-events.js
+- `accounts-box` — 07-settings-events.js
+- `accounts-refresh-btn` — 07-settings-events.js
+- `apibychat-rows` — 08-modals.js
+- `persona-unified-box` — 08-modals.js
+- `settings-form` — 12-concept2-ui.js
+- `update-status-text` — 10-feedback.js
+- `view-accounts` — 06-settings-render.js
+
+## 模板串里的动态选择器（需人工确认）（4）
+
+- `#${btnId}` — 07-settings-events.js
+- `#${inputId}` — 07-settings-events.js
+- `#${meta.tab}-add-btn` — 06-settings-render.js
+- `#${meta.tab}-refresh-btn` — 06-settings-render.js
+
+## 现有 index.html 里的 id（重写壳时的对照表）
+
+- `#account-switch`
+- `#banner`
+- `#captcha-element`
+- `#captcha-trigger`
+- `#chat-detail`
+- `#chat-items`
+- `#chat-list`
+- `#chat-list-resizer`
+- `#feedback-btn`
+- `#layout`
+- `#loading-logs`
+- `#loading-overlay`
+- `#loading-status`
+- `#memory-detail`
+- `#memory-items`
+- `#memory-list`
+- `#memory-list-resizer`
+- `#model-label`
+- `#onebot-dot`
+- `#onebot-label`
+- `#open-site-btn`
+- `#pause-btn`
+- `#persona-plaza-btn`
+- `#plugin-market-btn`
+- `#plugins-page`
+- `#quote-btn`
+- `#quote-confirm-btn`
+- `#readiness-dots`
+- `#search-count-label`
+- `#session-broadcast-btn`
+- `#session-clear-btn`
+- `#session-count`
+- `#session-detail`
+- `#session-items`
+- `#session-list`
+- `#session-list-resizer`
+- `#session-more`
+- `#settings-form`
+- `#settings-sidebar`
+- `#skill-market-btn`
+- `#skills-page`
+- `#snowluma-page`
+- `#tabs`
+- `#theme-btn`
+- `#topbar`
+- `#usage-label`
+- `#usage-page`
+- `#view-accounts`
+- `#view-chats`
+- `#view-memory`
+- `#view-plugins`
+- `#view-sessions`
+- `#view-settings`
+- `#view-skills`
+- `#view-snowluma`
+- `#view-usage`

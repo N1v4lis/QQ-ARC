@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-theme-pref="auto">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QQ Agent</title>
+  <!-- 图标：内联 SVG data URI（不额外发请求、不引入二进制资源）。
+       写死在这里是为了消掉控制台里那条 favicon 404 —— 它会让每次排查
+       "控制台还有没有报错"都多一行噪声。图标取品牌那个四角星。 -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%235686fe'/%3E%3Cpath d='M12 5c-.8 2.8-2.1 4.4-4.7 5.4 2.6 1 3.9 2.6 4.7 5.4.8-2.8 2.1-4.4 4.7-5.4C14.1 9.4 12.8 7.8 12 5Z' fill='white'/%3E%3C/svg%3E" />
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       新 UI（DSH 基底）— 与原控制台的关系
+       ═══════════════════════════════════════════════════════════════════════
+       · app/app/*.js 是从线上控制台**原样移植**的逻辑层（一行未改的占绝大多数）。
+         它们靠选择器找节点，所以本文件的 id / class / data-* 与旧 index.html
+         逐项对齐 —— 对应关系见 docs/dom-contract.md。
+       · 本文件只做两件事：① 重排外壳（自绘标题栏 + 左侧导航 + 内容区）；
+         ② 用新的样式系统（styles/00-tokens.css 起）替换旧皮肤。
+       · 下面 html 上的 data-theme="light" 只是**静态兜底值**：真正的主题由紧随其后的
+         内联脚本在样式生效前改写（CSP 用 sha256 精确放行那一段）。
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-o6zN5A75fvKFN09qXICy4g0x1aA/qHMybnUt8jhbYUc=' 'sha256-XDNUFW0To+No3pNwG2FPwZhtxxokhL/M/FnLydwuVRs=' https://o.alicdn.com https://kondius.cn; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: http: https:; media-src 'self' data: blob:; connect-src 'self' https://kondius.cn https://*.aliyuncs.com https://*.alicdn.com; frame-src https://*.aliyuncs.com https://*.alicdn.com https://kondius.cn; worker-src 'self' blob: https://*.alicdn.com https://kondius.cn; font-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'" />
+
+  <!-- ⚠️ 旧皮肤是怎么被压到低优先级的（2026-10-03 起，**已定稿，别再改回去**）：
+       核心事实：CSS 层叠里**未分层样式 > 任何分层样式**。
+       所以"把旧皮肤包进低层、新样式留默认层"这个思路是对的 ——
+       但**声明层 ≠ 把样式表放进层**：
+         · 只在 index.html 写一句 `@layer legacy;` 是**没用的**，
+           旧皮肤仍然是未分层 → 它反倒赢定，而源码上毫无破绽。
+         · 只有 `@import url(...) layer(<名字>)` 能把**整张外部样式表**放进层。
+       当前实现就是后者：`styles/99-legacy-layer.css` 里那一句
+         @import url("./_legacy-style.css") layer(legacy);
+       于是旧皮肤输给所有未分层的新样式（这正是"兜底"该有的语义）。
+       实测症状（认清它，能省一整轮排查）：`.mcard` 的 display 被按成 flex、
+       新写的 grid 完全不生效，而新规则明明写在后面。
+
+       新样式之间的竞争**不分层**，按 link 顺序 + 特指度正常比；
+       另外旧皮肤里有一批**未分层的 ID 选择器**（#tabs / #topbar / #layout），
+       特指度天然高于类选择器，所以新规则也带上同样的 ID 前缀
+       （见 02-titlebar.css / 03-sidebar.css 的说明）。
+       完整来龙去脉与验证口径见 `styles/99-legacy-layer.css` 顶部那段注释；
+       回归里由 check-css-structure / check-css-loaded / check-styles 覆盖。 -->
+  <link rel="stylesheet" href="/styles/00-tokens.css" />
+  <link rel="stylesheet" href="/styles/01-base.css" />
+  <link rel="stylesheet" href="/styles/01-motion.css" />
+  <link rel="stylesheet" href="/styles/02-titlebar.css" />
+  <link rel="stylesheet" href="/styles/03-sidebar.css" />
+  <link rel="stylesheet" href="/styles/04-layout.css" />
+  <link rel="stylesheet" href="/styles/20-content.css" />
+  <link rel="stylesheet" href="/styles/21-dashboard.css" />
+  <link rel="stylesheet" href="/styles/30-settings.css" />
+  <link rel="stylesheet" href="/styles/31-personalize.css" />
+  <!-- 「主题」卡页 + Minecraft 皮肤。放在 31 之后：皮肤规则要能覆盖个性化之后的样式 -->
+  <link rel="stylesheet" href="/styles/32-theme.css" />
+  <link rel="stylesheet" href="/styles/40-market.css" />
+  <!-- 旧皮肤：**必须**通过 99-legacy-layer.css 的 @import ... layer(legacy) 载入。
+       直接 <link> 它是不行的 —— 它必须在最后加载（给没接管的角落兜底），
+       但那样它就会靠文档顺序赢过新版组件（同特指度下比顺序）。
+       只有 @import url() layer() 能把整张外部样式表放进低优先级层。
+       详细来龙去脉见 styles/99-legacy-layer.css 顶部注释（这一步踩过坑）。 -->
+  <link rel="stylesheet" href="/styles/99-legacy-layer.css" />
+
+
+  <script>
+    /* 主题预置：在样式生效前就定好 data-theme，避免首屏闪白/闪黑。
+       三档：'light' | 'dark' | 'auto'（跟随系统，**默认**）。
+         为什么默认 auto：用户要求"默认亮色，并可根据系统主题自动切换"——
+         两者同时成立的口径就是：默认跟随系统；系统是亮色时首选就是亮色；
+         用户手动选过 light/dark 之后就不再跟随（显式选择永远优先）。
+       两个 key 的分工（这一点踩过坑，别合并成一个）：
+         qqa-theme-pref = 用户**显式选择**过什么（'auto' 也算显式）。只有点击按钮才写它。
+         qqa-theme      = 上一轮实际生效的主题，仅作旧版本兼容的回落值。
+       为什么必须分开：移植层里的 applyTheme() 每次启动都会往 qqa-theme 写值，
+       如果拿它判断"用户选过没有"，全新安装时会被后端配置里的历史值（dark）
+       当成"用户的选择"，默认 auto 就永远不生效。
+         data-theme      = 实际生效的主题（light / dark），CSS 只认这个；
+         data-theme-pref = 用户的偏好（light / dark / auto），给切换按钮用。
+       这段是**内联脚本**，CSP 用 sha256 精确放行 —— 改一个字节就会整段失效
+       （表现是首屏主题不生效、闪一下）。改完必须跑 `node tools/csp-hash.mjs --write`。 */
+    (function () {
+      var root = document.documentElement;
+      var pref = 'auto';
+      var actual = 'light';
+      try {
+        var explicitPref = localStorage.getItem('qqa-theme-pref');
+        var legacy = localStorage.getItem('qqa-theme');
+        if (explicitPref === 'light' || explicitPref === 'dark' || explicitPref === 'auto') pref = explicitPref;
+        else if (legacy === 'light' || legacy === 'dark') pref = legacy;   // 旧版本升级上来的
+      } catch (e) { /* 隐私模式：按默认 auto 走 */ }
+      try {
+        var sysDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        actual = pref === 'auto' ? (sysDark ? 'dark' : 'light') : pref;
+      } catch (e) { actual = pref === 'auto' ? 'light' : pref; }
+      root.setAttribute('data-theme', actual);
+      root.setAttribute('data-theme-pref', pref);
+      /* 皮肤（独立维度，见 shell/01-skin.js）。
+         为什么也要放在内联脚本里：皮肤会换整套配色与字体，
+         如果等 shell/01-skin.js（defer）跑完再设，首屏会先按默认配色画一遍
+         再跳到 Minecraft 配色 —— 明显的闪一下。这里和主题一起在 CSS 之前定妥。
+         ⚠️ 这段有 CSP sha256 白名单，改一个字节就要跑 `node tools/csp-hash.mjs --write`。 */
+      var skin = 'default';
+      try {
+        var s = localStorage.getItem('qqa-skin');
+        if (s === 'minecraft' || s === 'default') skin = s;
+      } catch (e) { /* 隐私模式：按默认走 */ }
+      root.setAttribute('data-skin', skin);
+    })();
+  </script>
+</head>
+<body>
+  <!-- ═══ 外壳：一整列（标题栏 / 主体）═══════════════════════════════════ -->
+  <div id="q-shell" class="q-shell">
+
+    <!-- ── 自绘标题栏 ──────────────────────────────────────────────────
+         frame:false 的无边框窗口里，Windows 原生标题栏与它上面的关闭/最小化
+         按钮都不存在；拖动、双击最大化、三个窗口按钮全部由这里提供。
+         非 Electron（直接用浏览器打开）时 JS 会移除 .q-winctl，
+         于是 --q-titlebar-h 收窄，标题栏退化成一条品牌栏。 -->
+    <header id="topbar" class="q-titlebar">
+      <div class="q-tb-drag" id="q-tb-drag">
+        <span class="q-tb-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3c-.9 3.2-2.4 5-5.4 6.1C9.6 10.2 11.1 12 12 15.2c.9-3.2 2.4-5 5.4-6.1C14.4 8 12.9 6.2 12 3Z"/>
+            <path d="M6.2 15.6c-.5 1.9-1.4 3-3.2 3.7 1.8.7 2.7 1.8 3.2 3.7.5-1.9 1.4-3 3.2-3.7-1.8-.7-2.7-1.8-3.2-3.7Z"/>
+          </svg>
+        </span>
+        <span class="q-tb-brand">
+          <span class="brand">QQ Agent <span class="brand-sub"></span></span>
+          <span class="q-tb-sub" id="q-tb-sub">控制台</span>
+        </span>
+        <!-- ── 重载界面按钮（2026-10-04 加，用户要求）──────────────────────
+             省掉每次按 Ctrl+Shift+R。用 location.reload() 而不是拉主进程做
+             webContents.reload()：这是**页面级**动作（刷新 DOM/样式/脚本），
+             走渲染层最直接，也不必为了它给 preload 的白名单加一个窗口动作
+             （那套 WINDOW_ACTIONS 的语义是"窗口操作"，混进 reload 会模糊边界）。
+             它自己在 app/11-init.js 里接线（含旋转反馈动画）。 -->
+        <button id="q-reload-btn" class="q-reload" type="button" title="重载界面（刷新页面，等同 Ctrl+Shift+R）" aria-label="重载界面">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16.4 8.2A6.6 6.6 0 0 0 4.6 6.1" />
+            <path d="M3.6 11.8a6.6 6.6 0 0 0 11.8 2.1" />
+            <path d="M16.9 4.2v4h-4" />
+            <path d="M3.1 15.8v-4h4" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="q-tb-spacer"></div>
+
+      <!-- 窗口控制：只在 Electron 无边框窗口里显示（见 shell/99-shell-boot.js）
+           ⚠️ 2026-10-04 改版：状态/功能控件（连接状态、账号、模型入口、用量、
+           搜索、就绪点、主题、暂停）**已从这里移出**，改为内容区顶部的一条工具栏
+           （见下方 <main> 里的 .q-tb-status）。标题栏现在只保留
+           「品牌 + 拖动区 + 最小化/最大化/关闭」，更接近原生的窗口标题栏，
+           功能控件也不再挤在右上角、窄窗口下不用再横向滚动。 -->
+      <div class="q-winctl" id="q-winctl">
+        <button class="q-wbtn q-wmin" data-qwin="minimize" title="最小化" aria-label="最小化">
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" /></svg>
+        </button>
+        <button class="q-wbtn q-wmax" data-qwin="toggle-maximize" title="最大化 / 还原" aria-label="最大化或还原">
+          <svg class="q-ico-max" viewBox="0 0 12 12" aria-hidden="true"><rect x="2.5" y="2.5" width="7" height="7" rx="1.2" /></svg>
+          <svg class="q-ico-restore" viewBox="0 0 12 12" aria-hidden="true">
+            <rect x="2" y="4" width="6" height="6" rx="1.2" />
+            <path d="M4.4 4V3.2A1.2 1.2 0 0 1 5.6 2h3.2A1.2 1.2 0 0 1 10 3.2v3.2A1.2 1.2 0 0 1 8.8 7.6H8" />
+          </svg>
+        </button>
+        <button class="q-wbtn q-wclose" data-qwin="close" title="关闭（收到托盘常驻）" aria-label="关闭">
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── 主体：左侧导航 + 内容区 ─────────────────────────────────────── -->
+    <div class="q-body">
+
+      <!-- ── 功能工具栏（原标题栏里的状态/功能控件，2026-10-04 移到这里）──────
+           用户要求：标题栏只留 最小化/最大化/关闭，其余按钮放到内容区。
+           它横跨**整个窗口宽度**（含侧栏上方），与标题栏连成一条完整的顶栏 ——
+           否则工具栏会在侧栏右边界处"断"一下，看着有个凹口（不无痕）。
+           所有 id 保持原样（#onebot-dot / #account-switch / #model-label /
+           #usage-label / #search-count-label / #readiness-dots /
+           #theme-btn / #pause-btn），移植逻辑**一行都不用改**。 -->
+      <div class="q-tb-status">
+        <div class="top-chips">
+          <!-- 连接状态：整体可点，跳转到 设置 → OneBot（SnowLuma）。
+               要求和 model-label 一样有 hover 反馈，所以用同一套 .muted.tb-nav 样式。 -->
+          <span id="onebot-chip" class="muted tb-nav" role="button" tabindex="0" title="查看 OneBot / SnowLuma 设置">
+            <span id="onebot-dot" class="dot dot-off" title="OneBot 连接状态"></span>
+            <span id="onebot-label">OneBot 未连接</span>
+          </span>
+          <span class="sep"></span>
+          <select id="account-switch" class="tb-select" title="切换账号：切换后整站查看/编辑的都是这个号"></select>
+          <span class="sep"></span>
+          <span id="model-label" class="muted tb-nav" title="人设 / 模型设置">人设/模型设置</span>
+          <span class="sep"></span>
+          <!-- 用量 + 搜索合并成一枚胶囊（原来两个独立标签太碎）。
+               点击跳转到「用量」页 —— 搜索次数在那里有完整明细。 -->
+          <span id="usage-chip" class="muted tb-nav" role="button" tabindex="0" title="查看用量与成本明细">
+            <span id="usage-label">今日：-</span>
+            <span class="sep-inline"></span>
+            <span id="search-count-label" title="今日联网搜索次数（web_search / web_fetch）">搜索：-</span>
+          </span>
+        </div>
+        <span class="sep"></span>
+        <!-- 就绪进度指示器：4 圆点 = QQ运行 / SnowLuma运行 / OneBot连接 / 配置完成 -->
+        <span id="readiness-dots" class="readiness-dots" title="就绪进度：点击跳转到对应设置">
+          <span class="rdot" data-target="snowluma" title="QQ 内核未运行"></span>
+          <span class="rdot" data-target="snowluma" title="SnowLuma 未运行"></span>
+          <span class="rdot" data-target="snowluma" title="OneBot 未连接"></span>
+          <span class="rdot" data-target="settings" title="配置未完成"></span>
+        </span>
+        <button id="theme-btn" class="icon-btn q-theme-btn" title="主题：跟随系统（点击切换 自动 → 亮色 → 暗色）" aria-label="切换主题"></button>
+        <button id="pause-btn" class="btn btn-small">暂停</button>
+      </div>
+
+      <!-- 侧栏容器：折叠开关 + 导航 + 社区入口。
+           三块必须包在**同一个** flex 列里：否则 .q-body 会变成 4 列，
+           导航、入口列各自占一条竖带（实测就是这样错位的）。
+           为什么折叠开关与社区入口不放进 #tabs 里：#tabs 是移植逻辑的导航容器
+           （`$$('.tab')` 会遍历它），里面只该有 .tab，混进别的按钮会污染这个概念。 -->
+      <div class="q-sidebar">
+
+        <div class="q-rail-top">
+          <button id="q-side-toggle" class="q-side-toggle" type="button" title="折叠 / 展开导航（Ctrl+B）" aria-label="折叠或展开导航">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <path d="M3.5 5.5h13M3.5 10h13M3.5 14.5h13" />
+            </svg>
+            <span class="q-side-toggle-tx">收起导航</span>
+          </button>
+        </div>
+
+        <!-- 导航：ID 必须叫 tabs（移植来的 switchTab 靠 #tabs .tab 找页签），
+             但外观是左侧竖排导航。每个 .tab 都带 data-tab / data-icon。
+
+             ⚠️ 2026-10-04 改版：分组改用**显式的 .q-side-group 容器**，
+                不再用 `nth-child(n)` 打间距。原因：
+                  · nth-child 是按"第几个"算的，插一项/删一项整组边界就错位
+                    （用户正要频繁增删导航项，这个坑必须提前拆掉）；
+                  · 容器分组让"这几项属于一类"变成结构事实，而不是靠算位置。
+                间距也一并收紧了（用户要求"侧边栏的间距缩小一些"）：
+                项间 2px、组间 6px。 -->
+        <nav id="tabs" class="q-side" aria-label="主导航">
+          <div class="q-side-scroll">
+          <!-- 总览 -->
+          <div class="q-side-group">
+            <button class="tab" data-tab="dashboard" data-icon="gauge" title="仪表盘">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 14.6a7.6 7.6 0 1 1 13.2 0"/><path d="M10 14.6 13.6 8.4"/><circle cx="10" cy="14.6" r="1.2"/></svg>
+              <span class="tab-tx">仪表盘</span>
+            </button>
+          </div>
+
+          <!-- 数据：会话 / 存档 / 记忆 / 用量（用量紧跟记忆之后，用户指定） -->
+          <div class="q-side-group">
+            <button class="tab" data-tab="sessions" data-icon="chat" title="会话">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.6h12v7.2H8.6L5.4 15.6v-2.8H4z"/></svg>
+              <span class="tab-tx">会话</span>
+            </button>
+            <button class="tab" data-tab="chats" data-icon="archive" title="存档">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 5.2h12.8v3H3.6zM4.6 8.2v6.6h10.8V8.2M8.4 11h3.2"/></svg>
+              <span class="tab-tx">存档</span>
+            </button>
+            <button class="tab" data-tab="memory" data-icon="brain" title="记忆">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4.2a2.6 2.6 0 0 1 4.6 1.7c1.2.3 2 1.4 2 2.6 0 .9-.4 1.6-1 2.1.3.4.4.9.4 1.4A2.7 2.7 0 0 1 13.3 15c-.6.7-1.5 1.1-2.5 1.1H10zM10 4.2A2.6 2.6 0 0 0 5.4 5.9c-1.2.3-2 1.4-2 2.6 0 .9.4 1.6 1 2.1-.3.4-.4.9-.4 1.4A2.7 2.7 0 0 0 6.7 15c.6.7 1.5 1.1 2.5 1.1H10z"/></svg>
+              <span class="tab-tx">记忆</span>
+            </button>
+            <button class="tab" data-tab="usage" data-icon="chart" title="用量">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.6V9.4M8 15.6V5.4M12 15.6v-4M16 15.6V7.4"/></svg>
+              <span class="tab-tx">用量</span>
+            </button>
+          </div>
+
+          <!-- 扩展：技能 + 插件（用户要求归为同一分类） -->
+          <div class="q-side-group">
+            <button class="tab" data-tab="skills" data-icon="spark" title="技能">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.4l1.6 3.9 3.9 1.6-3.9 1.6L10 14.4 8.4 10.5 4.5 8.9l3.9-1.6zM15.4 14.2l.7 1.6 1.6.7-1.6.7-.7 1.6-.7-1.6-1.6-.7 1.6-.7z"/></svg>
+              <span class="tab-tx">技能</span>
+            </button>
+            <button class="tab" data-tab="plugins" data-icon="plugin" title="插件">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.4v2.2M12 3.4v2.2M4.2 7.8h11.6v3.4a5.8 5.8 0 0 1-11.6 0zM6.6 16.6h6.8"/></svg>
+              <span class="tab-tx">插件</span>
+            </button>
+          </div>
+
+          <!-- 账号与设置 -->
+          <div class="q-side-group">
+            <button class="tab" data-tab="accounts" data-icon="users" title="账号">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7.4" r="2.6"/><path d="M3.6 15.6c0-2.4 2-4 4.4-4s4.4 1.6 4.4 4M13.4 8.2a2.2 2.2 0 1 0 0-4.4M14.4 15.6c0-1.7-.6-3-1.6-3.8"/></svg>
+              <span class="tab-tx">账号</span>
+            </button>
+            <button class="tab" data-tab="settings" data-icon="gear" title="设置">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="2.6"/><path d="M10 3.2l.9 1.9 2-.4.4 2 1.9.9-1.1 1.7 1.1 1.7-1.9.9-.4 2-2-.4-.9 1.9-.9-1.9-2 .4-.4-2-1.9-.9 1.1-1.7L4.9 8.6l1.9-.9.4-2 2 .4z"/></svg>
+              <span class="tab-tx">设置</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+        <!-- 社区与市场入口：原先挤在横向页签右侧，现在落在导航底部 -->
+        <div class="q-side-foot">
+          <button class="nav-btn hidden" id="quote-confirm-btn">确认金句</button>
+          <button class="nav-btn" id="quote-btn" title="把机器人的精彩发言收录到金句墙">金句上传</button>
+          <button class="nav-btn" id="feedback-btn" title="向作者反馈意见和建议">意见收集</button>
+          <button class="nav-btn nav-btn-market" id="skill-market-btn" title="打开 Skill 市场">Skill 市场</button>
+          <button class="nav-btn nav-btn-market" id="plugin-market-btn" title="打开插件市场">插件市场</button>
+          <button class="nav-btn nav-btn-persona" id="persona-plaza-btn" title="打开人设广场">人设广场</button>
+          <button class="nav-btn nav-btn-hot" id="open-site-btn" title="打开 QQ Agent 网站">打开网站！</button>
+        </div>
+      </div>
+
+      <!-- 内容区：视图容器。约定不变 —— .view / .view.active / #view-<name>，
+           移植来的 switchTab 就是按这套约定切换的。 -->
+      <main id="layout" class="q-main">
+        <!-- 仪表盘：内容由 app/13-dashboard.js 的 loadDashboard() 渲染。
+             风格参考 AdminLTE v3 的 index3（小方框信息卡 + 折线图 + 环形图）。 -->
+        <section id="view-dashboard" class="view">
+          <div id="dashboard-page" class="dash-pane"></div>
+        </section>
+
+        <!-- 会话视图：.active 由启动时的 switchTab('dashboard') 统一建立，
+             这里不再预置（保证"启动路径"与"点击路径"完全一致，
+             避免静态 active 与 state.tab 打架）。 -->
+        <section id="view-sessions" class="view">
+          <aside id="session-list" class="list-pane">
+            <div class="list-head muted"><span id="session-count"></span><button class="list-head-btn" id="session-broadcast-btn" title="给选中的群/私聊批量发送一条消息">群发</button><button class="list-head-btn" id="session-clear-btn" title="清空全部已结束的会话记录（保留运行中/等待中的）">清空</button></div>
+            <div id="session-items"></div>
+            <div id="session-more" class="list-more muted"></div>
+            <div class="list-resizer" id="session-list-resizer" title="拖动调整侧栏宽度"></div>
+          </aside>
+          <div id="session-detail" class="detail-pane">
+            <div class="empty-hint">← 选择左侧会话查看完整过程</div>
+          </div>
+        </section>
+
+        <!-- 存档视图 -->
+        <section id="view-chats" class="view">
+          <aside id="chat-list" class="list-pane">
+            <div class="list-head muted">消息存档</div>
+            <div id="chat-items"></div>
+            <div class="list-resizer" id="chat-list-resizer" title="拖动调整侧栏宽度"></div>
+          </aside>
+          <div id="chat-detail" class="detail-pane">
+            <div class="empty-hint">← 选择会话查看消息存档</div>
+          </div>
+        </section>
+
+        <!-- ⚠️ 2026-10-04：独立的 «SnowLuma» 视图已移除 ——
+             用户要求"SnowLuma 页全部整合进入设置的 OneBot"。
+             原 #snowluma-page 容器现在挂在「设置 → OneBot（SnowLuma）」里
+             （见 06-settings-render.js 的 renderOnebotSection），
+             03-snowluma.js 的渲染/接线代码完全复用，只是挂载点换了地方。 -->
+
+        <!-- 账号（多开 / 分账号）：内容由 06-settings-render.js 的 loadAccountsPage() 渲染 -->
+        <section id="view-accounts" class="view"></section>
+
+        <!-- 记忆视图 -->
+        <section id="view-memory" class="view">
+          <aside id="memory-list" class="list-pane">
+            <div class="list-head muted">记忆</div>
+            <div id="memory-items"></div>
+            <div class="list-resizer" id="memory-list-resizer" title="拖动调整侧栏宽度"></div>
+          </aside>
+          <div id="memory-detail" class="detail-pane">
+            <div class="empty-hint">← 选择会话查看记忆</div>
+          </div>
+        </section>
+
+        <!-- 用量视图 -->
+        <section id="view-usage" class="view">
+          <div id="usage-page" class="usage-pane"></div>
+        </section>
+
+        <!-- 技能视图：从设置页独立出来（原先和模型/聊天设置挤在一起，找不到） -->
+        <section id="view-skills" class="view">
+          <div id="skills-page" class="usage-pane"></div>
+        </section>
+
+        <!-- 插件视图：与技能并列的独立页签。
+             两型的区别在"谁决定何时执行"（确定性 vs 模型决定），是使用者最关心的一件事，
+             所以分成两页各自成组 —— 混在一页里既看不出类型，也数不清各有多少。 -->
+        <section id="view-plugins" class="view">
+          <div id="plugins-page" class="usage-pane"></div>
+        </section>
+
+        <!-- 设置视图（第二级导航由 06-settings-render.js 填充 #settings-sidebar） -->
+        <section id="view-settings" class="view">
+          <aside id="settings-sidebar" class="settings-sidebar"></aside>
+          <div id="settings-form" class="settings-pane"></div>
+        </section>
+      </main>
+    </div>
+
+    <!-- 启动遮罩 -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="loading-card">
+        <div class="loading-title">QQ Agent 正在启动</div>
+        <div class="loading-sub" id="loading-status">正在启动 SnowLuma 与 OneBot 服务，请稍候…</div>
+        <div class="loading-spinner"></div>
+        <pre class="loading-logs" id="loading-logs"></pre>
+      </div>
+    </div>
+
+    <!-- 全局横幅（暂停 / 断连提示） -->
+    <div id="banner" class="banner hidden"></div>
+  </div>
+
+  <!-- ═══ 脚本 ═══════════════════════════════════════════════════════════
+       M9 拆分：ESM 桥（vendor 模块 → window）先执行；其后 12 段普通脚本按 defer
+       顺序执行，module 与 defer 共享同一条按文档顺序的延迟队列，保证桥先于 00-core.js。
+       最后一段是新增的「外壳启动」（窗口按钮的浏览器降级、标题栏状态、导航动效），
+       它不属于移植逻辑，单独放 /shell/99-shell-boot.js。 -->
+  <script type="module" src="/app.js?v=ui2"></script>
+  <script defer src="/app/00-core.js?v=ui2"></script>
+  <!-- 三档主题（自动/亮色/暗色）：必须在 00-core.js 之后覆盖它的两档实现，
+       又必须在 11-init.js 之前 —— 后者是唯一调用 applyTheme/cycleTheme 的入口。 -->
+  <script defer src="/shell/00-theme.js?v=ui2"></script>
+  <!-- 皮肤维度（默认 / Minecraft）：与亮度正交，见 shell/01-skin.js 顶部说明。
+       放这里是因为它只依赖 localStorage（不依赖主题实现），
+       而设置页渲染（app/06-…）会用到 window.qqaSkin，必须在它之前。 -->
+  <script defer src="/shell/01-skin.js?v=ui2"></script>
+  <!-- Minecraft 皮肤的偏好与运行时（音效/背景/字体）。必须在 01-skin.js 之后：
+       它会在启动时把偏好写成 CSS 变量，而是否启用由 data-skin 决定。 -->
+  <script defer src="/shell/02-mc-theme.js?v=ui2"></script>
+  <!-- MC 皮肤的全新图标集（像素网格，见 03-mc-icons.js 顶部说明）。
+       放在这里即可：它靠 DOMContentLoaded 与 qqa-skin-change 事件两处同步，
+       不依赖后面的导航脚本，但必须在页面图标已存在之后才起作用（DOMContentLoaded 保证）。 -->
+  <script defer src="/shell/03-mc-icons.js?v=ui2"></script>
+  <!-- 个性化：配色覆盖（10）与实际生效的动效开关（11）。
+       都要早于 app/06+07（渲染/接线设置页时就要能读到 window.qqaColors / qqaMotion）。 -->
+  <script defer src="/shell/10-personalize.js?v=ui2"></script>
+  <script defer src="/shell/11-motion.js?v=ui2"></script>
+  <script defer src="/shell/12-color-format.js?v=ui2"></script>
+  <script defer src="/app/01-boot.js?v=ui2"></script>
+  <script defer src="/app/02-sse-sessions.js?v=ui2"></script>
+  <script defer src="/app/03-snowluma.js?v=ui2"></script>
+  <script defer src="/app/04-archive-usage.js?v=ui2"></script>
+  <script defer src="/app/05-memory-settings.js?v=ui2"></script>
+  <script defer src="/app/06-settings-render.js?v=ui2"></script>
+  <script defer src="/app/07-settings-events.js?v=ui2"></script>
+  <script defer src="/app/08-modals.js?v=ui2"></script>
+  <script defer src="/app/09-community.js?v=ui2"></script>
+  <script defer src="/app/10-feedback.js?v=ui2"></script>
+  <script defer src="/app/12-concept2-ui.js?v=ui2"></script>
+  <!-- 仪表盘页面（AdminLTE index3 风格）：自带 SVG 图表，不依赖任何图表库。 -->
+  <script defer src="/app/13-dashboard.js?v=ui2"></script>
+  <!-- 设置页「主题」卡页（皮肤 + Minecraft 二级设置）。
+       必须在 06-settings-render.js 之后：后者的 renderSettingsSection()
+       会调用这里的 renderThemeSection()（裸标识符，走词法查找）。 -->
+  <script defer src="/app/14-theme-section.js?v=ui2"></script>
+  <script defer src="/app/11-init.js?v=ui2"></script>
+  <script defer src="/shell/99-shell-boot.js?v=ui2"></script>
+
+  <!-- 阿里云验证码 2.0（意见收集/金句上传共用）：容器常驻；AliyunCaptchaConfig 与
+       SDK 动态加载都在 10-feedback.js 内（CSP 不放行无 hash 内联脚本）。 -->
+  <div id="captcha-element"></div>
+  <button id="captcha-trigger" type="button" aria-label="人机验证触发器（隐藏元素，SDK 内部使用）" style="position:fixed;left:-9999px;top:0" aria-hidden="true" tabindex="-1"></button>
+</body>
+</html>

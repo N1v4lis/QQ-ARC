@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QQA 账号管理</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      font-size: 24px;
+      margin-bottom: 24px;
+      color: #1a1a1a;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    
+    .active-badge {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #2196f3;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #1976d2;
+    }
+    
+    .btn-success {
+      background: #4caf50;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #388e3c;
+    }
+    
+    .btn-warning {
+      background: #ff9800;
+      color: white;
+    }
+    
+    .btn-warning:hover {
+      background: #f57c00;
+    }
+    
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #d32f2f;
+    }
+    
+    .btn-secondary {
+      background: #757575;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #616161;
+    }
+    
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+    }
+    
+    .profile-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 2px solid transparent;
+      transition: all 0.3s;
+    }
+    
+    .profile-card.active {
+      border-color: #4caf50;
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+    }
+    
+    .profile-card.disabled {
+      opacity: 0.6;
+    }
+    
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .profile-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .profile-info {
+      flex: 1;
+    }
+    
+    .profile-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    
+    .profile-subtitle {
+      font-size: 13px;
+      color: #757575;
+    }
+    
+    .profile-details {
+      background: #f5f7fa;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+    
+    .detail-label {
+      color: #757575;
+    }
+    
+    .detail-value {
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .profile-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+    
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 1000;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .toast.success {
+      background: #4caf50;
+    }
+    
+    .toast.error {
+      background: #f44336;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.show {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+    }
+    
+    .modal-header {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    
+    .modal-body {
+      margin-bottom: 24px;
+    }
+    
+    .modal-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #333;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #2196f3;
+    }
+    
+    .hint {
+      font-size: 12px;
+      color: #757575;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📋 QQA 账号管理</h1>
+      <div>
+        <span class="active-badge" id="activeBadge">当前: 加载中...</span>
+        <button class="btn btn-primary" onclick="showAddModal()" style="margin-left: 12px;">+ 新增账号</button>
+      </div>
+    </div>
+    
+    <div class="profile-grid" id="profileGrid">
+      <!-- 动态渲染 -->
+    </div>
+  </div>
+
+  <!-- 新增/编辑账号模态框 -->
+  <div class="modal" id="profileModal">
+    <div class="modal-content">
+      <div class="modal-header" id="modalTitle">新增账号</div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>QQ号 *</label>
+          <input type="text" id="uin" placeholder="例: 123456789">
+        </div>
+        <div class="form-group">
+          <label>标签 *</label>
+          <input type="text" id="label" placeholder="例: Bot号、主账号、测试号">
+          <div class="hint">显示在界面上的友好名称</div>
+        </div>
+        <div class="form-group">
+          <label>角色</label>
+          <select id="role">
+            <option value="bot">Bot 号（自动回复）</option>
+            <option value="master">主账号（管理员）</option>
+            <option value="member">普通账号</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>数据目录</label>
+          <input type="text" id="dataDir" placeholder="例: data-1" readonly>
+          <div class="hint">自动分配，通常无需修改</div>
+        </div>
+        <div class="form-group">
+          <label>端口</label>
+          <input type="number" id="port" placeholder="例: 3310" readonly>
+          <div class="hint">自动分配，通常无需修改</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveProfile()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 切换确认模态框 -->
+  <div class="modal" id="switchModal">
+    <div class="modal-content">
+      <div class="modal-header">确认切换账号</div>
+      <div class="modal-body">
+        <p id="switchMessage">切换账号需要重启 QQA，是否继续？</p>
+        <p style="margin-top: 12px; color: #757575; font-size: 13px;">
+          切换后将使用新的账号配置（独立的人设、模型、插件设置等）。
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="hideSwitchModal()">取消</button>
+        <button class="btn btn-success" onclick="confirmSwitch()">确认切换</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let profiles = [];
+    let activeProfile = null;
+    let editingUin = null;
+    let switchToUin = null;
+
+    // 加载账号列表
+    async function loadProfiles() {
+      try {
+        const response = await fetch('/api/profiles');
+        const data = await response.json();
+        
+        if (data.success) {
+          profiles = data.profiles;
+          activeProfile = data.activeProfile;
+          renderProfiles();
+          updateActiveBadge();
+        } else {
+          showToast('加载失败: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showToast('加载失败: ' + error.message, 'error');
+      }
+    }
+
+    // 渲染账号卡片
+    function renderProfiles() {
+      const grid = document.getElementById('profileGrid');
+      grid.innerHTML = '';
+
+      profiles.forEach(profile => {
+        const isActive = profile.uin === activeProfile;
+        const card = document.createElement('div');
+        card.className = `profile-card ${isActive ? 'active' : ''} ${!profile.enabled ? 'disabled' : ''}`;
+        
+        const roleIcon = profile.role === 'bot' ? '🤖' : profile.role === 'master' ? '👤' : '👥';
+        
+        card.innerHTML = `
+          <div class="profile-header">
+            <div class="profile-icon">${roleIcon}</div>
+            <div class="profile-info">
+              <div class="profile-title">${profile.label}</div>
+              <div class="profile-subtitle">${profile.uin} · ${profile.role}</div>
+            </div>
+          </div>
+          <div class="profile-details">
+            <div class="detail-row">
+              <span class="detail-label">数据目录</span>
+              <span class="detail-value">${profile.dataDir}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">控制台端口</span>
+              <span class="detail-value">${profile.port}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">状态</span>
+              <span class="detail-value">${profile.enabled ? '✓ 已启用' : '✗ 已禁用'}</span>
+            </div>
+          </div>
+          <div class="profile-actions">
+            ${!isActive ? `<button class="btn btn-success btn-sm" onclick="showSwitchModal('${profile.uin}')">切换到此账号</button>` : ''}
+            <button class="btn btn-warning btn-sm" onclick="editProfile('${profile.uin}')">编辑</button>
+            ${!isActive ? `<button class="btn btn-danger btn-sm" onclick="deleteProfile('${profile.uin}')">删除</button>` : ''}
+          </div>
+        `;
+        
+        grid.appendChild(card);
+      });
+    }
+
+    // 更新活跃账号徽章
+    function updateActiveBadge() {
+      const badge = document.getElementById('activeBadge');
+      const active = profiles.find(p => p.uin === activeProfile);
+      badge.textContent = `当前: ${active ? active.label : '未知'}`;
+    }
+
+    // 显示新增模态框
+    function showAddModal() {
+      editingUin = null;
+      document.getElementById('modalTitle').textContent = '新增账号';
+      document.getElementById('uin').value = '';
+      document.getElementById('uin').disabled = false;
+      document.getElementById('label').value = '';
+      document.getElementById('role').value = 'bot';
+      document.getElementById('dataDir').value = `data-${profiles.length}`;
+      document.getElementById('port').value = 3210 + profiles.length * 100;
+      document.getElementById('profileModal').classList.add('show');
+    }
+
+    // 编辑账号
+    function editProfile(uin) {
+      const profile = profiles.find(p => p.uin === uin);
+      if (!profile) return;
+
+      editingUin = uin;
+      document.getElementById('modalTitle').textContent = '编辑账号';
+      document.getElementById('uin').value = uin;
+      document.getElementById('uin').disabled = true;
+      document.getElementById('label').value = profile.label;
+      document.getElementById('role').value = profile.role;
+      document.getElementById('dataDir').value = profile.dataDir;
+      document.getElementById('port').value = profile.port;
+      document.getElementById('profileModal').classList.add('show');
+    }
+
+    // 隐藏模态框
+    function hideModal() {
+      document.getElementById('profileModal').classList.remove('show');
+    }
+
+    // 保存账号
+    async function saveProfile() {
+      const uin = document.getElementById('uin').value.trim();
+      const label = document.getElementById('label').value.trim();
+      const role = document.getElementById('role').value;
+      const dataDir = document.getElementById('dataDir').value.trim();
+      const port = parseInt(document.getElementById('port').value);
+
+      if (!uin || !label) {
+        showToast('请填写 QQ号 和 标签', 'error');
+        return;
+      }
+
+      try {
+        let response;
+        if (editingUin) {
+          // 更新
+          response = await fetch(`/api/profiles/${editingUin}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ label, role })
+          });
+        } else {
+          // 新增
+          response = await fetch('/api/profiles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uin, label, role, dataDir, port })
+          });
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+          showToast(data.message, 'success');
+          hideModal();
+          loadProfiles();
+        } else {
+          showToast('保存失败: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showToast('保存失败: ' + error.message, 'error');
+      }
+    }
+
+    // 显示切换确认
+    function showSwitchModal(uin) {
+      switchToUin = uin;
+      const profile = profiles.find(p => p.uin === uin);
+      document.getElementById('switchMessage').textContent = 
+        `确定要切换到「${profile.label}」吗？`;
+      document.getElementById('switchModal').classList.add('show');
+    }
+
+    // 隐藏切换模态框
+    function hideSwitchModal() {
+      document.getElementById('switchModal').classList.remove('show');
+    }
+
+    // 确认切换
+    async function confirmSwitch() {
+      if (!switchToUin) return;
+
+      try {
+        const response = await fetch('/api/profiles/switch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uin: switchToUin })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          showToast(data.message + '，请刷新页面', 'success');
+          hideSwitchModal();
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          showToast('切换失败: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showToast('切换失败: ' + error.message, 'error');
+      }
+    }
+
+    // 删除账号
+    async function deleteProfile(uin) {
+      if (!confirm('确定要删除此账号吗？数据目录不会被删除。')) return;
+
+      try {
+        const response = await fetch(`/api/profiles/${uin}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          showToast(data.message, 'success');
+          loadProfiles();
+        } else {
+          showToast('删除失败: ' + data.error, 'error');
+        }
+      } catch (error) {
+        showToast('删除失败: ' + error.message, 'error');
+      }
+    }
+
+    // 显示 Toast
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+      toast.style.display = 'block';
+      
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadProfiles();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,655 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   21-dashboard.css — 仪表盘页面
+   ═══════════════════════════════════════════════════════════════════════════
+   风格参考 AdminLTE v3 的 index3：一排 small-box 信息卡（大数字 + 右下角图标 +
+   底部"查看详情"条）、主图区左 2/3 折线 + 右 1/3 环形、底部排行与状态。
+   配色全部走 --q-* 令牌，所以亮/暗两套主题自动跟随，不需要各写一份。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dash-pane {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 18px 20px 26px;
+  background: var(--q-bg-base);
+}
+
+.dash-wrap { max-width: 1500px; margin: 0 auto; }
+
+/* ═══ Beta 测试提示条（照《逃离塔科夫》主菜单那条还原）═════════════════════
+   形态：整幅警示黄底 + 上下两道描边 + 左侧黑色六边形感叹号徽章 + 右侧两行文字
+   （第一行加粗放大、第二行常规）。
+
+   ── 字体（按用户确认的塔科夫实际用字）────────────────────────────────────
+   中文 = **宋体**，英文 = **Bender**（Jovanny Lemonad 的 Bender）。
+   两者都已在用户系统内安装，不需要另找或内嵌字体。
+   --q-font-tarkov 把 Bender 放前、宋体放后，靠**逐字符回退**自动分工 ——
+   一句话里"…的Beta测试版本。"的中英各用各的字体，不必拆 DOM。
+
+   ── 字号为什么整体调大了 ─────────────────────────────────────────────────
+   宋体的字面（x-height / 字身）比微软雅黑小一圈，同样的 px 看着更"瘦小"。
+   上一版按雅黑的感觉定 17px/13px，换成宋体后整条明显偏小、气势不够，
+   所以抬到 19px/14px，并把徽章从 34 加大到 46（用户也要求"图标再大一点"）。
+   ═════════════════════════════════════════════════════════════════════════ */
+.dash-beta {
+  /* 徽章底色：纯黑（塔科夫那个徽章是黑的，不是黄底上的深黄） */
+  --q-notice-badge: #0f0f10;
+  /* 徽章里的感叹号：**白色** —— 按原图（黑六边形上一根白感叹号）对齐。
+     之前用亮黄是想跟横幅底色呼应，但那样黑白对比弱了很多、
+     远看像个实心黑块，反而丢了"警示符号"的辨识度。 */
+  --q-notice-badge-fg: #ffffff;
+  /* ── 钉在顶部（2026-10-05 用户要求）─────────────────────────────────────
+     要求："无论在 dashboard 怎么滑动都无法改变位置"。
+
+     为什么用 position:sticky 而不是别的：
+       · 挪到滚动容器外（做成 view 级固定头部）看起来更"钉死"，但
+         renderDashboard() 每次刷新会重写 #dashboard-page 的**整个** innerHTML，
+         放到外面的节点头一次刷新就没了 —— 得额外拆出容器并改 JS 渲染流程。
+       · sticky 的语义正好就是"滚到边界就钉住"，不需要 JS 参与，
+         也不会在刷新时丢（它就在被重写的那段 HTML 里）。
+
+     锚点为什么是 top: -18px：
+       滚动容器 #dashboard-page 就是 .dash-pane（overflow-y:auto），
+       它有 padding: 18px 20px 26px。sticky 的 top 是相对**滚动容器的 padding box**
+       计算的，所以写 top:0 会让通告停在"上内边距 18px 之下"、露出一条缝。
+       写 -18px 正好抵消那段内边距，钉住时与可视区顶边齐平。
+
+     ⚠️ 祖先 .dash-wrap 必须保持 overflow:visible（它现在是），
+        任何非 visible 的 overflow 都会让 sticky 失效。 */
+  position: sticky;
+  top: -18px;
+  /* 钉住后要有"浮在内容之上"的层次：内容从它下面滚过去 */
+  z-index: 5;
+  /* 外层只负责"整条横幅"的观感；内容居中由里层 .dash-beta-inner 负责。
+     ⚠️ 为什么不直接把内容居中在这层：外层是整幅黄底、宽度铺满，
+       如果在这层用 justify-content: center，文字会在**整个横幅**里居中；
+       而我们要的是"徽章 + 文字作为一个整体居中"。两者的差别在窄窗口下很明显
+       （前者会把文字压到边框上）。所以多包一层 .dash-beta-inner：
+       它宽度自适应内容、由外层居中，于是"徽章 + 文字"整体居中、内部仍左对齐。 */
+  display: flex;
+  justify-content: center;
+  margin: 0 0 16px;
+  padding: 15px 19px;
+  border-radius: var(--q-r-sm);
+  background: var(--q-notice-bg, #f0a52a);
+  border-top: 1px solid rgba(0, 0, 0, 0.34);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.34);
+}
+/* 只有"真正钉住"时才投影。sticky 元素一进入钉住状态就满足 `top` 偏移，
+   用它做条件会误判；这里改用交集观察器加类（见 13-dashboard.js 的 bindBetaPin）。
+   为什么要区分：静止时投影是多余的装饰；钉住时没有投影，卡片会像是"糊"在通告上。 */
+.dash-beta.is-pinned {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+/* 内容整体：徽章 + 两行文字，作为一组水平垂直居中 */
+.dash-beta-inner {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  /* 关键：宽度按内容收缩（不是铺满），于是外层 justify-content:center 生效 */
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* 哨兵：给 IntersectionObserver 判断"通告是否已经贴顶"用的 1px 标记。
+   放在通告**之前**，所以它滚出视野就等价于"通告贴住了顶部"。
+   必须不占视觉空间、也不参与命中测试。
+   ⚠️ 不能用 `visibility: hidden`：被隐藏的元素 IntersectionObserver 不会报告为
+      交叉（实测 `is-intersecting` 恒为 false，钉住态就永远加不上）。
+      用 opacity + pointer-events 让它"看得见的透明"。
+   ⚠️ 这条规则必须放在 `.dash-beta` **之后**：我一度把它插进 `.dash-beta { }`
+      的中间，导致该块后半段声明变成孤儿（浏览器静默丢弃、不报错），
+      `.dash-beta-inner` 的计算 display 退回 block、徽章与文字堆成上下两行。
+      ——"在规则块中间插新规则"是很容易犯又很难看出来的错误，务必整块追加。 */
+.dash-beta-sentinel {
+  width: 1px;
+  height: 1px;
+  margin-bottom: -1px;
+  opacity: 0;
+  pointer-events: none;
+}
+/* 文字整体居中：两行各自居中，彼此的起止位置也居中对齐 */
+.dash-beta-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: center;
+}
+
+/* 左侧徽章：不参与文字排版，尺寸固定。
+   46 → 58 → 72px：用户三次要求放大。72px 时与两行文字总高（30+2+22=54px）
+   相比明显更突出，是"徽章主导、文字跟随"的比例。 */
+.dash-beta-badge {
+  flex: 0 0 auto;
+  display: block;
+  width: 72px;
+  height: 72px;
+  color: var(--q-notice-badge);
+}
+.dash-beta-badge svg { width: 100%; height: 100%; display: block; }
+
+/* ── 字号为什么用整数、且比雅黑时期更大 ────────────────────────────────────
+   宋体（SimSun）是**点阵字体**（内嵌位图字形）：它在"设备像素正好等于字号"时最锐利，
+   一旦出现非整数缩放或子像素偏移，浏览器要反锯齿，整条字就发虚。
+   所以这里刻意：
+     · font-size 用**整数 px**（21 / 15），不写 18.5 这种
+     · line-height 也用**整数 px**（30 / 22），避免基线的分数偏移
+     · 给文字加 translateZ(0)，把它提到独立合成层、避免绘制到子像素位置
+     · 关掉遗留连字/字距微调（宋体本来就不需要）
+   另外宋体在 14px 这个级别本身就偏小偏细，配合整数缩放抬到 21px/15px 一并解决。
+   验证：tools/check-font-sharpness.mjs 逐字号量边缘锐度，
+        tools/probe-font-sharpness.mjs 出并排对比图。 */
+.dash-beta-line {
+  margin: 0;
+  font-family: var(--q-font-tarkov);
+  color: #1a1206;               /* 黄底上的近黑：比纯黑柔一点，久看不刺 */
+  line-height: 30px;            /* 整数 px，见上面说明 */
+  transform: translateZ(0);     /* 独立合成层，避免子像素定位导致的糊 */
+  font-kerning: none;
+  font-variant-ligatures: none;
+}
+.dash-beta-line + .dash-beta-line { margin-top: 2px; }
+/* 第一行「注意！…」—— 加粗放大，与第二行的说明拉开层级。
+   宋体只有 400/700 两档，所以这里用 700（写 800 会被浏览器合成，字形会发虚）。 */
+.dash-beta-strong {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 0;            /* 宋体本来就方正，再加负字距会粘在一起 */
+  color: #14100a;
+}
+/* 第二行说明：稍小、常规粗细 */
+.dash-beta-line:not(.dash-beta-strong) {
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 22px;            /* 同样用整数 px */
+  opacity: 1;                   /* 不再用透明度做层次：半透明会让宋体的细笔画更糊 */
+  color: #241a09;               /* 用略浅的实色代替 opacity */
+}
+
+/* 窄窗口：徽章与文字改为上下排，避免文字被挤成很多行 */
+@media (max-width: 620px) {
+  .dash-beta { padding: 12px 14px; }
+  .dash-beta-inner { flex-direction: column; gap: 9px; }
+  .dash-beta-badge { width: 36px; height: 36px; }
+  .dash-beta-strong { font-size: 17px; line-height: 25px; }
+  .dash-beta-line:not(.dash-beta-strong) { font-size: 13px; line-height: 20px; }
+}
+
+/* 两套主题下的横幅底色：塔科夫那抹橙黄在暗色主题里要压暗一点，
+   否则整块高亮面积太大、抢走页面主视觉。
+   注意文字色**不跟着主题走** —— 底色是固定的警示黄，字就必须一直是近黑，
+   否则暗色主题下会变成"黄底浅字"，对比度直接不达标。 */
+:root,
+html[data-theme='light'] { --q-notice-bg: #f0a52a; }
+html[data-theme='dark'] { --q-notice-bg: #c9821c; }
+
+.dash-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dash-head h2 { margin: 0; font-size: 19px; font-weight: 680; color: var(--q-fg); }
+.dash-head-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+/* ── 数据区间选择器（2026-10-05）────────────────────────────────────────────
+   原来这里是个只读胶囊，现在是可点的按钮组。
+   样式上刻意做成"分段控件"而不是独立按钮：四个选项是一组互斥选择，
+   用紧贴的连体样式表达"选一个"，比四颗分离的按钮更直观。 */
+.dash-ranges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-2);
+  overflow: hidden;
+}
+.dash-range {
+  font-size: 11.5px;
+  line-height: 1;
+  color: var(--q-fg-3);
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--q-mo-fast) var(--q-ease), color var(--q-mo-fast) var(--q-ease);
+}
+/* 相邻项之间的细分隔线：用 border-left 而不是间隙，保持"连体"观感 */
+.dash-range + .dash-range { border-left: 1px solid var(--q-line-1); }
+.dash-range:hover { background: var(--q-bg-nav-hover); color: var(--q-fg); }
+.dash-range:focus-visible { outline: 2px solid var(--q-accent); outline-offset: -2px; }
+.dash-range.is-on {
+  background: var(--q-accent);
+  color: #fff;
+  font-weight: 600;
+}
+.dash-range.is-on:hover { background: var(--q-accent-hi, var(--q-accent)); color: #fff; }
+/* 后端区间说明（"最近 7 天 · 图上 7 天"）：退居次要，只作校验用 */
+.dash-range-info {
+  font-size: 11.5px;
+  color: var(--q-fg-3);
+  padding: 3px 9px;
+  border-radius: var(--q-r-full);
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-1);
+  white-space: nowrap;
+}
+.dash-sub { margin: 4px 0 14px; font-size: 12px; color: var(--q-fg-3); }
+
+/* ── 信息卡（AdminLTE small-box）─────────────────────────────────────────
+   结构：.db-main（大数字+标签+副标题） | .db-icon（右下角大图标）
+         .db-foot（底部"查看详情 ›"条）
+   为什么图标用绝对定位放右下而不是 flex 两侧：
+   AdminLTE 那套是"图标压在卡片右下角、数字占据左侧"，
+   这样卡片高度由文字决定、图标不会参与撑高。 */
+/* ── 信息卡网格：**列数固定，不随窗口宽度变化** ────────────────────────────
+   原实现是 `repeat(auto-fit, minmax(232px, 1fr))` —— 它按可用宽度自动决定列数，
+   于是窗口变大变小（或侧栏折叠）时卡片会**重新排布、位置游走**。
+   用户明确要求"让他们固定在一个位置，否则我后续不好删改新的元素"：
+   后续加/删元素时需要能按"第几个格子"来定位，布局会跑的网格做不到这点。
+
+   所以改成**显式列数**：第一排 5 列、第二排 3 列。
+   代价是窄窗口下卡片会被压得很窄 —— 由下面的 @media 阶梯处理
+   （只在真的放不下时才降到 3 列 / 1 列，而不是每像素都变）。
+
+   两排为什么必须分开：如果共用一条 auto-fit 规则，第二排只有 3 个元素时
+   它们的宽度与第一排不一致（auto-fit 会按内容数摊满），两排对不齐。 */
+.dash-boxes {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+/* 第二排：会话总数 / 账号 / 运行状态 —— 固定 3 列，与第一排左对齐等宽 */
+.dash-boxes-sm {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+/* 窄窗口阶梯：只在真的放不下时降列，避免卡片被压到读不了。
+   760px 以下降 3 列、620px 以下 2 列 —— 依然是"整数列"，位置可预期。 */
+@media (max-width: 900px) {
+  .dash-boxes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* 格子变窄 → 数字再降一档，长数字（131,227,210）才不会被截断 */
+  .db-value { font-size: 19px; }
+}
+@media (max-width: 620px) {
+  .dash-boxes,
+  .dash-boxes-sm { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.dash-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 104px;
+  border-radius: var(--q-r-lg);
+  border: 1px solid var(--q-line-1);
+  background: var(--q-bg-1);
+  overflow: hidden;
+  transition: transform var(--q-mo-base) var(--q-ease-spring), box-shadow var(--q-mo-base) var(--q-ease), border-color var(--q-mo-base) var(--q-ease);
+}
+/* 只有可跳转的卡片才有浮起与手型（纯展示卡不该给"能点"的暗示） */
+.dash-box[data-goto] { cursor: pointer; }
+.dash-box[data-goto]:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--q-elev-panel);
+  border-color: var(--q-line-3);
+}
+.dash-box[data-goto]:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
+
+.db-main { padding: 13px 15px 10px; flex: 1 1 auto; min-width: 0; }
+.db-value {
+  /* 26 → 22px（用户要求"主要信息字体调小一点"）。
+     26px 时像 "131,227,210" 这种长数字会把格子撑得很满、与标签的对比也过强；
+     22px 仍然让数字是这张卡的主角，但和下面两行更协调。
+     配 overflow/ellipsis：窄窗口下宁可截断也不撑破格子。 */
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--q-fg);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.db-label {
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--q-fg-2);
+}
+.db-sub {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--q-fg-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 右下角大图标：半透明、不参与布局 */
+.db-icon {
+  position: absolute;
+  right: 10px;
+  top: 12px;
+  width: 40px;
+  height: 40px;
+  opacity: 0.16;
+  color: var(--q-fg);
+  pointer-events: none;
+}
+.db-icon svg { width: 100%; height: 100%; }
+
+/* 底部"查看详情"条：AdminLTE 的标志性元素 */
+.db-foot {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--q-accent);
+  background: color-mix(in srgb, var(--q-accent) 8%, transparent);
+  border-top: 1px solid var(--q-line-1);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color var(--q-mo-fast) var(--q-ease);
+}
+.dash-box[data-goto]:hover .db-foot { background: color-mix(in srgb, var(--q-accent) 15%, transparent); }
+.db-foot-plain { background: transparent; color: transparent; }
+
+/* 主题色调：只染图标与底部条，避免整卡变成大色块（AdminLTE 是整卡上色，
+   但在深色主题里整卡上色会很刺眼，这里收敛为"描边 + 图标 + 底条"）。 */
+.dash-box.tone-ok .db-icon { color: var(--q-ok); opacity: 0.2; }
+.dash-box.tone-ok .db-foot { color: var(--q-ok); background: color-mix(in srgb, var(--q-ok) 8%, transparent); }
+.dash-box.tone-warn .db-icon { color: var(--q-warn); opacity: 0.2; }
+.dash-box.tone-warn .db-foot { color: var(--q-warn); background: color-mix(in srgb, var(--q-warn) 8%, transparent); }
+.dash-box.tone-err .db-icon { color: var(--q-err); opacity: 0.2; }
+.dash-box.tone-err .db-foot { color: var(--q-err); background: color-mix(in srgb, var(--q-err) 10%, transparent); }
+.dash-box.tone-err { border-color: color-mix(in srgb, var(--q-err) 38%, var(--q-line-1)); }
+
+/* 第二排卡片矮一些（信息量少） */
+.dash-boxes-sm .dash-box { min-height: 88px; }
+.dash-boxes-sm .db-value { font-size: 21px; }
+
+/* ── 卡片与两栏布局 ─────────────────────────────────────────────────────── */
+.dash-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+@media (max-width: 1080px) {
+  .dash-row { grid-template-columns: minmax(0, 1fr); }
+}
+.dash-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--q-r-lg);
+  border: 1px solid var(--q-line-1);
+  background: var(--q-bg-1);
+  overflow: hidden;
+}
+.dash-card-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 15px;
+  border-bottom: 1px solid var(--q-line-1);
+}
+.dash-card-head h3 { margin: 0; font-size: 13.5px; font-weight: 650; color: var(--q-fg); }
+.dash-metric { margin-left: auto; display: flex; gap: 6px; }
+.dash-metric .btn.on {
+  background: var(--q-accent-soft);
+  border-color: var(--q-accent-line);
+  color: var(--q-accent);
+}
+.dash-card-body { flex: 1 1 auto; min-height: 0; padding: 12px 15px; }
+.dash-card-foot {
+  flex: 0 0 auto;
+  padding: 8px 15px;
+  font-size: 11px;
+  color: var(--q-fg-3);
+  border-top: 1px solid var(--q-line-1);
+}
+.dash-empty { padding: 22px 4px; text-align: center; font-size: 12px; color: var(--q-fg-3); }
+
+/* ── 加载骨架 ─────────────────────────────────────────────────────────────
+   为什么需要：/api/usage/stats 冷启动实测 **5.3 秒**、/api/usage/breakdown **3.9 秒**
+   （后端要遍历全部会话文件）。没有骨架的话，开机落在仪表盘会看到一片空白，
+   完全分不清"在加载"还是"坏了"。骨架形状贴近真实布局，加载完不会"跳一下"。 */
+.ds-ph {
+  background: linear-gradient(90deg, var(--q-bg-3) 25%, var(--q-bg-hover) 37%, var(--q-bg-3) 63%);
+  background-size: 400% 100%;
+  animation: dsShimmer 1.4s ease-in-out infinite;
+  border-radius: var(--q-r-sm);
+  color: transparent !important;
+  display: block;
+  height: 14px;
+}
+.db-value.ds-ph { height: 28px; }
+.ds-chart-ph {
+  height: 210px;
+  border-radius: var(--q-r-md);
+  background: linear-gradient(90deg, var(--q-bg-3) 25%, var(--q-bg-hover) 37%, var(--q-bg-3) 63%);
+  background-size: 400% 100%;
+  animation: dsShimmer 1.4s ease-in-out infinite;
+}
+@keyframes dsShimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+/* ── SVG 折线图 / 柱形图 ───────────────────────────────────────────────── */
+.dc-chart { width: 100%; height: 230px; display: block; overflow: visible; }
+.dc-bar-chart { height: 250px; }
+.dc-grid { stroke: var(--q-line-1); stroke-width: 1; }
+.dc-ytick { fill: var(--q-fg-3); font-size: 10px; text-anchor: end; }
+.dc-xtick { fill: var(--q-fg-3); font-size: 10px; text-anchor: middle; }
+
+/* ── 折线图的自绘悬停提示 ────────────────────────────────────────────────
+   为什么自绘而不用 SVG <title>：原生提示要等约 1 秒才弹、样式不可控、
+   在 SVG 上经常不出现 —— 用户反馈"顶点放上去应该有正常的信息显示"。
+   命中区是**整高的透明矩形**，所以不必精确压到 2.6px 的小圆点上。 */
+.dc-wrap { position: relative; }
+.dc-hit > rect { pointer-events: all; cursor: crosshair; }
+/* 竖参考线 + 高亮点：默认隐藏，命中时才显示 */
+.dc-guide {
+  stroke: var(--q-accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0;
+  transition: opacity var(--q-mo-fast) var(--q-ease);
+}
+.dc-dot-hi {
+  fill: var(--q-bg-1);
+  stroke: var(--q-accent);
+  stroke-width: 2.4;
+  opacity: 0;
+  transition: opacity var(--q-mo-fast) var(--q-ease);
+}
+.dc-hit.on .dc-guide,
+.dc-hit.on .dc-dot-hi { opacity: 1; }
+
+.dc-tip {
+  position: absolute;
+  z-index: 4;
+  /* ⚠️ 不给 display:none → display:block 做切换（那样没法做过渡），
+     改用 opacity + transform，并常驻 DOM。 */
+  min-width: 112px;
+  padding: 7px 10px;
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-sm);
+  background: var(--q-bg-1);
+  box-shadow: var(--q-shadow-2, 0 6px 20px rgba(0, 0, 0, 0.18));
+  font-size: 11.5px;
+  line-height: 1.5;
+  pointer-events: none;
+  white-space: nowrap;
+  /* 出现/消失的轻动效：淡入 + 轻微上浮。位移方向随"在上方还是下方"反过来，
+     这样看起来总是"从顶点那一侧冒出来"，而不是生硬地原地闪。
+     时长走令牌，关动效时被 01-motion.css / 00-tokens.css 的全局兜底压平。 */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px) scale(0.97);
+  transition:
+    opacity var(--q-mo-fast) var(--q-ease-out),
+    transform var(--q-mo-fast) var(--q-ease-spring),
+    visibility 0s linear var(--q-mo-fast);
+}
+.dc-tip.on {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity var(--q-mo-base) var(--q-ease-out),
+    transform var(--q-mo-base) var(--q-ease-spring),
+    visibility 0s;
+}
+/* 放在顶点上方 → 从下往上浮入；放在下方 → 从上往下浮入 */
+.dc-tip-above { transform: translateY(4px) scale(0.97); }
+.dc-tip-above.on { transform: translateY(0) scale(1); }
+.dc-tip-below { transform: translateY(-4px) scale(0.97); }
+.dc-tip-below.on { transform: translateY(0) scale(1); }
+
+/* 指向顶点的小箭头，让"这个框说的是哪个点"一目了然 */
+.dc-tip::after {
+  content: '';
+  position: absolute;
+  left: var(--tip-arrow-x, 50%);
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  background: var(--q-bg-1);
+  border: 1px solid var(--q-line-1);
+  transform: rotate(45deg);
+}
+.dc-tip-above::after { bottom: -5px; border-top: 0; border-left: 0; }
+.dc-tip-below::after { top: -5px; border-bottom: 0; border-right: 0; }
+
+.dc-tip b { display: block; margin-bottom: 2px; font-size: 12px; color: var(--q-fg); }
+.dc-tip-row { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; }
+.dc-tip-row i { font-style: normal; color: var(--q-fg-3); }
+.dc-tip-row em { font-style: normal; font-weight: 600; color: var(--q-fg); font-variant-numeric: tabular-nums; }
+
+/* ── 柱形图 ─────────────────────────────────────────────────────────────── */
+.dc-bar { fill: var(--q-accent); opacity: 0.85; transition: opacity var(--q-mo-fast) var(--q-ease); }
+.dc-bar-g:hover .dc-bar { opacity: 1; }
+.dc-bar-val {
+  fill: var(--q-fg-2);
+  font-size: 10px;
+  text-anchor: middle;
+  font-variant-numeric: tabular-nums;
+}
+.dc-bar-name { fill: var(--q-fg-3); font-size: 10px; text-anchor: middle; }
+.dc-line {
+  fill: none;
+  stroke: var(--q-accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  /* 入场画线动效：从 0 到全长。prefers-reduced-motion / 关闭动效时会被
+     01-motion.css 的全局兜底压成瞬时（duration 归零），不需要单独处理。 */
+  stroke-dasharray: 4000;
+  animation: dcDraw 900ms var(--q-ease-out) both;
+}
+@keyframes dcDraw { from { stroke-dashoffset: 4000; } to { stroke-dashoffset: 0; } }
+.dc-dot { fill: var(--q-bg-1); stroke: var(--q-accent); stroke-width: 1.6; }
+.dc-dot:hover { fill: var(--q-accent); r: 4; }
+
+/* ── SVG 环形图 + 图例 ──────────────────────────────────────────────────── */
+.dash-donut {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.dd-svg { width: 148px; height: 148px; flex: 0 0 auto; }
+.dd-track { fill: none; stroke: var(--q-line-1); stroke-width: 15; }
+.dd-seg {
+  fill: none;
+  stroke-width: 15;
+  /* 刻度在圆的起点，用 butt 才能让相邻扇区严丝合缝 */
+  stroke-linecap: butt;
+  transition: stroke-width var(--q-mo-fast) var(--q-ease), opacity var(--q-mo-fast) var(--q-ease);
+}
+.dd-seg:hover { stroke-width: 18; }
+.dd-center-v {
+  fill: var(--q-fg);
+  font-size: 21px;
+  font-weight: 700;
+  text-anchor: middle;
+  font-variant-numeric: tabular-nums;
+}
+.dd-center-l { fill: var(--q-fg-3); font-size: 10.5px; text-anchor: middle; }
+.dd-legend { list-style: none; margin: 0; padding: 0; flex: 1 1 150px; min-width: 0; }
+.dd-li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0;
+  font-size: 11.5px;
+  color: var(--q-fg-2);
+}
+.dd-sw { width: 9px; height: 9px; border-radius: 2.5px; flex: 0 0 auto; }
+.dd-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-val { flex: 0 0 auto; color: var(--q-fg); font-variant-numeric: tabular-nums; }
+.dd-pct { flex: 0 0 46px; text-align: right; color: var(--q-fg-3); font-variant-numeric: tabular-nums; }
+
+/* ── 排行进度条 ─────────────────────────────────────────────────────────── */
+.dp-list { list-style: none; margin: 0; padding: 0; }
+.dp-li + .dp-li { margin-top: 11px; }
+.dp-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 5px; }
+.dp-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--q-fg-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dp-val { flex: 0 0 auto; font-size: 11.5px; color: var(--q-fg); font-variant-numeric: tabular-nums; }
+.dp-bar { height: 7px; border-radius: var(--q-r-full); background: var(--q-bg-3); overflow: hidden; }
+.dp-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--q-accent) 0%, var(--q-accent-hi) 100%);
+  transition: width var(--q-mo-slow) var(--q-ease-out);
+}
+
+/* ── 状态键值表 ─────────────────────────────────────────────────────────── */
+.dash-kv { list-style: none; margin: 0; padding: 0; }
+.dash-kv li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 12px;
+  border-bottom: 1px dashed var(--q-line-1);
+}
+.dash-kv li:last-child { border-bottom: 0; }
+.dash-kv span { flex: 0 0 auto; color: var(--q-fg-3); }
+.dash-kv b {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  font-weight: 600;
+  color: var(--q-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kv-ok { color: var(--q-ok) !important; }
+.kv-warn { color: var(--q-warn) !important; }
+
+/* 窄窗口：信息卡单列，图表压扁一点 */
+@media (max-width: 640px) {
+  .dash-pane { padding: 14px 12px 20px; }
+  .dash-boxes { grid-template-columns: minmax(0, 1fr); }
+  .dc-chart { height: 180px; }
+}

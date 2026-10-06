@@ -1,0 +1,601 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   20-content.css — 内容区组件（会话 / 存档 / 记忆 / 用量 / 技能 / 插件 / 账号）
+   ═══════════════════════════════════════════════════════════════════════════
+   这一层是"重构"的主体：DOM 结构完全沿用移植层生成的标记（类名一个不改，
+   所以功能零风险），但版式、层级、间距、状态色全部按 DSH 的语言重做。
+
+   三个刻意的设计决定：
+   1. **信息密度优先**。这是控制台不是营销页：会话列表一行要能读出"谁、什么时候、
+      什么状态、花了多少 token"。所以行高 52px 左右、字号 12-13px，
+      靠**留白与分隔线**建立层级，而不是靠放大字号。
+   2. **右侧详情是"时间轴"而不是"卡片堆"**。每次工具调用是时间轴上的一个节点，
+      左侧一条 1px 竖线把它们串起来 —— "这次会话到底干了什么"一眼看完。
+   3. **状态用颜色 + 形状双重编码**（徽标底色 + 圆点），
+      色觉障碍用户与深浅两种主题下都读得出来。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══ 会话列表 ═════════════════════════════════════════════════════════════ */
+
+.session-item {
+  position: relative;
+  padding: 9px 12px 10px 13px;
+  border-bottom: 1px solid var(--q-line-1);
+  cursor: pointer;
+  transition: background-color var(--q-mo-fast) var(--q-ease);
+}
+/* 悬停时左侧长出一条强调条 —— 比单纯变色更有"可点"的暗示 */
+.session-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--q-accent);
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform var(--q-mo-base) var(--q-ease-out);
+}
+.session-item:hover { background: var(--q-bg-hover); }
+.session-item:hover::before { transform: scaleY(1); }
+.session-item.selected { background: var(--q-accent-soft); }
+.session-item.selected::before { transform: scaleY(1); }
+.session-item.session-waiting-row { background: color-mix(in srgb, var(--q-warn) 6%, transparent); }
+
+.session-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.session-chat {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--q-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-time { font-size: 11px; color: var(--q-fg-3); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+
+.session-trigger {
+  font-size: 12px;
+  color: var(--q-fg-2);
+  line-height: 1.5;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.session-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--q-fg-3);
+}
+.session-meta .muted { font-size: 11px; color: var(--q-fg-3); }
+.session-activity {
+  font-size: 11px;
+  color: var(--q-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* "正在思考"前的脉冲点：不用文字也知道它还活着 */
+.session-activity::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--q-accent);
+  animation: qBreathe 1.3s var(--q-ease) infinite;
+  flex: 0 0 auto;
+}
+.session-wait {
+  font-size: 11px;
+  color: var(--q-warn);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.session-wait::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--q-warn);
+  animation: qBreathe 1.8s var(--q-ease) infinite;
+  flex: 0 0 auto;
+}
+.session-item .session-retry-btn,
+.session-item .session-abort-btn { padding: 1px 7px; font-size: 11px; height: auto; }
+
+/* 新到条目：一次性的进场（.new-item 由渲染层加） */
+.session-item.new-item { animation: qItemIn var(--q-mo-slow) var(--q-ease-out) both; }
+
+/* 状态徽标 */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  height: 18px;
+  border-radius: var(--q-r-full);
+  font-size: 10.5px;
+  font-weight: 600;
+  border: 1px solid var(--q-line-2);
+  background: var(--q-bg-2);
+  color: var(--q-fg-2);
+  white-space: nowrap;
+}
+.status-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+.status-running { color: var(--q-accent); border-color: var(--q-accent-line); background: var(--q-accent-soft); }
+.status-done { color: var(--q-ok); border-color: var(--q-ok-line); background: var(--q-ok-soft); }
+.status-noreply { color: var(--q-fg-2); }
+.status-waiting { color: var(--q-warn); border-color: var(--q-warn-line); background: var(--q-warn-soft); }
+.status-error,
+.status-aborted { color: var(--q-err); border-color: var(--q-err-line); background: var(--q-err-soft); }
+
+/* ═══ 会话详情（时间轴）═══════════════════════════════════════════════════ */
+
+#session-detail, #chat-detail, #memory-detail { overflow-y: auto; }
+
+.detail-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  padding: 12px 18px 11px;
+  /* ⚠️ 不要用 backdrop-filter: blur()：它每帧对**下方整片内容**做高斯模糊，
+     窗口拖动/滚动时是最贵的一项开销（旧皮肤 1275 行也留了同样的告诫）。
+     这里改成不透明底 + 一条渐变阴影：视觉上仍是"内容从下面滑过去"，
+     但合成成本接近零。这就是"拖动卡卡的"的第二个根因。 */
+  background: var(--q-bg-base);
+  box-shadow: 0 1px 0 var(--q-line-1), 0 6px 10px -8px rgb(0 0 0 / 0.35);
+  border-bottom: 0;
+  contain: paint;                 /* 限定重绘范围，滚动时不牵连整页 */
+}
+.detail-header h3, .detail-header h2 {
+  font-size: 15px;
+  font-weight: 650;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.detail-header .sub,
+.detail-header .hint {
+  font-size: 11.5px;
+  color: var(--q-fg-3);
+  margin-top: 4px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.detail-header > div:first-child { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+
+/* 消息流：整个页面最该被读懂的地方 */
+.msg-flow {
+  padding: 14px 18px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+/* 时间轴：竖线 + 节点圆点 */
+.msg-flow > .tool-flow { position: relative; margin-left: 6px; padding-left: 18px; }
+.msg-flow > .tool-flow::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--q-line-2);
+}
+.msg-flow > .tool-flow::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--q-bg-base);
+  border: 2px solid var(--q-line-4);
+  transition: border-color var(--q-mo-base) var(--q-ease), transform var(--q-mo-base) var(--q-ease-spring);
+}
+.msg-flow > .tool-flow:hover::after { transform: scale(1.25); border-color: var(--q-accent); }
+.msg-flow > .tool-flow.think-flow::after { border-color: var(--q-fg-4); }
+.msg-flow > .tool-flow.sent-flow::after { border-color: var(--q-ok); }
+.msg-flow > .tool-flow.tool-error::after,
+.msg-flow > .tool-flow.error-flow::after { border-color: var(--q-err); }
+.msg-flow > .tool-flow.finish-flow::after { border-color: var(--q-accent); }
+/* 最后一个节点不再拖尾巴 */
+.msg-flow > .tool-flow:last-child::before { bottom: calc(100% - 14px); }
+
+/* 折叠节点（工具调用 / 思考 / 已发送 …） */
+.tool-flow {
+  border-radius: var(--q-r-md);
+  transition: background-color var(--q-mo-fast) var(--q-ease);
+}
+.tool-flow > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px 6px 4px;
+  border-radius: var(--q-r-md);
+  font-size: 12.5px;
+  list-style: none;
+  cursor: pointer;
+  min-height: 30px;
+}
+.tool-flow > summary::-webkit-details-marker { display: none; }
+.tool-flow > summary:hover { background: var(--q-bg-hover); }
+.tool-flow[open] > summary { margin-bottom: 2px; }
+.tool-ico { flex: 0 0 auto; font-size: 13px; line-height: 1; }
+.tool-name-flow {
+  font-family: var(--q-font-code);
+  font-size: 11.5px;
+  color: var(--q-fg);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 42%;
+}
+.tool-label {
+  font-size: 11px;
+  color: var(--q-fg-3);
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tool-flow > summary::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid var(--q-fg-3);
+  border-bottom: 1.5px solid var(--q-fg-3);
+  transform: rotate(-45deg);
+  transition: transform var(--q-mo-base) var(--q-ease-out);
+  flex: 0 0 auto;
+  margin-left: 2px;
+}
+.tool-flow[open] > summary::after { transform: rotate(45deg); }
+
+.coll-body {
+  font-size: 11.5px;
+  font-family: var(--q-font-code);
+  line-height: 1.65;
+  color: var(--q-fg-2);
+  background: var(--q-bg-base);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-md);
+  padding: 9px 11px;
+  margin: 2px 0 8px 4px;
+  overflow: auto;
+  max-height: 420px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tool-args { color: var(--q-fg-2); }
+.tool-result {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px dashed var(--q-line-2);
+  color: var(--q-fg);
+  white-space: pre-wrap;
+}
+.tool-result.is-error { color: var(--q-err); }
+.think-body { font-style: italic; color: var(--q-fg-2); font-family: var(--q-font); }
+.sent-body { font-family: var(--q-font); color: var(--q-fg); border-color: var(--q-ok-line); background: var(--q-ok-soft); }
+.error-body { font-family: var(--q-font); color: var(--q-err); border-color: var(--q-err-line); background: var(--q-err-soft); }
+.finish-body { font-family: var(--q-font); color: var(--q-fg-2); }
+.tool-flow.tool-error > summary .tool-name-flow { color: var(--q-err); }
+
+.collapsible > summary {
+  font-size: 11.5px;
+  color: var(--q-fg-3);
+  padding: 3px 0;
+}
+.collapsible > summary:hover { color: var(--q-fg); }
+
+.empty-hint {
+  color: var(--q-fg-3);
+  font-size: 12.5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ═══ 存档 / 记忆 列表 ════════════════════════════════════════════════════ */
+
+.chat-item, .mem-item {
+  position: relative;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--q-line-1);
+  cursor: pointer;
+  transition: background-color var(--q-mo-fast) var(--q-ease);
+}
+.chat-item:hover, .mem-item:hover { background: var(--q-bg-hover); }
+.chat-item.selected, .mem-item.selected,
+.chat-item.active, .mem-item.active { background: var(--q-accent-soft); }
+.chat-item-title { font-size: 12.5px; font-weight: 600; color: var(--q-fg); margin-bottom: 2px; }
+.chat-item-sub { font-size: 11px; color: var(--q-fg-3); overflow-wrap: anywhere; }
+.chat-item.new-item, .mem-item.new-item { animation: qItemIn var(--q-mo-base) var(--q-ease-out) both; }
+
+.chat-msg {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--q-line-1);
+  font-size: 12.5px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.chat-msg-role { font-size: 10.5px; font-weight: 600; color: var(--q-fg-3); margin-bottom: 3px; }
+
+/* ═══ 用量 / 技能 / 插件 的页头与卡片 ═════════════════════════════════════ */
+
+.usage-pane h3, .snowluma-pane h3, #view-accounts h3 {
+  font-size: 16px;
+  font-weight: 650;
+  margin: 0 0 4px;
+}
+.usage-pane h4, .snowluma-pane h4 { font-size: 13px; margin: 14px 0 6px; }
+.setsub {
+  font-size: 11.5px;
+  color: var(--q-fg-3);
+  margin: 0 0 14px;
+  line-height: 1.7;
+}
+
+/* 指标卡 */
+.usage-cards, .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+
+/* ── 「定位高亮」：从仪表盘点信息卡跳过来时，把对应区块闪两下 ───────────────
+   用途：仪表盘的调用次数/估算成本/Token 总量/缓存命中率/联网搜索这 5 张卡，
+   点击后跳到用量页，并让**对应的区块**闪 2 次，用户一眼知道"看这里"。
+
+   几个刻意的设计：
+     · 次数用令牌 --q-flash-count（默认 2），不写死 —— 次数是一处可调的语义。
+     · 动画时长由 JS 从 --q-mo-* 算出来写进 --q-flash-ms。
+       为什么不让 CSS 直接写时长：JS 需要知道"多久之后摘掉 class"，
+       两边各写一份时长必然漂移。JS 算好、同时喂给 CSS 与自己的定时器，
+       保证"动画结束"与"class 摘除"始终一致。
+     · 同时给 .is-flash-target 一个**常驻的浅色背景**：用户把动效关了的时候
+       （全局规则把 animation-duration 压到 0.001ms）动画等于不存在，
+       但浅色底 + 强调描边仍然留着，靠 JS 的定时器在 1.5 倍时长后摘掉
+       —— 关动效 ≠ 关掉这个功能，只是不再"闪"。 */
+@keyframes qFlashTarget {
+  0%   { box-shadow: 0 0 0 0 var(--q-accent-soft); border-color: var(--q-accent); }
+  35%  { box-shadow: 0 0 0 6px var(--q-accent-soft); border-color: var(--q-accent-hi); }
+  100% { box-shadow: 0 0 0 0 transparent; border-color: var(--q-accent-line); }
+}
+.is-flash-target {
+  animation: qFlashTarget var(--q-flash-ms, 700ms) var(--q-ease-out) var(--q-flash-count, 2) both;
+  background: linear-gradient(0deg, var(--q-accent-soft), var(--q-accent-soft)), var(--q-bg-1);
+  border-color: var(--q-accent-line);
+  position: relative;
+  z-index: 1;   /* 让描边/光圈压在相邻卡片之上，不被裁掉 */
+}
+/* 关掉动效时不要把"高亮"本身也关掉：保留描边与浅底（由 JS 定时摘除） */
+html[data-motion='off'] .is-flash-target {
+  animation: none;
+  box-shadow: 0 0 0 3px var(--q-accent-soft);
+  border-color: var(--q-accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-flash-target {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--q-accent-soft);
+    border-color: var(--q-accent);
+  }
+}
+/* 表格/区块级高亮（按天/按会话表这类用 data-block 的容器） */
+.is-flash-target.usage-table,
+.is-flash-target[data-block] { background: transparent; }
+.is-flash-target[data-block] > .usage-h3 { color: var(--q-accent); }
+.stat, .stat-card, .u-card, .metric {
+  background: var(--q-bg-1);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-lg);
+  padding: 12px 14px;
+  transition: border-color var(--q-mo-base) var(--q-ease), transform var(--q-mo-base) var(--q-ease-out), box-shadow var(--q-mo-base) var(--q-ease);
+}
+.stat:hover, .stat-card:hover, .u-card:hover, .metric:hover {
+  border-color: var(--q-line-3);
+  transform: translateY(-1px);
+  box-shadow: var(--q-elev-panel);
+}
+.stat .stat-label, .stat-card .label, .metric .label {
+  font-size: 11px;
+  color: var(--q-fg-3);
+  margin-bottom: 6px;
+  display: block;
+}
+.stat .stat-value, .stat-card .value, .metric .value {
+  font-size: 19px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--q-fg);
+  line-height: 1.2;
+}
+.stat .stat-unit, .metric .unit { font-size: 11px; color: var(--q-fg-3); margin-left: 3px; font-weight: 400; }
+.stat.alert, .stat-card.alert { border-color: var(--q-err-line); background: var(--q-err-soft); }
+
+/* 通用面板 */
+.panel, .card, .box {
+  background: var(--q-bg-1);
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-lg);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+/* 模块（技能 / 插件）网格 */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.mcard {
+  display: grid;
+  /* ⚠️ 必须显式写 grid-template-columns：
+     旧皮肤写的是 `display:flex; align-items:center`（单行布局的假设），
+     .mcard-name/.mcard-tools/.mcard-desc/.mcard-acts 四个直接子元素会被横排并垂直居中
+     —— 实测就是"卡片标题跑到中间"（"自动通过好友申请"那张）。
+     这里改成两列网格：左侧内容列 + 右侧操作列，四行由 grid-area 明确落位。 */
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name acts'
+    'tools tools'
+    'desc desc'
+    'err err';
+  align-items: center;
+  row-gap: 6px;
+  column-gap: 10px;
+  padding: 13px 15px;
+  border: 1px solid var(--q-line-1);
+  border-radius: var(--q-r-lg);
+  background: var(--q-bg-1);
+  transition: border-color var(--q-mo-base) var(--q-ease), transform var(--q-mo-base) var(--q-ease-out), box-shadow var(--q-mo-base) var(--q-ease);
+}
+.mcard:hover { border-color: var(--q-line-3); transform: translateY(-2px); box-shadow: var(--q-elev-panel); }
+/* 已启用的模块：左侧一条绿色条 + 稍亮的底 —— 一屏扫过去就知道哪些在跑 */
+.mcard-on { border-left: 3px solid var(--q-ok); background: color-mix(in srgb, var(--q-ok) 5%, var(--q-bg-1)); }
+.mcard-off { border-left: 3px solid var(--q-line-3); opacity: 0.82; }
+.mcard-off:hover { opacity: 1; }
+/* .mcard-main 只是名称/工具/描述的分组壳：用 display:contents 让它"消失"，
+   三个孩子直接成为网格项，从而能被 grid-area 摆位（JS 生成的层级不用改）。 */
+.mcard-main { display: contents; }
+.mcard-name { grid-area: name; font-size: 13.5px; font-weight: 650; color: var(--q-fg); min-width: 0; }
+.mcard-tools { grid-area: tools; display: flex; flex-wrap: wrap; gap: 4px; }
+.mcard-desc { grid-area: desc; font-size: 11.5px; color: var(--q-fg-2); line-height: 1.65; overflow-wrap: anywhere; }
+.mcard-err { grid-area: err; font-size: 11px; color: var(--q-err); }
+.mcard-tool-id {
+  font-family: var(--q-font-code);
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: var(--q-r-xs);
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-1);
+  color: var(--q-fg-3);
+}
+.mcard-acts {
+  grid-area: acts;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.mcard-acts button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--q-r-sm);
+  background: var(--q-bg-2);
+  border: 1px solid var(--q-line-2);
+  font-size: 12px;
+  line-height: 1;
+}
+.mcard-acts button:hover { background: var(--q-bg-3); border-color: var(--q-line-3); }
+.mcard-upload { border-style: dashed; opacity: 0.9; }
+
+.module-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0 4px;
+}
+.module-search input[type='text'], .module-search input:not([type]) { min-width: 220px; }
+
+/* ═══ 账号页 ══════════════════════════════════════════════════════════════ */
+.acc-page { max-width: 1100px; }
+
+/* ═══ 通用控件补充（旧皮肤里形态各异，这里统一）══════════════════════════ */
+
+.chev-r {
+  color: var(--q-fg-3);
+  font-size: 12px;
+  transition: transform var(--q-mo-base) var(--q-ease-out), color var(--q-mo-fast) var(--q-ease);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--q-line-1);
+}
+.checkbox-row:last-child { border-bottom: 0; }
+
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.field-row > label { flex: 0 0 auto; min-width: 96px; font-size: 12px; }
+.field-row > input, .field-row > select, .field-row > textarea { flex: 1 1 220px; min-width: 0; }
+
+/**
+ * ⚠️ 当一行里放的是**多个 `.field`（每个 = 标题 + 输入框）**时，
+ *    必须让各列**等宽**，否则输入框会按标签文字的宽度各占一块、彼此对不齐。
+ *
+ * 用户报的"输入框并不对齐"就是这个：`.field-row` 是 flex + `flex-wrap`，
+ * 子项的基准尺寸取 **min-content** —— 而 min-content 由标签里最长的那个词
+ * （例如"禁言时长（分钟，0 = 直到手动解除）"）决定，
+ * 于是同一行里两个输入框一个偏宽、上下两行的输入框起点也错开。
+ *
+ * 这里改用 grid 等分：`grid-auto-flow: column` + `grid-auto-columns: 1fr`
+ * 对"2 个"和"3 个"字段的行都成立，不用为每行写死列数。
+ * 前提是 `.field` 允许收缩（min-width: 0），否则长标签会把列撑开、1fr 失效。
+ */
+.field-row:has(> .field) {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: start;
+}
+.field-row:has(> .field) > .field { min-width: 0; }
+/* 窄屏放不下时逐列退回单列，避免输入框被压到无法输入 */
+@media (max-width: 760px) {
+  .field-row:has(> .field) { grid-auto-flow: row; grid-auto-columns: auto; }
+}
+
+.model-rows-table, table { font-variant-numeric: tabular-nums; }
+
+.hint, .sub {
+  font-size: 11.5px;
+  color: var(--q-fg-3);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.hint code, .setsub code, .mcard-desc code { background: var(--q-bg-2); font-size: 10.5px; padding: 0 3px; }

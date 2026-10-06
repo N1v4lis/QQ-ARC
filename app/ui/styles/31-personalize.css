@@ -1,0 +1,196 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   31-personalize.css — 「个性化」设置区块的外观
+   ═══════════════════════════════════════════════════════════════════════════
+   DOM 由 06-settings-render.js 的 renderPersonalizeSection() 生成：
+     .pz-group                    一组（品牌与选中 / 插件与状态 / 表面与文字）
+       .pz-group-title
+       .pz-row[data-pz-var]       一项
+         .pz-swatch               色块（内含隐藏的 <input type=color>）
+           .pz-picker
+           .pz-dot
+         .pz-text (.pz-label(+.pz-badge) / .pz-hint)
+         .pz-input                任意 CSS 颜色输入框
+         .pz-reset                恢复该项
+     .pz-toolbar                  顶部：全部恢复 / 复制 CSS / 状态
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pz-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--q-line-1);
+}
+.pz-toolbar .hint { margin-left: auto; color: var(--q-ok); }
+
+.pz-group { margin-bottom: 16px; }
+.pz-group:last-child { margin-bottom: 0; }
+.pz-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--q-fg-3);
+  margin-bottom: 7px;
+}
+
+/* 一行：色块 | 文字说明 | 三种格式（全部罗列） | 恢复 */
+.pz-row {
+  display: grid;
+  grid-template-columns: 30px minmax(150px, 220px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: var(--q-r-md);
+  transition: background-color var(--q-mo-fast) var(--q-ease);
+}
+.pz-row:hover { background: var(--q-bg-hover); }
+/* 已自定义的行：左侧一条主色条，一屏扫过去就知道改过哪些 */
+.pz-row.pz-changed { background: color-mix(in srgb, var(--q-accent) 6%, transparent); }
+.pz-row.pz-changed .pz-label { color: var(--q-accent); }
+
+/* ── 三种格式：同时可见、都可编辑（用户要求，不用小按钮切换）─────────────
+   每个框前面一个等宽小标签（HEX/RGB/HSL），标签定宽保证三个输入框左边缘对齐。 */
+.pz-formats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+.pz-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.pz-tag {
+  flex: 0 0 auto;
+  width: 30px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--q-fg-3);
+  text-align: right;
+  font-family: var(--q-font-code);
+}
+.pz-field .pz-input {
+  min-width: 0;
+  width: 100%;
+  font-size: 11px;
+  padding: 4px 7px;
+}
+/* 解析不了的输入：红边框提示，但不打断输入（值不会落库） */
+.pz-input.pz-invalid {
+  border-color: var(--q-err) !important;
+  box-shadow: 0 0 0 2px var(--q-err-soft) !important;
+}
+/* 变量名放在说明下面（小字等宽），便于高级用户对照 00-tokens.css */
+.pz-var {
+  font-family: var(--q-font-code);
+  font-size: 10px;
+  color: var(--q-fg-4);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 色块：一个真正的取色器藏在里面，外层方块显示当前色 */
+.pz-swatch {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--q-r-sm);
+  border: 1px solid var(--q-line-3);
+  overflow: hidden;
+  cursor: pointer;
+  /* 棋盘底：颜色带 alpha 时能看出来 */
+  background-image:
+    linear-gradient(45deg, var(--q-line-2) 25%, transparent 25%, transparent 75%, var(--q-line-2) 75%),
+    linear-gradient(45deg, var(--q-line-2) 25%, transparent 25%, transparent 75%, var(--q-line-2) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
+  flex: 0 0 auto;
+}
+.pz-dot {
+  position: absolute;
+  inset: 0;
+  background: var(--q-fg-4);        /* 未自定义时显示中性色（实际颜色由 inline style 覆盖） */
+}
+.pz-picker {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.pz-swatch:focus-within { outline: 2px solid var(--q-accent); outline-offset: 1px; }
+
+.pz-text { min-width: 0; }
+.pz-label {
+  font-size: 12.5px;
+  color: var(--q-fg);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pz-badge {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 0 5px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--q-r-full);
+  color: var(--q-accent);
+  background: var(--q-accent-soft);
+  border: 1px solid var(--q-accent-line);
+}
+.pz-hint {
+  font-size: 11px;
+  color: var(--q-fg-3);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 输入框：接受 var(...)/rgba()/#rrggbbaa 等任意合法 CSS 颜色 */
+.pz-input {
+  font-family: var(--q-font-code);
+  font-size: 11.5px;
+  padding: 4px 8px;
+  min-width: 0;
+  width: 100%;
+}
+.pz-input::placeholder { font-size: 10.5px; color: var(--q-fg-4); }
+
+.pz-reset {
+  padding: 3px 9px;
+  font-size: 11px;
+  flex: 0 0 auto;
+}
+.pz-reset:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 窄窗口：三种格式换到第二行并竖排，避免挤成一团 */
+@media (max-width: 1180px) {
+  .pz-row {
+    grid-template-columns: 30px minmax(140px, 1fr) auto;
+    grid-template-areas:
+      'swatch text reset'
+      'formats formats formats';
+    row-gap: 8px;
+  }
+  .pz-swatch { grid-area: swatch; }
+  .pz-text { grid-area: text; }
+  .pz-formats { grid-area: formats; }
+  .pz-reset { grid-area: reset; }
+}
+@media (max-width: 760px) {
+  .pz-formats { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,457 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   00-tokens.css — 设计令牌层
+   ═══════════════════════════════════════════════════════════════════════════
+   来源：DeepSeek Harness（DSH）客户端主题包的真实取值
+         node_modules/@deepseek-ai/dsh-client-ui-theme/lib/client.js
+         （--dsw-static-* 原始色阶 / --dsw-alias-* 语义别名 / --dsw-elevation-* 高度）
+   本文件把 DSH 的令牌**原样**搬过来，再加一层 qqa-* 短别名供本项目组件使用：
+     · --q-bg-*      ← --dsw-alias-bg-*
+     · --q-fg-*      ← --dsw-alias-label-*
+     · --q-line-*    ← --dsw-alias-border-*
+     · --q-accent    ← --dsw-static-deepseek-450 / -400（DSH 的品牌蓝）
+     · --q-elev-*    ← --dsw-elevation-*
+   为什么要原样搬：只凭印象写"深色 + 蓝色"会得到一套似像非像的皮肤；
+   直接引用真实色阶才能做到「以 DSH 的 UI 为基底」而不是「像 DSH 的 UI」。
+
+   动效令牌（--q-mo-*）单独成组：整个新界面只准用这些时长/缓动，
+   保证"有动效"是统一的设计语言而不是各处随手写的 transition。
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 原始色阶（DSH static）──────────────────────────────────────────────── */
+:root {
+  /* 中性偏蓝（DSH 深色界面的主骨架色） */
+  --s-nb-00: #ffffff;
+  --s-nb-50: #f9fafb;
+  --s-nb-60: #f9fafb;
+  --s-nb-75: #f1f3f5;
+  --s-nb-100: #ebeef2;
+  --s-nb-150: #e9ecf2;
+  --s-nb-200: #e1e5ee;
+  --s-nb-300: #cfd3d6;
+  --s-nb-400: #adb2b8;
+  --s-nb-500: #979da6;
+  --s-nb-600: #81858c;
+  --s-nb-700: #61666b;
+  --s-nb-750: #43454a;
+  --s-nb-800: #353638;
+  --s-nb-850: #2c2c2e;
+  --s-nb-875: #232324;
+  --s-nb-900: #1b1b1c;
+  --s-nb-950: #151517;
+  --s-nb-1000: #0f1115;
+
+  /* 纯中性 */
+  --s-n-50: #fafafa;
+  --s-n-100: #f5f5f5;
+  --s-n-150: #ededed;
+  --s-n-200: #e5e5e5;
+  --s-n-300: #d4d4d4;
+  --s-n-400: #a2a4a6;
+  --s-n-500: #7f8287;
+  --s-n-600: #545557;
+  --s-n-700: #3c3c3d;
+  --s-n-800: #292929;
+  --s-n-850: #212123;
+  --s-n-900: #0f0f0f;
+
+  /* DeepSeek 品牌蓝 */
+  --s-ds-50: #edf3fe;
+  --s-ds-100: #e4edfd;
+  --s-ds-200: #d3e2ff;
+  --s-ds-300: #b7c8fe;
+  --s-ds-400: #679efe;
+  --s-ds-450: #5686fe;
+  --s-ds-500: #4176e6;
+  --s-ds-600: #4868b2;
+  --s-ds-800: #34415b;
+  --s-ds-900: #283142;
+
+  --s-blue-400: #60a5fa;
+  --s-blue-450: #4d93f8;
+  --s-blue-500: #3b82f6;
+  --s-blue-600: #2563eb;
+  --s-green-400: #4ed17e;
+  --s-green-500: #22c55e;
+  --s-green-900: #233c2c;
+  --s-amber-400: #f7ad31;
+  --s-amber-500: #f59e0b;
+  --s-amber-600: #dd8629;
+  --s-amber-900: #27241f;
+  --s-red-400: #f25a5a;
+  --s-red-500: #ef4444;
+  --s-red-600: #ec1313;
+  --s-red-900: #570c0c;
+
+  /* 字体（DSH 原文） */
+  --q-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --q-font-code: "SF Mono", "JetBrains Mono", "Fira Code", Consolas,
+    "Liberation Mono", Menlo, Courier, "PingFang SC", "Microsoft YaHei";
+
+  /* 「游戏通告」字体（仪表盘 Beta 提示条用）—— 按用户确认的塔科夫实际用字：
+       · 中文 = **宋体**（塔科夫中文界面就是宋体，不是黑体 —— 我上一版按"厚重黑体"
+         找了一圈，方向本身就错了）
+       · 英文 = **Bender**（Jovanny Lemonad 的 Bender，用户机器上已安装）
+     字体栈把 Bender 放前面、宋体放后面，靠 **逐字符回退** 自动分工：
+     拉丁字母/数字命中 Bender，汉字在 Bender 里没有字形、自然落到宋体。
+     这样中英混排（"…的Beta测试版本。"）一句话里各用各的字体，不需要拆 DOM。
+
+     ⚠️ 字体名要用**系统里的准确名字**：
+        · "Bender"（实测 Add-Type System.Drawing 的字体族里就是这个名字）
+        · "宋体"（中文名可用；同时列 SimSun 作为英文名兜底，两者是同一套字形）
+        写错名字不会报错，只会静默落到后备字体 —— 这类问题很难从截图上看出来，
+        所以 tools/probe-fonts.mjs 用 Canvas 量宽度来确认到底命中了哪个字体。 */
+  --q-font-tarkov: Bender, "宋体", SimSun, NSimSun, "Songti SC", "Noto Serif SC", serif;
+
+  /* 圆角（DSH 用 superellipse 平滑超椭圆；不支持的浏览器自然退化为普通圆角） */
+  --q-r-xs: 4px;
+  --q-r-sm: 6px;
+  --q-r-md: 8px;
+  --q-r-lg: 12px;
+  --q-r-xl: 16px;
+  --q-r-full: 999px;
+
+  /* ── 动效令牌（本项目的统一口径）─────────────────────────────────────
+     时长三档 + 两条缓动曲线。DSH 自带的是 .1s/.2s/.3s + cubic-bezier(.4,0,.2,1)，
+     这里补一条"出场"曲线（--q-ease-out，快进慢出）用于视图切换与浮层入场。 */
+  --q-mo-fast: 0.1s;
+  --q-mo-base: 0.2s;
+  --q-mo-slow: 0.3s;
+  --q-mo-slower: 0.42s;
+  /* 定位高亮的闪烁次数（仪表盘点卡片 → 用量页对应区块闪两下）。
+     做成令牌是为了**一处改动全局生效**：次数/语义只在这里定义，
+     动画（20-content.css）与脚本（13-dashboard.js）都读它。 */
+  --q-flash-count: 2;
+  --q-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --q-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --q-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* ── 深色（默认）────────────────────────────────────────────────────────── */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --q-bg-base: var(--s-nb-950);
+  --q-bg-1: var(--s-nb-875);
+  --q-bg-2: var(--s-nb-850);
+  --q-bg-3: var(--s-nb-800);
+  --q-bg-sidebar: var(--s-nb-900);
+  --q-bg-nav-hover: var(--s-nb-850);
+  --q-bg-nav-active: var(--s-nb-750);
+  --q-bg-nav-accent: var(--s-nb-800);
+  --q-bg-input: var(--s-nb-850);
+  --q-bg-module: var(--s-nb-800);
+  --q-bg-hover: #ffffff14;
+  --q-bg-active: #ffffff24;
+  --q-bg-skeleton: #ffffff14;
+  --q-bg-overlay: var(--s-nb-700);
+  --q-mask: #00000080;
+
+  --q-line-1: #ffffff0f;
+  --q-line-2: #ffffff1f;
+  --q-line-3: #ffffff29;
+  --q-line-4: #ffffff33;
+
+  --q-fg: var(--s-nb-50);
+  --q-fg-2: var(--s-nb-300);
+  --q-fg-3: var(--s-nb-400);
+  --q-fg-4: var(--s-nb-600);
+  --q-fg-invert: var(--s-nb-1000);
+
+  --q-accent: var(--s-ds-450);
+  --q-accent-hi: var(--s-ds-400);
+  --q-accent-lo: var(--s-ds-500);
+  --q-accent-soft: #5686fe26;
+  --q-accent-line: #5686fe5c;
+
+  --q-ok: var(--s-green-500);
+  --q-ok-hi: var(--s-green-400);
+  --q-ok-soft: #22c55e1f;
+  --q-ok-line: #22c55e59;
+  --q-warn: var(--s-amber-500);
+  --q-warn-hi: var(--s-amber-400);
+  --q-warn-soft: #f59e0b1f;
+  --q-warn-line: #f59e0b59;
+  --q-err: var(--s-red-400);
+  --q-err-soft: #f25a5a1f;
+  --q-err-line: #f25a5a59;
+
+  --q-shadow-1: 0 2px 4px 0 #0000000d;
+  --q-shadow-2: 0 4px 12px 0 #00000005, 0 2px 8px 0 #0000000a;
+  --q-shadow-3: 0 0 1px 0 #0003, 0 0 4px 0 #00000005, 0 12px 32px 0 #00000014;
+  --q-stroke-color: var(--q-line-4);
+  --q-elev-panel: 0 0 0 0.5px var(--q-stroke-color), 0 3px 8px 0 #00000008, 0 0 16px 0 #00000005;
+  --q-elev-prominent: 0 0 0 0.5px var(--q-stroke-color), 0 3px 8px 0 #0000000a, 0 0 20px 0 #0000000d;
+  --q-elev-soft: 0 0 0 0.5px var(--q-stroke-color), 0 4px 16px 0 #00000008, 0 0 24px 0 #00000008;
+
+  --q-scroll-thumb: var(--s-n-200);
+  --q-scroll-thumb-hover: var(--s-n-300);
+
+  /* 窗口外壳：自绘标题栏（不依赖 Windows 原生标题栏）
+     40px = 比旧版 52px 更紧凑（DSH 的标题栏就是这个量级），同时比 Windows 原生的
+     32px 略高，给"可拖动"留出足够命中面积。
+     ⚠️ 2026-10-04 起标题栏**只放品牌 + 三个窗口按钮**，功能控件移到下面的工具栏。 */
+  --q-titlebar-h: 40px;
+  /* 功能工具栏高度（内容区顶部，承载 连接状态/账号/模型/用量/搜索/就绪点/主题/暂停）
+     44px = 24px 胶囊 + 上下各 10px 呼吸，比标题栏略高一点，
+     视觉上读作"内容区的一部分"而不是"第二条标题栏"。 */
+  --q-toolbar-h: 44px;
+  /* 侧栏宽度：236 → 200 → 168px（用户连续要求"再窄一点/更窄一些"）。
+     168px 是怎么定的：先量了各项的真实用宽（tools/probe-sidebar-metrics.mjs），
+     最宽的导航项是「仪表盘」（图标 18 + 间距 8 + 文字 39 = 65px）；
+     最宽的底部入口是「打开网站！」/「Skill 市场」（约 70px 文字）。
+     算上 .q-side-scroll 左右各 6px、按钮自身左右各 10px：
+     168 - 12 - 20 = 136px 可用 —— 放得下那 70px 文字，还有近一倍余量。
+     真正的约束是底部那排社区按钮（`width:100%` 撑满，侧栏越窄它们越窄），
+     136px 对 70px 文字仍然宽松。
+
+     ⚠️ rail（折叠态）保持 60px 不变 —— 那由图标尺寸决定，与展开宽度无关。 */
+  --q-sidebar-w: 168px;
+  --q-sidebar-w-rail: 60px;
+
+  /* ── 旧变量别名 ────────────────────────────────────────────────────────
+     移植过来的 JS 与少量遗留样式仍按旧名字取色（--bg/--tx/--ac/--bd…）。
+     这里一次性全部接上新色板：JS 一行都不用改，也不会出现"新皮肤里冒出一块旧配色"。
+     改变量名是最容易漏的地方 —— 所以宁可多一层别名，也不去动逻辑层代码。 */
+  --bg0: var(--q-bg-base);
+  --bg1: var(--q-bg-1);
+  --bg2: var(--q-bg-2);
+  --bg3: var(--q-bg-3);
+  --bg: var(--q-bg-base);
+  --bg-2: var(--q-bg-1);
+  --bg-3: var(--q-bg-2);
+  --bd: var(--q-line-2);
+  --bd2: var(--q-line-3);
+  --border: var(--q-line-2);
+  --tx: var(--q-fg);
+  --tx2: var(--q-fg-2);
+  --tx3: var(--q-fg-3);
+  --text: var(--q-fg);
+  --muted: var(--q-fg-2);
+  --faint: var(--q-fg-3);
+  --ac: var(--q-accent);
+  --accent: var(--q-accent);
+  --ac-soft: var(--q-accent-soft);
+  --ac-line: var(--q-accent-line);
+  --on-accent: #ffffff;
+  --ok: var(--q-ok);
+  --green: var(--q-ok);
+  --ok-soft: var(--q-ok-soft);
+  --ok-line: var(--q-ok-line);
+  --warn: var(--q-warn);
+  --orange: var(--q-warn);
+  --warn-soft: var(--q-warn-soft);
+  --warn-line: var(--q-warn-line);
+  --err: var(--q-err);
+  --red: var(--q-err);
+  --err-soft: var(--q-err-soft);
+  --err-line: var(--q-err-line);
+  --layer-0: var(--q-bg-base);
+  --layer-1: var(--q-bg-1);
+  --layer-2: var(--q-bg-2);
+  --layer-3: var(--q-bg-3);
+  --hover: var(--q-bg-hover);
+  --active: var(--q-bg-active);
+  --overlay: var(--q-mask);
+  --inset-bg: var(--q-bg-base);
+  --raise-1: var(--q-shadow-1);
+  --raise-3: var(--q-shadow-3);
+  --lift-lg: var(--q-shadow-3);
+  --shadow-lg: var(--q-shadow-3);
+  --shadow-md: var(--q-elev-panel);
+  --shadow-sm: none;
+  --press-sm: none;
+  --raise-sm: none;
+  --depth: transparent;
+  --bevel: transparent;
+  --edge: var(--q-line-2);
+  --lift: none;
+  --paper-edge: none;
+  --sel-bar: none;
+  --sel-bg: var(--q-accent-soft);
+  --inset-edge: none;
+  --mono: var(--q-font-code);
+  --font-ui: var(--q-font);
+  --font-mono: var(--q-font-code);
+
+  /* 圆角（旧名） */
+  --r-xs: var(--q-r-xs);
+  --r-sm: var(--q-r-sm);
+  --r-md: var(--q-r-md);
+  --r-lg: var(--q-r-lg);
+  --r-full: var(--q-r-full);
+
+  /* 时长/缓动（旧名 → 新令牌；数量很多，只能这样一次对齐） */
+  --t-fast: var(--q-mo-fast);
+  --t-base: var(--q-mo-base);
+  --dur-fast: var(--q-mo-fast);
+  --dur-base: var(--q-mo-base);
+  --dur-slow: var(--q-mo-slow);
+  --dur-slower: var(--q-mo-slower);
+  --ease-out-quart: var(--q-ease-out);
+  --ease-in-out: var(--q-ease);
+  --ease-spring: var(--q-ease-spring);
+  --shift-sm: 3px;
+  --shift-md: 6px;
+  --shift-lg: 10px;
+
+  /* 可调布局量（12-concept2-ui.js 会写 --list-w） */
+  --list-w: 300px;
+}
+
+/* ── 浅色 ───────────────────────────────────────────────────────────────── */
+[data-theme='light'] {
+  color-scheme: light;
+
+  --q-bg-base: var(--s-nb-60);
+  --q-bg-1: var(--s-nb-00);
+  --q-bg-2: var(--s-nb-00);
+  --q-bg-3: var(--s-nb-75);
+  --q-bg-sidebar: var(--s-nb-50);
+  --q-bg-nav-hover: var(--s-nb-75);
+  --q-bg-nav-active: var(--s-nb-200);
+  --q-bg-nav-accent: var(--s-nb-150);
+  --q-bg-input: var(--s-nb-00);
+  --q-bg-module: var(--s-nb-60);
+  --q-bg-hover: #2631480f;
+  --q-bg-active: #2631481a;
+  --q-bg-skeleton: #0000000a;
+  --q-bg-overlay: var(--s-nb-150);
+  --q-mask: #0000003d;
+
+  --q-line-1: #0000000a;
+  --q-line-2: #0000001a;
+  --q-line-3: #0000001f;
+  --q-line-4: #00000029;
+
+  --q-fg: var(--s-nb-1000);
+  --q-fg-2: var(--s-nb-700);
+  --q-fg-3: var(--s-nb-600);
+  --q-fg-4: var(--s-nb-500);
+  --q-fg-invert: var(--s-nb-00);
+
+  --q-accent: var(--s-ds-500);
+  --q-accent-hi: var(--s-ds-450);
+  --q-accent-lo: var(--s-ds-600);
+  --q-accent-soft: #4176e61f;
+  --q-accent-line: #4176e652;
+
+  --q-ok: #16a34a;
+  --q-ok-hi: var(--s-green-500);
+  --q-ok-soft: #22c55e1a;
+  --q-ok-line: #22c55e4d;
+  --q-warn: var(--s-amber-600);
+  --q-warn-hi: var(--s-amber-500);
+  --q-warn-soft: #f59e0b1f;
+  --q-warn-line: #f59e0b52;
+  --q-err: var(--s-red-500);
+  --q-err-soft: #ef44441a;
+  --q-err-line: #ef444452;
+
+  --q-shadow-1: 0 1px 2px 0 #0f11150f;
+  --q-shadow-2: 0 4px 12px 0 #0f11150a, 0 2px 8px 0 #0f11150d;
+  --q-shadow-3: 0 0 1px 0 #0f11151f, 0 12px 32px 0 #0f11151a;
+  --q-stroke-color: var(--q-line-4);
+  --q-elev-panel: 0 0 0 0.5px var(--q-stroke-color), 0 2px 6px 0 #0f11150a, 0 0 12px 0 #0f111508;
+  --q-elev-prominent: 0 0 0 0.5px var(--q-stroke-color), 0 3px 8px 0 #0f11150f, 0 0 20px 0 #0f11150d;
+  --q-elev-soft: 0 0 0 0.5px var(--q-stroke-color), 0 4px 16px 0 #0f11150a, 0 0 24px 0 #0f11150a;
+
+  --q-scroll-thumb: var(--s-n-300);
+  --q-scroll-thumb-hover: var(--s-n-400);
+}
+
+/* ── 基础重置 ───────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+@supports (corner-shape: superellipse(1.5)) {
+  :root { --q-corner-shape: superellipse(1.5); }
+  .q-squircle { corner-shape: var(--q-corner-shape); }
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;                       /* 滚动只发生在内容区，外壳永不滚动 */
+}
+
+body {
+  background: var(--q-bg-base);
+  color: var(--q-fg);
+  font-family: var(--q-font);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* 滚动条（DSH 原文口径）*/
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--q-scroll-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--q-scroll-thumb-hover); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+::selection { background: var(--q-accent-soft); color: var(--q-fg); }
+
+/* 键盘可达性：所有可交互元素保留可见焦点环（鼠标点击不显示） */
+:focus-visible {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 1px;
+  border-radius: var(--q-r-xs);
+}
+
+/* 尊重系统「减弱动态效果」：全局兜底，任何遗漏的动画都不会冒犯用户 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── 用户开关：关闭动效（设置 → 个性化 → 动效）────────────────────────────
+   与上面"系统偏好"同一套机制，只是这条由用户显式控制
+   （开关见 shell/11-motion.js，落成 <html data-motion="off">）。
+   为什么用一条属性而不是在每处动画里加 JS 判断：动效散在几十条规则里，
+   逐个加 if 必然漏掉；一条属性 + 一条通配规则，**以后新加的动效也自动覆盖**。
+
+   ⚠️ 光把时长压成 0 还不够：进场动画（qViewIn/qItemIn/qPopIn）的**起始帧**是
+   opacity:0，时长被压到 0.001ms 后元素有可能停在起始帧上（直接看不见）。
+   所以下面还要显式把动画关掉并把终态写死。 */
+html[data-motion='off'] *,
+html[data-motion='off'] *::before,
+html[data-motion='off'] *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+html[data-motion='off'] .view.active,
+html[data-motion='off'] .view.leaving,
+html[data-motion='off'] .session-item,
+html[data-motion='off'] .chat-item,
+html[data-motion='off'] .mem-item,
+html[data-motion='off'] .model-modal,
+html[data-motion='off'] .loading-card,
+html[data-motion='off'] .banner,
+html[data-motion='off']::view-transition-old(root),
+html[data-motion='off']::view-transition-new(root) {
+  animation: none !important;
+}
+html[data-motion='off'] .session-item,
+html[data-motion='off'] .chat-item,
+html[data-motion='off'] .mem-item,
+html[data-motion='off'] .model-modal,
+html[data-motion='off'] .loading-card {
+  opacity: 1 !important;
+  transform: none !important;
+}
