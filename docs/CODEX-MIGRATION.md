@@ -42,7 +42,11 @@
 用户已指定新仓库 **N1v4lis/QQARCFOX**，描述 **A modern, beautifully designed QQ Agent.**，
 初始为 **私有**，后续可能公开。创建目标仓库后配置 origin；不要自动把上游仓库当作发布目标。
 本机 Git Credential Manager 支持浏览器授权，无需下载 GitHub Desktop。
-本仓库提交身份为 `N1v4lis <487271667@qq.com>`；通过浏览器授权后创建私有仓库并推送本地基线。
+本仓库提交身份为 `N1v4lis <487271667@qq.com>`。浏览器授权已完成，私有仓库已创建：
+https://github.com/N1v4lis/QQARCFOX 。origin 已配置，main 已推送并跟踪 origin/main。
+首次迁移基线提交为 `1b70dbbb0d379d4948d7983762c0d70f92011d8c`，已核对远程 main 指向相同提交。
+上传内容是 UI 仓库的 169 个文件；其余开发资源、备份和截图保留在本地完整迁移目录。
+本次检查了 143 个文本文件中的常见私钥 / Token 特征，未发现匹配；该检查不等于完整安全审计。
 
 每轮迭代：
 
