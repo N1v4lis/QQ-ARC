@@ -17,6 +17,8 @@
     users:[...R(C.dark,[2,1,4,6],[10,1,4,6],[2,5,12,9]),...R(C.light,[3,2,2,5],[11,2,2,5],[3,5,10,8]),...R(C.paper,[4,7,8,6],[6,5,4,3]),...R(C.blue,[4,9,2,2],[10,9,2,2]),...R(C.dark,[7,11,2,1])],
     // 设置入口：钢灰齿轮与铜色轴心，16格阶梯轮廓。
     gear:[...R(C.edge,[5,0,6,16],[0,5,16,6],[2,2,12,12]),...R(C.stone,[6,1,4,14],[1,6,14,4],[3,3,10,10]),...R(C.silver,[6,1,4,2],[1,6,2,4],[3,3,3,2],[3,5,2,1],[10,3,3,2]),...R('#565e69',[11,10,2,3],[6,13,4,2],[13,6,2,4]),...R(C.edge,[5,5,6,6]),...R(C.wood,[6,6,4,4]),...R(C.light,[6,6,4,1],[6,7,1,2]),...R(C.dark,[7,7,2,2])],
+    desktop:[...R(C.edge,[0,1,16,11],[6,12,4,2],[3,14,10,2]),...R(C.stone,[1,2,14,9],[7,12,2,2],[4,14,8,1]),...R(C.silver,[1,2,14,1]),...R('#214a54',[2,3,12,6]),...R(C.blue,[3,4,10,4]),...R('#dafaff',[3,4,3,1],[3,5,1,2]),...R(C.green,[12,10,2,1])],
+    layout:[...R(C.edge,[0,1,16,14]),...R(C.silver,[1,2,14,12]),...R(C.wood,[1,2,14,3]),...R(C.light,[2,2,8,1]),...R(C.paper,[2,6,3,7]),...R(C.stone,[5,6,1,7]),...R(C.blue,[7,6,7,3]),...R(C.paper,[7,10,3,3],[11,10,3,3]),...R(C.gold,[11,3,1,1]),...R(C.red,[13,3,1,1])],
     key:[...R(C.dark,[2,1,7,7],[5,7,3,8],[8,11,3,3]),...R(C.gold,[3,2,5,5],[6,7,1,7],[7,11,3,2]),...R(C.dark,[4,3,3,3]),...R('#fff2a5',[3,2,4,1],[6,8,1,2])],
     hopper:[...R(C.edge,[1,2,14,5],[3,7,10,3],[5,10,6,2],[7,12,3,3]),...R(C.stone,[2,3,12,3],[4,7,8,2],[6,9,4,2],[8,11,1,3]),...R(C.silver,[2,3,12,1],[4,7,3,1])],
     note:[...R(C.dark,[1,2,14,13]),...R(C.wood,[2,3,12,11]),...R(C.light,[2,3,12,2],[3,6,2,7]),...R(C.dark,[7,6,1,6],[8,6,4,1],[11,7,1,5],[5,11,3,2],[9,11,3,2]),...R(C.red,[8,6,3,1])],
@@ -73,6 +75,8 @@
     const title=card?.querySelector('.sc-tt h4')?.textContent.trim()||'';
     if(card?.id==='card-brightness'||/亮度/.test(title))return document.documentElement.dataset.theme==='dark'?'moon':'sun';
     if(cardKeys[card?.id])return cardKeys[card.id];
+    if(title==='桌面端')return 'desktop';
+    if(title==='界面')return 'layout';
     for(const [pattern,key] of [[/音效|声音|语音/,'note'],[/背景|皮肤|配色|颜色/,'painting'],[/动效/,'spark'],[/Minecraft|主题/,'crafting'],[/搜索/,'search'],[/记忆/,'brain'],[/白名单|允许|禁言/,'shield'],[/人设|角色/,'persona'],[/备选|降级/,'hopper'],[/模型|API|渠道/,'key'],[/成本/,'cost'],[/数据|备份/,'archive'],[/更新/,'refresh'],[/启动/,'rocket'],[/工具|技能/,'crafting'],[/聊天|消息|发送/,'paper'],[/界面|桌面|OneBot|SnowLuma/,'gear']])if(pattern.test(title))return key;
     return null;
   }
