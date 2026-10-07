@@ -1,0 +1,17 @@
+{"elapsed":0,"event":"entry"}
+{"elapsed":245,"event":"main-lag","ms":142}
+{"elapsed":1540,"event":"main-lag","ms":1066}
+{"elapsed":1915,"event":"window-show"}
+{"elapsed":4696,"event":"request","ms":2801,"route":"/api/status","code":200}
+{"elapsed":4697,"event":"request","ms":2527,"route":"/api/status","code":200}
+{"elapsed":4838,"event":"archive-request","files":3535}
+{"elapsed":4870,"event":"request","ms":134,"route":"other","code":200}
+{"elapsed":5871,"event":"request","ms":1062,"route":"/api/usage/stats","code":200}
+{"elapsed":10359,"event":"main-lag","ms":49}
+{"elapsed":11472,"event":"archive-complete","files":3535}
+{"elapsed":11517,"event":"request","ms":6677,"route":"/api/usage/breakdown","code":200}
+{"elapsed":32303,"event":"warmup-start"}
+{"elapsed":32308,"event":"archive-request","files":3535}
+{"elapsed":32314,"event":"warmup-done"}
+{"elapsed":37566,"event":"request","ms":2756,"route":"/api/status","code":200}
+{"elapsed":45512,"event":"renderer","tasks":[{"start":391,"ms":67},{"start":391,"ms":67},{"start":1229,"ms":107},{"start":1229,"ms":107}],"animation":{"disposed":true,"duration":4000}}

@@ -13,6 +13,8 @@ SnowLuma启动优化：异步补丁后执行 `node tools/patch-host-snow-startup
 
 插件导入优化：再执行 `node tools/patch-host-plugin-loading.mjs` 并重启，冷启动4路准备、按原顺序注册，热重载只扫描一次；[实现、回退与SnowLuma源码坐标](docs/PLUGIN-LOADING.md)。
 
+进入界面后的卡顿优化：上述补丁后执行 `node tools/patch-host-usage-responsiveness.mjs` 并重启，将会话解析移到后台线程、计价复用配置；[原因、对照测量与回退](docs/POST-STARTUP-RESPONSIVENESS.md)。
+
 酒狐完整资源保留在 `Wine_Fox/`，已作为主题互动宠物接入。
 接入与实测性能见 [`docs/WINE-FOX-INTEGRATION.md`](docs/WINE-FOX-INTEGRATION.md)。
 在「设置 → 主题 → 酒狐互动宠物」开启，支持拖动、轻点互动、46个动作、表情、大小与暂停。默认关闭，开启后按需加载；暂停与最小化停止绘制。独立参考页仍可运行 `node Wine_Fox/WebPet/server.mjs`。

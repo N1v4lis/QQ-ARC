@@ -1,0 +1,16 @@
+{"elapsed":0,"event":"entry"}
+{"elapsed":194,"event":"main-lag","ms":92}
+{"elapsed":1331,"event":"main-lag","ms":912}
+{"elapsed":1741,"event":"window-show"}
+{"elapsed":1816,"event":"main-lag","ms":66}
+{"elapsed":4215,"event":"request","ms":2280,"route":"/api/status","code":200}
+{"elapsed":4216,"event":"request","ms":2215,"route":"/api/status","code":200}
+{"elapsed":4302,"event":"archive-request","files":3535}
+{"elapsed":4360,"event":"request","ms":127,"route":"other","code":200}
+{"elapsed":4830,"event":"request","ms":544,"route":"/api/usage/stats","code":200}
+{"elapsed":8948,"event":"archive-complete","files":3535}
+{"elapsed":8978,"event":"request","ms":4674,"route":"/api/usage/breakdown","code":200}
+{"elapsed":32168,"event":"warmup-start"}
+{"elapsed":32174,"event":"archive-request","files":3535}
+{"elapsed":32177,"event":"warmup-done"}
+{"elapsed":37151,"event":"request","ms":1968,"route":"/api/status","code":200}
