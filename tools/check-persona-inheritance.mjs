@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import {patchPersonaInheritance,patchModelInheritance} from './host/arcfox-persona-inheritance.mjs';
+const configFile='E:/QQ Agent/resources/app/src/config.js',modelFile='E:/QQ Agent/resources/app/src/llm.js';
+const configSource=fs.readFileSync(configFile,'utf8'),modelSource=fs.readFileSync(modelFile,'utf8');
+const patched=patchPersonaInheritance(configSource),models=patchModelInheritance(modelSource);
+assert.equal(patchPersonaInheritance(patched),patched);assert.equal(patchModelInheritance(models),models);
+const getFunction=(source,name,end)=>source.slice(source.indexOf('export function '+name),source.indexOf(end,source.indexOf('export function '+name))).replace('export ','');
+let config={personaUnified:true,persona:{roleText:'default',customRules:'default rules',botName:'default name',participation:'medium'},personaByChat:{'group:1':{roleText:'own',customRules:'',botName:'ignored'},'private:2':{customRules:'own rules'},'3':{roleText:'legacy own'}}};
+const persona=new Function('getConfig',getFunction(patched,'personaForChat','\n/**')+';return personaForChat')(()=>config);
+assert.equal(persona('group:1').roleText,'own');assert.equal(persona('group:1').customRules,'default rules');assert.equal(persona('group:1').botName,'default name');assert.equal(persona('private:2').roleText,'default');assert.equal(persona('private:2').customRules,'own rules');assert.equal(persona('group:3').roleText,'legacy own');assert.equal(persona('group:4').roleText,'default');config.personaUnified=false;assert.equal(persona('group:1').roleText,'own');
+const model=new Function('resolveProviderEndpoint',getFunction(models,'chatScopedApi','\n/**')+';return chatScopedApi')(()=>({baseUrl:'test'}));
+const map={apiByChat:{group:{model:'obsolete group'},private:{model:'obsolete private'},byChat:{'group:1':{provider:'p',model:'own'},'private:2':{model:''}}}};
+assert.equal(model({chatKey:'group:1'},map).model,'own');assert.equal(model({chatKey:'group:4'},map),null);assert.equal(model({chatKey:'private:2'},map),null);assert.equal(model({chatKey:'private:4'},map),null);
+assert.equal(map.apiByChat.group.model,'obsolete group');
+console.log('✔ 独立人设自动覆盖、空字段继承、旧统一开关忽略、独立模型覆盖、类别旧值忽略及幂等补丁通过；未写用户配置。');

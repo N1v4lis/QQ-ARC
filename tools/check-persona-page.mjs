@@ -20,7 +20,7 @@ await withPage({url,width:1360,height:900},async page=>{
  assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),true,'外部点击收起');
  assert.equal(await page.eval('document.querySelector("[data-persona-left=templates]").getAttribute("aria-expanded")'),'false');
  assert.equal(await page.eval('!!document.querySelector("#view-persona #new-persona-btn") || !!document.querySelector("[data-persona-left=chats]")'),false,'无新建/收起按钮');
- assert.equal(await page.eval('document.querySelector("#cfg-persona-unified").getClientRects().length'),0,'统一开关不占用正文页面');
+ assert.equal(await page.eval('document.querySelectorAll("#cfg-persona-unified,#apibychat-rows").length'),0,'统一开关及类别模型已删除');
  assert.equal(await page.eval('document.querySelector("#cfg-botname").getClientRects().length'),0,'身份信息不占用正文页面');
  await page.eval(`(()=>{
   window.__personaPosts=[];window.__personaFetch=window.fetch;
@@ -61,7 +61,7 @@ await withPage({url,width:1360,height:900},async page=>{
   assert.equal(await page.eval('state.config.api.apiByChat.byChat["private:test-preserved"].model'),'preserved-model');
  }
  await page.eval('document.querySelector("[data-persona-target=global]").click()');
- await page.waitFor('state.personaTarget==="global" && !!document.querySelector("#apibychat-rows")');
+ await page.waitFor('state.personaTarget==="global" && !!document.querySelector("#cfg-botname")');
  await page.eval('(()=>{document.querySelector("[data-persona-panel=role]").click();const r=document.querySelector("#cfg-roletext");r.value+="\\n离页保存";r.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector(".tab[data-tab=settings]").click();})()');
  await page.waitFor('state.tab==="settings" && settingsGuard.pending===0');
  assert.equal(await page.eval('window.__personaPosts.some(p=>p.persona?.roleText.endsWith("离页保存"))'),false,'切页不保存正文草稿');

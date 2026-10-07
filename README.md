@@ -2,6 +2,8 @@
 
 > 当前工作区：`E:\CodeX-YSM\QQ Agent Dev\qq-agent-ui-next`。
 > 当前 UI 版本：**0.4.3**；目标 GitHub 仓库：**QQARCFOX（私有）**。
+
+人设与模型自动继承：默认人设和主模型作为起点，单会话配置优先，空字段沿用默认；白名单仍控制响应范围。部署本轮前端时执行 `node tools/patch-host-persona-inheritance.mjs` 并重启，旧统一人设开关和群聊／私聊类别默认模型不再参与运行。
 > 本次接手结果与版本流程见 [`docs/CODEX-MIGRATION.md`](docs/CODEX-MIGRATION.md)。
 
 ARCFØX 六阶段启动动画已接入，亮暗轨迹同步；[实现与预览](docs/STARTUP-ANIMATION.md)。

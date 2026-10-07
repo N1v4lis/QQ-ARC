@@ -1240,25 +1240,6 @@ async function saveConfig({ quiet = false } = {}) {
 
   const patch = {};
 
-  /**
-   * 按会话默认模型（群聊 / 私聊）现在住在「人设」页；两个页签都要在保存时带上它。
-   * 元素不在场 ⇒ 返回 null ⇒ 调用方跳过（否则会读到空串，把已配的默认模型清掉）。
-   */
-  const collectApiByChat = () => {
-    if (!document.getElementById('apibychat-rows')) return null;
-    return {
-      ...(state.config?.api?.apiByChat || {}),
-      group: {
-        provider: val('#cfg-apibychat-group-provider', '').trim(),
-        model: val('#cfg-apibychat-group-model', '').trim()
-      },
-      private: {
-        provider: val('#cfg-apibychat-private-provider', '').trim(),
-        model: val('#cfg-apibychat-private-model', '').trim()
-      }
-    };
-  };
-
   if (sec === 'memory') {
     patch.memory = {
       ...(c.memory || {}),
@@ -1306,9 +1287,6 @@ async function saveConfig({ quiet = false } = {}) {
         model: String(el.dataset.model || '').trim(),
         provider: String(el.dataset.provider || '').trim()
       })).filter((r) => r.model),
-      // 按会话默认模型（群聊 / 私聊）：输入框现在住在「人设」页，这里按元素是否存在决定收不收。
-      // ⚠️ 元素不在场时收 = 读到空串 = 把用户已配的默认模型清掉（实测会这样），所以必须判空。
-      ...(collectApiByChat() ? { apiByChat: collectApiByChat() } : {})
     };
     // 把当前模型的单价存进 modelPrices[模型]（只影响这一个模型，不动内置官方表）。
     // 若开关是打开的，则不应写入 —— 那时输入框是禁用的，读到的值就是官方价，
@@ -1402,8 +1380,6 @@ async function saveConfig({ quiet = false } = {}) {
         patch.persona = { ...c.persona, ...entry,
           botName: val('#cfg-botname', c.persona.botName).trim() || '小鲸鱼',
           selfNickname: val('#cfg-selfnick', c.persona.selfNickname || '').trim() };
-        const defaults = collectApiByChat();
-        if (defaults) patch.api = { apiByChat: defaults };
       } else {
         const next = { ...(c.personaByChat || {}) };
         if (Object.values(entry).some(Boolean) || savedPersona.name) next[target] = { ...(next[target] || {}), ...entry }; else delete next[target];
@@ -1416,7 +1392,6 @@ async function saveConfig({ quiet = false } = {}) {
         } else delete byChat[target];
         patch.api = { apiByChat: { byChat: { __replace__: byChat } } };
       }
-      patch.personaUnified = chk('#cfg-persona-unified', c.personaUnified !== false);
     } else {
     // ⚠️ 只在"统一人设编辑器真的显示着"时才收 persona：
     //    分会话模式下那个编辑器虽然还在 DOM 里，但是 display:none 的**旧值**，
@@ -1433,16 +1408,10 @@ async function saveConfig({ quiet = false } = {}) {
         systemPromptOverride: val('#cfg-sysprompt', c.persona.systemPromptOverride || '')
       };
     }
-    // 默认模型（群聊/私聊）也在这个页签里，一并带上
-    if (collectApiByChat()) patch.api = { apiByChat: collectApiByChat() };
-    // 统一人设开关：编辑器随开关二选一在场，读不到的保持旧值。
-    patch.personaUnified = chk('#cfg-persona-unified', c.personaUnified !== false);
     // personaByChat 不在这里收集：独立人设模态框已改为**直接 POST 落盘**（openPerChatPersonaModal
     // 的 saveToMap），不再走"隐藏 JSON → 表单保存链"——那条链的 change 事件根本到不了 form
     // 监听器，而且 loadSettings 重建 DOM 会把没保存的值吹掉。这里如果再把（可能过期的）
     // 隐藏 JSON 值 POST 一遍，会把 modal 刚存的条目用旧值覆盖回去。
-    // ⚠️ 统一开关运行语义（与 personaForChat 一致）：开启 = 一律用全局人设，
-    //    personaByChat 条目不参与合并（数据保留，关掉开关后恢复生效）。
     }
   }
 

@@ -867,99 +867,7 @@ function bindSettingsEvents(c) {
     renderFallbackRows();
   });
 
-  /* ── 按会话类型选模型（群聊 / 私聊）──────────────────────────────────────
-     与"备选模型"共用同一个模型目录选择器（modelModalShell 那套）。
-     选完的值落进隐藏字段 #cfg-apibychat-<kind>-model / -provider ——
-     saveConfig 在 08-modals.js 里只从 DOM 读（跨文件拿不到这里的局部变量）。 */
-  const apiByChatKinds = [
-    { key: 'group', label: '群聊', desc: '群里消息量大：一般配便宜、快的模型' },
-    { key: 'private', label: '私聊', desc: '私聊通常更看质量：可以配更强的模型' }
-  ];
-  const apiByChatRows = {};
-  for (const k of apiByChatKinds) {
-    const src = c.api?.apiByChat?.[k.key] || {};
-    apiByChatRows[k.key] = { model: String(src.model || ''), provider: String(src.provider || '') };
-  }
-  function apiByChatText(row) {
-    if (!row?.model) return '跟随主模型（未单独指定）';
-    const p = (state.providers || []).find((x) => x.id === row.provider);
-    const name = (p?.modelNames || {})[row.model] || row.model;
-    return p ? `${name} @ ${p.displayName || p.id}` : name;
-  }
-  function openApiByChatPicker(key) {
-    const providers = state.providers || [];
-    if (!providers.length) { alert('模型目录为空：请先在本页上方添加提供商。'); return; }
-    const label = apiByChatKinds.find((k) => k.key === key)?.label || key;
-    const overlay = modelModalShell({
-      head: `选择「${label}」使用的模型`,
-      body: `
-        <div class="model-modal-left" id="mm-left"></div>
-        <div class="model-modal-right" id="mm-right"></div>`,
-      foot: `<button class="btn" id="mm-cancel">取消</button>`
-    });
-    const left = overlay.querySelector('#mm-left');
-    const right = overlay.querySelector('#mm-right');
-    let activePid = apiByChatRows[key]?.provider || providers[0].id;
-    function renderLeft() {
-      left.innerHTML = providers.map((p) =>
-        `<div class="mm-prov ${p.id === activePid ? 'active' : ''}" data-pid="${esc(p.id)}">${esc(p.displayName || p.id)}</div>`).join('');
-      left.querySelectorAll('.mm-prov').forEach((el) => {
-        el.addEventListener('click', () => { activePid = el.dataset.pid; renderLeft(); renderRight(); });
-      });
-    }
-    function renderRight() {
-      const p = providers.find((x) => x.id === activePid);
-      if (!p) { right.innerHTML = ''; return; }
-      const names = p.modelNames || {};
-      const current = apiByChatRows[key]?.model || '';
-      right.innerHTML = (p.models || []).map((m) => `
-        <div class="mm-model" data-model="${esc(m)}">
-          <span class="mm-check">${m === current ? '✓' : ''}</span>
-          <span>${esc(names[m] || m)}</span>
-          <span class="muted" style="font-size:11px">${esc(m)}</span>
-        </div>`).join('') || '<div class="muted" style="padding:10px">该提供商下没有模型</div>';
-      right.querySelectorAll('.mm-model').forEach((el) => {
-        el.addEventListener('click', () => {
-          apiByChatRows[key] = { model: el.dataset.model, provider: activePid };
-          closeModelModal(overlay);
-          renderApiByChatRows();
 
-          $('#apibychat-rows')?.dispatchEvent(new Event('input', { bubbles: true }));
-        });
-      });
-    }
-    renderLeft();
-    renderRight();
-    overlay.querySelector('#mm-cancel').addEventListener('click', () => closeModelModal(overlay));
-  }
-  function renderApiByChatRows() {
-    const box = $('#apibychat-rows');
-    if (!box) return;
-    box.innerHTML = apiByChatKinds.map((k) => {
-      const row = apiByChatRows[k.key] || { model: '', provider: '' };
-      return `
-        <div class="field" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-          <b style="min-width:44px">${esc(k.label)}</b>
-          <span style="flex:1;min-width:200px">${esc(apiByChatText(row))}</span>
-          <button class="btn btn-small" data-apibychat-pick="${esc(k.key)}">选择</button>
-          <button class="btn btn-small" data-apibychat-clear="${esc(k.key)}" ${row.model ? '' : 'disabled'}>清除</button>
-          <input type="hidden" id="cfg-apibychat-${esc(k.key)}-model" value="${esc(row.model || '')}" />
-          <input type="hidden" id="cfg-apibychat-${esc(k.key)}-provider" value="${esc(row.provider || '')}" />
-          <div class="hint" style="width:100%">${esc(k.desc)}</div>
-        </div>`;
-    }).join('');
-    box.querySelectorAll('[data-apibychat-pick]').forEach((el) => {
-      el.addEventListener('click', () => openApiByChatPicker(el.dataset.apibychatPick));
-    });
-    box.querySelectorAll('[data-apibychat-clear]').forEach((el) => {
-      el.addEventListener('click', () => {
-        apiByChatRows[el.dataset.apibychatClear] = { model: '', provider: '' };
-        renderApiByChatRows();
-        $('#apibychat-rows')?.dispatchEvent(new Event('input', { bubbles: true }));
-      });
-    });
-  }
-  renderApiByChatRows();
 
 
   // ── 「模型配置」「模型管理」两个入口模态框（2026-09-18 改版）──
@@ -1464,27 +1372,6 @@ function bindSettingsEvents(c) {
 
   // ── 按会话独立人设 ──
   // 唯一真相是隐藏 input 里的 JSON（与分群档位滑条同一套做法）：
-  // ── 人设页：统一/分会话切换 + 分会话按钮网格 ──
-  // 统一开关：切显隐（不触发保存——display 切换不是配置变化，真正的值在 checkbox 上）。
-  const personaUnifiedChk = $('#cfg-persona-unified');
-  if (personaUnifiedChk) personaUnifiedChk.addEventListener('change', () => {
-    if ($('.persona-studio')) {
-      const note = $('#persona-unified-note');
-      if (note) note.hidden = !personaUnifiedChk.checked;
-      return;
-    }
-    if (newPersonaBtn) newPersonaBtn.disabled = !personaUnifiedChk.checked;
-    const ub = $('#persona-unified-box');
-    const pb = $('#persona-perchat-box');
-    if (ub) {
-      if (personaUnifiedChk.checked) uiShow(ub, () => { ub.style.display = ''; });
-      else uiHide(ub, () => { ub.style.display = 'none'; });
-    }
-    if (pb) {
-      if (personaUnifiedChk.checked) uiHide(pb, () => { pb.style.display = 'none'; });
-      else uiShow(pb, () => { pb.style.display = ''; });
-    }
-  });
   // 分会话按钮：点开独立人设模态框（写回隐藏 JSON → 自动保存）
   // root 判空：DOM 测试环境里 #persona-perchat-box 可能不在场（统一模式渲染时它存在，
   // 但旧测试快照可能没这个节点——$$ 对 null root 直接抛错）

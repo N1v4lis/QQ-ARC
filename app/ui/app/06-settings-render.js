@@ -661,7 +661,7 @@ function renderPersonaSection(c) {
       <input type="hidden" id="cfg-persona-pick" value="${esc(templateName)}" /><span id="persona-pick-hint" class="hidden"></span>
       <div class="persona-writing-room">
       <nav class="persona-editor-rail" aria-label="编辑内容">
-        ${[['role','角色正文','TA 是谁'],['rules','附加规则','TA 如何回应'],['model','身份与模型','称呼与应用范围']].map(([id,name,note]) => `<button type="button" data-persona-panel="${id}" class="${panel===id?'active':''}" aria-pressed="${panel===id}"><span>${name}</span><small>${note}</small></button>`).join('')}
+        ${[['role','角色正文','TA 是谁'],['rules','附加规则','TA 如何回应'],['model','身份与模型','称呼与模型选择']].map(([id,name,note]) => `<button type="button" data-persona-panel="${id}" class="${panel===id?'active':''}" aria-pressed="${panel===id}"><span>${name}</span><small>${note}</small></button>`).join('')}
         <p class="persona-rail-note">${global?'这套人设作为所有会话的默认。':'为左侧选中的对象编辑；空白字段沿用默认人设。'}</p>
       </nav>
       <div class="persona-edit-surface">
@@ -675,11 +675,10 @@ function renderPersonaSection(c) {
       <div class="persona-options" data-persona-pane="model" ${panel==='model'?'':'hidden'}>
         <header class="persona-page-heading"><h3>身份与模型</h3><p>调整角色的称呼、参与方式和使用范围。</p></header>
         <h3>角色行为</h3><div class="field-row">${global?`<div class="field"><label for="cfg-botname">机器人名字</label><input id="cfg-botname" value="${esc(per.botName || '')}" /></div><div class="field"><label for="cfg-selfnick">群内展示名</label><input id="cfg-selfnick" value="${esc(per.selfNickname || '')}" /></div>`:''}<div class="field"><label for="cfg-participation">参与度</label><select id="cfg-participation">${global?'':'<option value="">沿用默认</option>'}${[['low','安静型'],['medium','普通群友'],['high','活跃型']].map(([id,name])=>`<option value="${id}" ${per.participation===id?'selected':''}>${name}</option>`).join('')}</select></div></div>
-        <h3>模型</h3>${global?'<div id="apibychat-rows"></div>':`<div class="field"><label for="cfg-persona-chat-model">当前会话</label><select id="cfg-persona-chat-model">${modelOptions}</select></div>`}
-        <h3>应用范围</h3><div class="checkbox-row"><input type="checkbox" id="cfg-persona-unified" ${c.personaUnified!==false?'checked':''} /><label for="cfg-persona-unified">所有会话统一使用默认人设</label></div><p class="hint">关闭后，各会话的独立人设生效。已编辑的内容会保留。</p>
+        <h3>模型</h3>${global?'<p class="hint">未单独指定模型的会话使用主模型，可在设置的模型配置中修改。</p>':`<div class="field"><label for="cfg-persona-chat-model">当前会话</label><select id="cfg-persona-chat-model">${modelOptions}</select></div>`}
       </div>
       </div></div>
-      <footer class="persona-editor-status">${!global?`<span class="persona-scope-note" id="persona-unified-note" ${c.personaUnified!==false?'':'hidden'}>统一模式开启 · 当前使用默认人设，可在“身份与模型”调整。</span>`:'<span>默认人设 · 未单独配置的会话使用这套内容</span>'}</footer>
+      <footer class="persona-editor-status"><span>${global?'默认人设 · 未单独配置的会话使用这套内容':'已加入白名单的会话使用独立配置；空白字段沿用默认人设。'}</span></footer>
     </section>
   </div>`;
 
