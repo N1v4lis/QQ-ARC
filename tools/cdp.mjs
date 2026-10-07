@@ -48,7 +48,8 @@ class Page {
       let msg;
       try { msg = JSON.parse(ev.data); } catch { return; }
       if (msg.id && this.pending.has(msg.id)) {
-        const { resolve, reject } = this.pending.get(msg.id);
+        const { resolve, reject, timer } = this.pending.get(msg.id);
+        clearTimeout(timer);
         this.pending.delete(msg.id);
         if (msg.error) reject(new Error(JSON.stringify(msg.error)));
         else resolve(msg.result);
@@ -59,16 +60,24 @@ class Page {
         for (const fn of this.listeners) { try { fn(msg); } catch { /* ignore */ } }
       }
     });
+    ws.addEventListener('close', () => {
+      for (const { reject, timer } of this.pending.values()) {
+        clearTimeout(timer);
+        reject(new Error('CDP 连接已关闭'));
+      }
+      this.pending.clear();
+    });
   }
 
   send(method, params = {}) {
     const id = ++this.id;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.ws.send(JSON.stringify({ id, method, params }));
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (this.pending.has(id)) { this.pending.delete(id); reject(new Error(`CDP 超时：${method}`)); }
       }, 30_000);
+      this.pending.set(id, { resolve, reject, timer });
+      try { this.ws.send(JSON.stringify({ id, method, params })); }
+      catch (error) { clearTimeout(timer); this.pending.delete(id); reject(error); }
     });
   }
 
@@ -212,12 +221,14 @@ export async function withPage(opts, fn) {
       const onMsg = (ev) => {
         let m; try { m = JSON.parse(ev.data); } catch { return; }
         if (m.id !== id) return;
+        clearTimeout(timer);
         browser.removeEventListener('message', onMsg);
         if (m.error) reject(new Error(JSON.stringify(m.error))); else resolve(m.result);
       };
+      const timer = setTimeout(() => { browser.removeEventListener('message', onMsg); reject(new Error(`CDP 浏览器超时 ${method}`)); }, 20_000);
       browser.addEventListener('message', onMsg);
-      browser.send(JSON.stringify({ id, method, params }));
-      setTimeout(() => { browser.removeEventListener('message', onMsg); reject(new Error(`CDP 浏览器超时 ${method}`)); }, 20_000);
+      try { browser.send(JSON.stringify({ id, method, params })); }
+      catch (error) { clearTimeout(timer); browser.removeEventListener('message', onMsg); reject(error); }
     });
 
     // 注意：createTarget 不接受 width/height（"Target position can only be set for new windows"），

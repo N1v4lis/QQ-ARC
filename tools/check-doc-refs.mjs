@@ -23,7 +23,8 @@ const root = process.cwd();
 /** 指南类：悬空即失败 */
 const GUIDE_DOCS = [
   'README.md', 'docs/HANDOFF.md', 'docs/HANDOFF-WILL.md', 'docs/ARCHITECTURE.md',
-  'docs/DEVELOPMENT.md', 'docs/TESTING.md', 'docs/PITFALLS.md', 'docs/THEME-SYSTEM.md'
+  'docs/DEVELOPMENT.md', 'docs/TESTING.md', 'docs/PITFALLS.md', 'docs/THEME-SYSTEM.md',
+  'docs/REGRESSION-WORKFLOW.md'
 ];
 /** 历史类：悬空只告警（编年史天然会提到已删除的东西） */
 const HIST_DOCS = ['docs/design-notes.md', 'docs/theme-port-feasibility.md', 'docs/deploy-and-rollback.md'];

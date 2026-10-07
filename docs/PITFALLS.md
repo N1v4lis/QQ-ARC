@@ -1,5 +1,7 @@
 # 踩坑速查（症状 → 根因 → 修法）
 
+> CDP超时计时器必须在响应/连接关闭时清除。只从pending Map删除并不取消setTimeout，会让已完成的Node脚本空等30秒。不要通过移除真实超时保护来修复；清理计时器与挂起命令即可。
+
 > 启动增量：2600ms是资源就绪后的动画时间，固定sleep(2600)不能代替应用ready，旧Beta/无痕检查需等待遮罩移除。真实Electron CDP应先Page.enable再安装新文档探针，避免探针未执行；探针保留中间阶段，防短动画结束后取状态丢失。高刷新率rAF可达240Hz，绘制须限约60FPS。
 
 > 0.4.01 增量：GLTFLoader 默认 ImageBitmapLoader 会 fetch(blob)，受 connect-src 拒绝导致白贴图；当前插件使用 TextureLoader 遵循既有 img-src blob，不放宽 CSP。开发 API/SSE 上游断流时响应可能已发送头，应销毁响应，不能再次 writeHead(502)；同时清理上游请求。部署必需文件应指向 styles/_legacy-style.css，已删除的 style.css 不再是契约。
