@@ -7,7 +7,7 @@ const url=process.argv[2]||'http://127.0.0.1:3210/';
 let pass=0,fail=0;const results=[];
 function ok(name,cond,detail=''){results.push({name,pass:!!cond,detail});console.log(`${cond?'✔':'✗'} ${name} ${detail}`);cond?pass++:fail++;}
 const digest=f=>crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
-ok('部署模型与完整最新成品相同',digest('app/ui/assets/wine-fox/winefox.glb')===digest('Wine_Fox/Models/GLB/winefox-large-lever.glb'));
+ok('部署模型与GUI分割衍生模型相同',digest('app/ui/assets/wine-fox/winefox.glb')===digest('Wine_Fox/Models/Derived/winefox-large-lever.glb'));
 ok('来源与 Three.js 许可随运行资源保留',fs.existsSync('app/ui/assets/wine-fox/SOURCE.txt')&&fs.existsSync('app/ui/assets/wine-fox/three/LICENSE'));
 const report={url,results,actions:[],performance:[]};
 try{await withPage({url,width:1400,height:900},async(page,logs)=>{
@@ -22,8 +22,8 @@ try{await withPage({url,width:1400,height:900},async(page,logs)=>{
   await sleep(300);
   let st=await page.eval('qqaWineFox.state()');
   ok('主题设置开关真正加载宠物',st.loaded);
-  ok('完整46个动作及拉杆保留',st.animations.length===46&&st.animations.includes('lever_right_to_left'));
-  ok('动画菜单加载后自动填充',await page.eval('document.querySelector("[data-wine-fox-pref=animation]").options.length===46'));
+  ok('47个动作含两段GUI及拉杆',st.animations.length===47&&st.animations.includes('gui2')&&st.animations.includes('lever_right_to_left'));
+  ok('动画菜单加载后自动填充',await page.eval('document.querySelector("[data-wine-fox-pref=animation]").options.length===45 && !document.querySelector("[data-wine-fox-pref=animation] option[value=gui]") && !document.querySelector("[data-wine-fox-pref=animation] option[value=gui2]")'));
   ok('局部绘图缓冲',st.size[0]<=500&&st.size[1]<=500,JSON.stringify(st.size));
   await page.send('Performance.enable');
   async function sample(name){const a=await page.send('Performance.getMetrics');const frames=await page.eval('qqaWineFox.state().frames||0');await sleep(3000);
@@ -36,14 +36,22 @@ try{await withPage({url,width:1400,height:900},async(page,logs)=>{
   async function mouse(type,x,y){await page.send('Input.dispatchMouseEvent',{type,x,y,button:'left',buttons:type==='mouseReleased'?0:1,clickCount:1});}
   const point=await page.eval('(()=>{const r=document.getElementById("wine-fox-pet").getBoundingClientRect();return {x:r.left+r.width*.5,y:r.top+r.height*.6}})()');
   await mouse('mousePressed',point.x,point.y);await mouse('mouseReleased',point.x,point.y);
-  ok('真实鼠标轻点触发开心',await page.eval('qqaWineFox.state().expression===1'));
+  ok('真实鼠标轻点播放模型开心动作',await page.eval('qqaWineFox.state().expression===1 && qqaWineFox.state().interaction==="happy" && qqaWineFox.state().happyAnimations.includes(qqaWineFox.state().animation)'));
+  await page.waitFor('qqaWineFox.state().voicePlaying',{timeout:6000,label:'点击语音播放'});
+  ok('用户点击后语音实际开始播放',await page.eval('!!qqaWineFox.state().voiceName && !qqaWineFox.state().voiceError'));
   await mouse('mousePressed',point.x,point.y);await mouse('mouseReleased',point.x,point.y);
   await mouse('mousePressed',point.x,point.y);await mouse('mouseReleased',point.x,point.y);
-  ok('2秒内3次点击触发生气',await page.eval('qqaWineFox.state().angry && qqaWineFox.state().expression===2'));
-  await page.eval('qqaWineFox.set({paused:true})');await sleep(6300);
-  ok('暂停身体时6秒情绪仍恢复',await page.eval('!qqaWineFox.state().angry && qqaWineFox.state().expression===-1'));
+  ok('连续点击保持开心互动，不触发生气',await page.eval('!qqaWineFox.state().angry && qqaWineFox.state().expression===1'));
+  await page.eval('qqaWineFox.set({voice:false})');
+  ok('关闭互动语音停止当前播放',await page.eval('!qqaWineFox.state().voicePlaying'));
+  await page.waitFor('qqaWineFox.state().interaction===""',{timeout:6000,label:'开心动作结束恢复'});
+  ok('一次开心动作结束恢复原动作',await page.eval('qqaWineFox.state().animation===qqaWineFox.read().animation'));
+  await page.eval('qqaWineFox.set({paused:true})');
   const beforeDrag=await page.eval('qqaWineFox.state()');
-  await mouse('mousePressed',point.x,point.y);await mouse('mouseMoved',point.x-120,point.y-70);await mouse('mouseReleased',point.x-120,point.y-70);
+  await mouse('mousePressed',point.x,point.y);await mouse('mouseMoved',point.x-120,point.y-70);
+  ok('拖拽中播放Fly',await page.eval('qqaWineFox.state().animation==="fly" && qqaWineFox.state().interaction==="drag"'));
+  await mouse('mouseReleased',point.x-120,point.y-70);
+  ok('松开拖拽恢复原动作',await page.eval('qqaWineFox.state().animation===qqaWineFox.read().animation && !qqaWineFox.state().interaction'));
   const afterDrag=await page.eval('qqaWineFox.state()');
   ok('拖动移动而非轻点',afterDrag.position[0]<beforeDrag.position[0]-100&&afterDrag.expression===-1,JSON.stringify(afterDrag.position));
   ok('位置持久化',await page.eval('JSON.parse(localStorage.getItem(qqaWineFox.KEY)).x===qqaWineFox.state().position[0]'));
@@ -63,10 +71,10 @@ try{await withPage({url,width:1400,height:900},async(page,logs)=>{
   await page.eval('document.getElementById("wine-fox-underlay").remove()');
   await page.eval('qqaWineFox.home();qqaWineFox.set({expression:2})');await sleep(150);
   ok('手动表情覆盖并只启用一个FaceMode',await page.eval('qqaWineFox.state().effectiveExpression===2 && qqaWineFox.state().faceScales.filter(b=>b.scale>.5).length===1'));
-  const animations=st.animations;
+  const animations=st.visibleAnimations;
   for(const animation of animations){await page.eval(`qqaWineFox.set({animation:${JSON.stringify(animation)},expression:-1})`);await sleep(40);
     const state=await page.eval('qqaWineFox.state()');const good=state.animation===animation&&state.faceScales.every(b=>Number.isFinite(b.scale));report.actions.push({animation,pass:good});}
-  ok('全部46个动作均可切换',report.actions.every(a=>a.pass));
+  ok('全部45个可见动作均可切换',report.actions.every(a=>a.pass));
   for(const animation of ['death','game_lost']){await page.eval(`qqaWineFox.set({animation:${JSON.stringify(animation)},expression:-1})`);await sleep(100);ok(`${animation}自动呆住`,await page.eval('qqaWineFox.state().effectiveExpression===6'));}
   await page.eval('qqaWineFox.set({animation:"idle",expression:-1,paused:false});qqaSkin.set("minecraft")');await sleep(100);
   ok('Minecraft主题与宠物同时可用',await page.eval('qqaSkin.isMinecraft() && qqaWineFox.state().loaded'));

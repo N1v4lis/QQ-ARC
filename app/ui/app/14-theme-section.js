@@ -140,16 +140,17 @@ function renderWineFoxSettings() {
   const api=window.qqaWineFox;
   const p=api?api.read():{enabled:false,size:280,paused:false,animation:'idle',expression:-1};
   const s=api?api.state():{loaded:false,loading:false,error:''};
-  const animations=s.animations||['idle'];
+  const animations=(s.visibleAnimations||s.animations||['idle']).filter(n=>!/^gui2?$/i.test(n));
   const expressions=['自动（跟随动作）','普通','开心','生气','紧张','惊讶','小张嘴','呆住'];
   return `<div class="setcard fold open" id="card-wine-fox">
     <div class="setcard-head fold-head"><div class="sc-ico">🦊</div>
-      <div class="sc-tt"><h4>酒狐互动宠物</h4><div class="sc-sub">拖动移动，轻点打招呼，连续轻点会生气</div></div>
+      <div class="sc-tt"><h4>酒狐互动宠物</h4><div class="sc-sub">轻点播放开心动作与语音，拖动时飞行</div></div>
       <span class="sc-val" data-wine-fox-summary>${p.enabled?'开启':'关闭'}</span><span class="chev-r">›</span></div>
     <div class="setcard-body fold-body"><div class="fold-inner">
       <div class="wine-fox-options">
         <label class="switch"><input type="checkbox" data-wine-fox-pref="enabled" ${p.enabled?'checked':''}><span class="track"><span class="thumb"></span></span><span>开启酒狐</span></label>
         <label class="switch"><input type="checkbox" data-wine-fox-pref="paused" ${p.paused?'checked':''}><span class="track"><span class="thumb"></span></span><span>暂停动作</span></label>
+        <label class="switch"><input type="checkbox" data-wine-fox-pref="voice" ${p.voice!==false?'checked':''}><span class="track"><span class="thumb"></span></span><span>互动语音</span></label>
         <label>大小 <select data-wine-fox-pref="size">${[160,220,280,340,400].map(n=>`<option value="${n}" ${p.size===n?'selected':''}>${n}px</option>`).join('')}</select></label>
         <button type="button" class="btn" data-wine-fox-home>位置复位</button>
       </div>

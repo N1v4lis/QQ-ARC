@@ -1,0 +1,530 @@
+{
+  "source": "E:/!!!littleMaid_PECO",
+  "files": [
+    {
+      "file": "collect_snow22.ogg",
+      "bytes": 12694,
+      "sha256": "0a38955f9ac5df9a64aa499b673d21cd3b7e26ae22b53cb97b218eeafca0f27c"
+    },
+    {
+      "file": "collect_snow23.ogg",
+      "bytes": 11485,
+      "sha256": "8ca2e0fa5f556b3145fd00e40a3d62e7c45677ea0e9f8ca9278874c69665cc77"
+    },
+    {
+      "file": "collect_snow24.ogg",
+      "bytes": 13679,
+      "sha256": "5f88ea98d3d31118f3f33e9a25c449718caa26cf002fa9810cd37d3601462da6"
+    },
+    {
+      "file": "collect_snow25.ogg",
+      "bytes": 20493,
+      "sha256": "2a0203ee44415c288d48b27d6cc28d04859d31a5cbedf97ead7b0ea9f2bdac49"
+    },
+    {
+      "file": "collect_snow26.ogg",
+      "bytes": 11618,
+      "sha256": "c628d1eaa9331cca888fbe5f3c505513aa05459dba62e8f646f342c90a77250e"
+    },
+    {
+      "file": "collect_snow27.ogg",
+      "bytes": 11263,
+      "sha256": "7148d62daf282682f42537502ef81be97053014c23fb1e6045be36baac97ac4e"
+    },
+    {
+      "file": "collect_snow28.ogg",
+      "bytes": 10992,
+      "sha256": "61fedbbed7e6bd5644f941dadf5d1e30d78ba081030198738ad8d48136adf92f"
+    },
+    {
+      "file": "cookingOver1.ogg",
+      "bytes": 11049,
+      "sha256": "f8d5c3407e8b9ffa2605601289b615585dc189a9955cbd5bf15e684b2883e390"
+    },
+    {
+      "file": "cookingOver2.ogg",
+      "bytes": 11998,
+      "sha256": "4b047a198dbbf42dc265b39b6d8b1558fe4253a3f7ce072e8065217f016b51c1"
+    },
+    {
+      "file": "cookingStart1.ogg",
+      "bytes": 21638,
+      "sha256": "f5d2ff9cdc89d3411c485eb537e5b4bd0c7201d76a7f4de4d64e0abf1a71a711"
+    },
+    {
+      "file": "cookingStart10.ogg",
+      "bytes": 30052,
+      "sha256": "935afc4e864f33da237c2684f490e2bd3acf0b8e7b9808c15df107ed7d30fdba"
+    },
+    {
+      "file": "cookingStart2.ogg",
+      "bytes": 23855,
+      "sha256": "a6496d162a7b8b14346a3a81e1ee5f187295574736c9759669baa31a8a351ac7"
+    },
+    {
+      "file": "cookingStart3.ogg",
+      "bytes": 19987,
+      "sha256": "eafff2a69d2320ccf906a2fd65b581b0e20350d427b872f13fb10b81a7042748"
+    },
+    {
+      "file": "cookingStart4.ogg",
+      "bytes": 20173,
+      "sha256": "fe70c6e65da7aa23c581e7604ac25a4ba7752d94949bd8ce6e12ee0c9db92bea"
+    },
+    {
+      "file": "cookingStart5.ogg",
+      "bytes": 25851,
+      "sha256": "99b636ee3fdd6823a84ba9dde0c7c26386df8d565771a65bcc4b23a0e63372c4"
+    },
+    {
+      "file": "cookingStart6.ogg",
+      "bytes": 41993,
+      "sha256": "a83bad82dabfd171ae61e5014eb95ce5d7aa6916ec0ba648c678ed3b4bb94868"
+    },
+    {
+      "file": "cookingStart7.ogg",
+      "bytes": 28960,
+      "sha256": "143ce9ae9d0928336ddae34bdaa522453768c61feb3a2c84e184a4d34d7b30a7"
+    },
+    {
+      "file": "cookingStart8.ogg",
+      "bytes": 27939,
+      "sha256": "bd1b1ccc8c7e3e17764fce60be70024d4e8ee59c21d840f4834f039c729bad18"
+    },
+    {
+      "file": "cookingStart9.ogg",
+      "bytes": 30943,
+      "sha256": "44f37ff5dbc438c091a3876813c2d6de753495ae6fcd027efb5e4d2da2593dfd"
+    },
+    {
+      "file": "eatSugar10.ogg",
+      "bytes": 15163,
+      "sha256": "09b153b5c169a9dbe4bd0cc5e269cf17d078aca3738d2ebd3f7348a37aec93d4"
+    },
+    {
+      "file": "eatSugar11.ogg",
+      "bytes": 18319,
+      "sha256": "c0f492a2948998e706e32c43c4943af62f9e772e2f5a9858464e210e2bb4e50c"
+    },
+    {
+      "file": "eatSugar12.ogg",
+      "bytes": 13756,
+      "sha256": "82e9242c2ae8a78feb13612190512a1924caadcedcd332c1e27043694d3fdbef"
+    },
+    {
+      "file": "eatSugar13.ogg",
+      "bytes": 18070,
+      "sha256": "1ee04cce3452d1f0c0aca9643c79690fdf0997d31d84bc521dd0246d50bbe228"
+    },
+    {
+      "file": "eatSugar14.ogg",
+      "bytes": 16785,
+      "sha256": "5aae47cb60ef84f33ca4a259cc4370578be5fa2b389b20e8004564133c32c586"
+    },
+    {
+      "file": "eatSugar15.ogg",
+      "bytes": 14525,
+      "sha256": "b4a5637f37d4f69ca7c28d9c3526a24aa1bb00c3f9e897d5e54d51bb53eaab7c"
+    },
+    {
+      "file": "eatSugar16.ogg",
+      "bytes": 16526,
+      "sha256": "20ec41bcd9d2449096806ab3aaa05162ed8cb6bdfcb0b3a93328d42eca35053e"
+    },
+    {
+      "file": "eatSugar6.ogg",
+      "bytes": 11656,
+      "sha256": "d34e6cecc6bff9f8fc6a38442fdda35cc3e2fa3243e4b87c357b1ed14810155c"
+    },
+    {
+      "file": "eatSugar8.ogg",
+      "bytes": 17410,
+      "sha256": "8b7d43a9dfc156c9aaf1c3ec7d78cd0828e107b583054d0cc2b25f5742ecddfa"
+    },
+    {
+      "file": "eatSugar9.ogg",
+      "bytes": 10919,
+      "sha256": "1b78a7107eeb262844049c3903b0b3105600324be9b097360e90fdb7c4d82479"
+    },
+    {
+      "file": "farmer_farm2.ogg",
+      "bytes": 11146,
+      "sha256": "a1a3a1f9ca3b529d019ba46b215671b7ce8148b4660292f57a1eabdf4cfc7579"
+    },
+    {
+      "file": "goodmorning1.ogg",
+      "bytes": 22365,
+      "sha256": "208a078b26230cfeb6ef043456a16373e656c89bdb0567394e7822ee289830f2"
+    },
+    {
+      "file": "goodmorning10.ogg",
+      "bytes": 26223,
+      "sha256": "0286294e5a930fd3db26f93d7d5d8b1013a2561be3a7f26147ee6155b0c28cf4"
+    },
+    {
+      "file": "goodmorning11.ogg",
+      "bytes": 31012,
+      "sha256": "a0678737bedbcdb3399c258942324be92368c66e421326cdf182ddd12db4ceb9"
+    },
+    {
+      "file": "goodmorning17.ogg",
+      "bytes": 33412,
+      "sha256": "11d459b55da3f2dee6c910f92d39696f24c7a008c6c9b52ca1e7c0210d0e2722"
+    },
+    {
+      "file": "goodmorning18.ogg",
+      "bytes": 38403,
+      "sha256": "49c5beadb641310b52f453c2a9309e8ab7168289bb78255052226b0ab8d2a8b4"
+    },
+    {
+      "file": "goodmorning19.ogg",
+      "bytes": 27493,
+      "sha256": "7a4eecb174cc1c6e9ad0c29e9e40cb8e79ca18a884459ecc5144e85d97518276"
+    },
+    {
+      "file": "goodmorning2.ogg",
+      "bytes": 22967,
+      "sha256": "17108b517954e76693249424e8ea165ae8c43fb051fb0bea5df8c1614a435944"
+    },
+    {
+      "file": "goodmorning20.ogg",
+      "bytes": 40159,
+      "sha256": "8a5e7f29295bbd3487cef99269fbe72761fa76997b9cbf572625a316183c7374"
+    },
+    {
+      "file": "goodmorning21.ogg",
+      "bytes": 50564,
+      "sha256": "2cd121275855106fb0db60cd594fa0046fc825026d592722034580be98005b02"
+    },
+    {
+      "file": "goodmorning3.ogg",
+      "bytes": 40441,
+      "sha256": "794dc28bf5345a34651e4e3a9dcc6c6a2ee7e7f7c93941223a15aa782a6be07b"
+    },
+    {
+      "file": "goodmorning5.ogg",
+      "bytes": 30478,
+      "sha256": "99b7d17a609a2f5a2922e99a70b19ae422e54665e16e15f43690f506a8a5d1c0"
+    },
+    {
+      "file": "goodmorning6.ogg",
+      "bytes": 26576,
+      "sha256": "3a4df78695e56626381713966ff31a3f3c49d77b413c7cde95e5b3c0af34656f"
+    },
+    {
+      "file": "goodnight1.ogg",
+      "bytes": 26082,
+      "sha256": "5867ad0343a57abf447ac8e6c14f29dcb61e122083be252ce71262c85b1af7ab"
+    },
+    {
+      "file": "goodnight2.ogg",
+      "bytes": 18036,
+      "sha256": "9556f8c630b8bea1b277161daf02afefd262e5fdd774112e8df445a6aa7c1594"
+    },
+    {
+      "file": "goodnight3.ogg",
+      "bytes": 24740,
+      "sha256": "791fc661012a560d49ee4d91501cf44bc058d1eaf4f8b9453c38f3b9c077d830"
+    },
+    {
+      "file": "goodnight4.ogg",
+      "bytes": 27218,
+      "sha256": "66282adb30080f0f35866c259b23cb7a4358a0a44cf3c0193c0d18ab92e162db"
+    },
+    {
+      "file": "goodnight5.ogg",
+      "bytes": 29280,
+      "sha256": "640aa186796b52e919af4de7a04552c1421963ff866cd608fc39af8774bb0608"
+    },
+    {
+      "file": "goodnight6.ogg",
+      "bytes": 34277,
+      "sha256": "f325b1c97293bc3ea622930506745f9f1715416003b3168e4400b487d62d7a90"
+    },
+    {
+      "file": "hurt_snow1.ogg",
+      "bytes": 8116,
+      "sha256": "736ae47b347abc3e772dc833f1e4af4062bcb4076adca56d08947502a89b4755"
+    },
+    {
+      "file": "hurt_snow2.ogg",
+      "bytes": 13306,
+      "sha256": "c092b93bcc5efdeef7583148d9b3729a50ab3c06a370d3860311999cb0d8493c"
+    },
+    {
+      "file": "hurt_snow5.ogg",
+      "bytes": 9203,
+      "sha256": "d5a6707da2647ea4d54e66f7a44d863a64e8811799397838dc6aeab1ecf0a7c9"
+    },
+    {
+      "file": "hurt_snow7.ogg",
+      "bytes": 10219,
+      "sha256": "c361caac5cc2eb5060ca8889bc9de36485835b3ab14110bfc3c6015efb07579d"
+    },
+    {
+      "file": "hurt_snow8.ogg",
+      "bytes": 7332,
+      "sha256": "e6046d21d133806a1e8f22e8322d8201b6be7dec0b603dee9f751eb4b7c8de3e"
+    },
+    {
+      "file": "hurt_snow9.ogg",
+      "bytes": 19184,
+      "sha256": "af29ce867c6ea2baee8961299dc2dd358b342dc48f88bd5b2eddc6fe8687efa2"
+    },
+    {
+      "file": "JaNai.ogg",
+      "bytes": 63522,
+      "sha256": "6819483b41fa5451560a46bfbfea6d9d275e679c4d2297b236dcdf0c110be715"
+    },
+    {
+      "file": "living_daytime1.ogg",
+      "bytes": 15931,
+      "sha256": "a98ca16b06552303a50d7e5c352a4787d7113f58d76bd9d1e5577b5ae3d23b2c"
+    },
+    {
+      "file": "living_daytime10.ogg",
+      "bytes": 17762,
+      "sha256": "d7ffe843cfc0f128ebf0e5d3233da706e749ef229751fb37c65c6640b3ee7368"
+    },
+    {
+      "file": "living_daytime11.ogg",
+      "bytes": 25512,
+      "sha256": "f163b64f88e6709c87f19ab7b09b8cb48b461931836a4ecaa72dcca203998fa4"
+    },
+    {
+      "file": "living_daytime12.ogg",
+      "bytes": 27073,
+      "sha256": "f2ef2c068facb275d40ecc6a038e391ade913014e3d6a5e248ee76fed361df62"
+    },
+    {
+      "file": "living_daytime13.ogg",
+      "bytes": 18363,
+      "sha256": "c2dfc78c9a5db7682bc027ce31dde5fadccaa075326dac96ee35a24e7354282e"
+    },
+    {
+      "file": "living_daytime14.ogg",
+      "bytes": 14187,
+      "sha256": "545f875460a852c9ae460de5be9e4d27fcf3e6b64e04924947785c98c86d6fc4"
+    },
+    {
+      "file": "living_daytime15.ogg",
+      "bytes": 31614,
+      "sha256": "145f9c19c6fdccf537de17ed678d5c9e1f9e5e93f076224bb56d189f32f541e1"
+    },
+    {
+      "file": "living_daytime16.ogg",
+      "bytes": 31096,
+      "sha256": "c2ed18d8f12bf2593f76aafcb39fc172ad4de5d9fff01a26db286b73a570c5cc"
+    },
+    {
+      "file": "living_daytime17.ogg",
+      "bytes": 30506,
+      "sha256": "95de1985b8c2ccec1f0aac7c50ea5d6432b8828d30b39852e836ad08081b89a8"
+    },
+    {
+      "file": "living_daytime18.ogg",
+      "bytes": 30942,
+      "sha256": "8b9c0efb1972d4c5ea951dea81f91a4f34a486d1e5638503fb4781abc0a6a81c"
+    },
+    {
+      "file": "living_daytime2.ogg",
+      "bytes": 19970,
+      "sha256": "cbc669ddb9bc0967de823ac992e07b227f4bee97aa3570aa25cf3f92a726f4e5"
+    },
+    {
+      "file": "living_daytime3.ogg",
+      "bytes": 15956,
+      "sha256": "fa6de602164b0dd9c17294db0c2f1bf3d08e457565585ab9fce1b438d509d1c4"
+    },
+    {
+      "file": "living_daytime4.ogg",
+      "bytes": 25015,
+      "sha256": "a971ba3a48b258b6956e7481898713997200fcf7e52f7ffbfeadc3738da9e08e"
+    },
+    {
+      "file": "living_daytime5.ogg",
+      "bytes": 33198,
+      "sha256": "c37a25d62c2760e1cf79ffcde75ba6286d703a590cb18ce18fe3d3663c424f47"
+    },
+    {
+      "file": "living_daytime57.ogg",
+      "bytes": 28529,
+      "sha256": "daa6bd7b357c30f28caea2383bf0d598384e6635af213d37d6ea1cd5df8cba6a"
+    },
+    {
+      "file": "living_daytime58.ogg",
+      "bytes": 26698,
+      "sha256": "68d60154aeecbb9019f2064162e495cd7dfb4db4dc4d1a6aeb5543087ff0cddc"
+    },
+    {
+      "file": "living_daytime59.ogg",
+      "bytes": 47487,
+      "sha256": "4ba5c16ee7d232350e1eb8b933dfa49fd7fcf5f960303154f8ad62cec68a3b20"
+    },
+    {
+      "file": "living_daytime6.ogg",
+      "bytes": 38068,
+      "sha256": "e966d6cd84f72168d00afe2e4f1601ada3227477d5e0f29de884950e84b06dcb"
+    },
+    {
+      "file": "living_daytime60.ogg",
+      "bytes": 47223,
+      "sha256": "e0c71857264581d3198ee61a5af752623c36293ab7c3afa2d34341b9485ead82"
+    },
+    {
+      "file": "living_daytime62.ogg",
+      "bytes": 22814,
+      "sha256": "913eac51b7062d52f1fd67d2909cd22c36a9f7165fc4bb42f18534c42824f075"
+    },
+    {
+      "file": "living_daytime63.ogg",
+      "bytes": 25202,
+      "sha256": "c45edd867e0520dd6730725256e9ae6b63cb60f8ca6daa0d5830852289b726c3"
+    },
+    {
+      "file": "living_daytime64.ogg",
+      "bytes": 35519,
+      "sha256": "663188c306d47a8a59309e355b4eaccf8c19659dce8facb0831cc06655ae4ee3"
+    },
+    {
+      "file": "living_daytime65.ogg",
+      "bytes": 19112,
+      "sha256": "615309911cd303f6f60a2b1caab533561db3e0fa141f944bb4defa539958816f"
+    },
+    {
+      "file": "living_daytime66.ogg",
+      "bytes": 19974,
+      "sha256": "73f35288c32ec0713f9b41f963ea2f7c2b05f8032995733ac0ddd575ede340e5"
+    },
+    {
+      "file": "living_daytime67.ogg",
+      "bytes": 18753,
+      "sha256": "8dd4a7cd6120dcb564dfc20f7b09dfcee77fdede996cd8ba10535d2866ef619e"
+    },
+    {
+      "file": "living_daytime68.ogg",
+      "bytes": 21395,
+      "sha256": "7ed244fa4fa35b2d2f5acd11638a4fadb461de828099768f5a5d762cb9bb9863"
+    },
+    {
+      "file": "living_daytime69.ogg",
+      "bytes": 20607,
+      "sha256": "31621f424e8b8f4ea4a2ae993a94ff84dfdee2c100175c30dc4c6778fc826cb0"
+    },
+    {
+      "file": "living_daytime7.ogg",
+      "bytes": 18482,
+      "sha256": "8d5e0a01b61c6466bef939abd52adddefdf2ee0dc3a418ad4d6be05dad76c461"
+    },
+    {
+      "file": "living_daytime70.ogg",
+      "bytes": 27559,
+      "sha256": "68b8e692edd347ac0f08397b5a524230fd075be3cccba7e2b575648bf335bb95"
+    },
+    {
+      "file": "living_daytime8.ogg",
+      "bytes": 32563,
+      "sha256": "662560776d3d8476b4e9b15ba27da7766b3fe8ac6470dbc1e13c39e807d34cc6"
+    },
+    {
+      "file": "living_daytime9.ogg",
+      "bytes": 22561,
+      "sha256": "ce8404b865baad6ce888a12cd457604bdf5eed7d3b27872fabbf9c58c6a56246"
+    },
+    {
+      "file": "living_whine11.ogg",
+      "bytes": 30390,
+      "sha256": "e5c0832372ef1fcdb461f7b097451cc0b76ec5b49d18ae8ed587d2e46e9c1e7a"
+    },
+    {
+      "file": "living_whine12.ogg",
+      "bytes": 26152,
+      "sha256": "45a45df139d6046d4ea8c4f6e0481113790d16bb47a93f4a45a87a01065e2c85"
+    },
+    {
+      "file": "living_whine6.ogg",
+      "bytes": 38994,
+      "sha256": "31656217d25d7e6846e9462a654689fa4fd0ca518b2b69ec7d329d74ee5f5ca1"
+    },
+    {
+      "file": "living_whine7.ogg",
+      "bytes": 36192,
+      "sha256": "eb2398835e1cd43eb2bc906602c505ad0e5a9bd290361ff092df3928aeda61ad"
+    },
+    {
+      "file": "living_whine8.ogg",
+      "bytes": 67025,
+      "sha256": "95c56545ee0333c5f5f0f7036900810cefe96bbb1ac16a602726d079a1ce0c63"
+    },
+    {
+      "file": "Mo-Ya-Da.ogg",
+      "bytes": 116002,
+      "sha256": "a5b6afca785580da9fcc692c8519e43e0e6d7d0fe27cff376bdd05f9739b7a81"
+    },
+    {
+      "file": "Sato.ogg",
+      "bytes": 21336,
+      "sha256": "ef21446f129847f4ac4fc1ffe844f6ac4cfe28cca74e3977b7ed670055073e5e"
+    },
+    {
+      "file": "sighting13.ogg",
+      "bytes": 26280,
+      "sha256": "5fe32acb4e4b253d713cde3ab0e414382a011cfeb4e830f87dfc4b5c249827d6"
+    },
+    {
+      "file": "sighting14.ogg",
+      "bytes": 13086,
+      "sha256": "8573c328bd4a27a76c8cb4fb0563395a2ff7ea71f050c66ba59229cc6544d95a"
+    },
+    {
+      "file": "sighting15.ogg",
+      "bytes": 10044,
+      "sha256": "0847686f7d41c3dba501cc36f37d1052b7797b18af425c72cd76ed1855e4aa98"
+    },
+    {
+      "file": "sighting17.ogg",
+      "bytes": 25055,
+      "sha256": "ffa98858fe9354ddce7b40fae478e09b4ac0b66d6be90ba9f7cc8b5abc81b5a4"
+    },
+    {
+      "file": "sighting3.ogg",
+      "bytes": 11019,
+      "sha256": "ec5abfeacae10a5fcf5f3345029958d27a61c366554a23cc2986b3e7d0555447"
+    },
+    {
+      "file": "sighting4.ogg",
+      "bytes": 14915,
+      "sha256": "2d4015929cf28d8ca8d9ddbc609ba2b0ccd0611d33609aa6a27e931e2da3f3d3"
+    },
+    {
+      "file": "sighting40.ogg",
+      "bytes": 8817,
+      "sha256": "a3dd1174a3b6887e8a0c8a8bca15abd9dc2b3536c3cac424cf707def7fdc3eec"
+    },
+    {
+      "file": "sighting42.ogg",
+      "bytes": 13377,
+      "sha256": "9dcb94accb0720841db1e690f541783fb95498d8e4a99b674f14a6ee44e1d805"
+    },
+    {
+      "file": "sighting5.ogg",
+      "bytes": 21526,
+      "sha256": "917272ee6f1352d020aac57241079110fdbffd08601dde43a5db8228dace0783"
+    },
+    {
+      "file": "sighting6.ogg",
+      "bytes": 14725,
+      "sha256": "6600573785635baace0739ff3b6d307f27dc8bd0289a90daf1f2f0f225d1a3e6"
+    },
+    {
+      "file": "sighting7.ogg",
+      "bytes": 23554,
+      "sha256": "c261d0a18ef7fdc627370a5995b368cf23582fcd41405daeb70832283aabb918"
+    },
+    {
+      "file": "sighting8.ogg",
+      "bytes": 11803,
+      "sha256": "9df3bd98faae35b5da1c376f1aa1de890056c5ad1ae855774cb5454b08bbc4b9"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+User-supplied audio from E:\!!!littleMaid_PECO, preserved in Wine_Fox_PECO.
+This runtime contains the original eatSugar-series OGG files, unchanged.
+Full source verification: docs/wine-fox-interaction/voice-manifest.json.
+Audio provenance is separate from the WineFox model and Three.js licenses.

@@ -1,0 +1,372 @@
+{
+  "url": "http://127.0.0.1:3210/",
+  "results": [
+    {
+      "name": "部署模型与GUI分割衍生模型相同",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "来源与 Three.js 许可随运行资源保留",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "默认关闭且未加载 GLB",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "主题设置开关真正加载宠物",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "47个动作含两段GUI及拉杆",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "动画菜单加载后自动填充",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "局部绘图缓冲",
+      "pass": true,
+      "detail": "[201,280]"
+    },
+    {
+      "name": "绘制限制在30FPS以内",
+      "pass": true,
+      "detail": "{\"name\":\"running idle\",\"fps\":27,\"taskMsPerSecond\":40.14666666666667,\"heapMiB\":33.46339416503906}"
+    },
+    {
+      "name": "暂停后停止持续绘制",
+      "pass": true,
+      "detail": "{\"name\":\"paused\",\"fps\":0,\"taskMsPerSecond\":10.224999999999993,\"heapMiB\":33.750057220458984}"
+    },
+    {
+      "name": "真实鼠标轻点播放模型开心动作",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "用户点击后语音实际开始播放",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "连续点击保持开心互动，不触发生气",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "关闭互动语音停止当前播放",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "一次开心动作结束恢复原动作",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "拖拽中播放Fly",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "松开拖拽恢复原动作",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "拖动移动而非轻点",
+      "pass": true,
+      "detail": "[1054.390625,538]"
+    },
+    {
+      "name": "位置持久化",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "普通鼠标移动不执行精确射线",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "弹窗打开时宠物不劫持输入",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "透明空白区域点击穿过到主界面",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "手动表情覆盖并只启用一个FaceMode",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "全部45个可见动作均可切换",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "death自动呆住",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "game_lost自动呆住",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Minecraft主题与宠物同时可用",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "触屏拖动有效且不计轻点",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "关闭1无残留DOM",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "关闭2无残留DOM",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "关闭3无残留DOM",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "快速取消加载无迟到宠物",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "关闭后零绘制",
+      "pass": true,
+      "detail": "{\"name\":\"disabled\",\"fps\":0,\"taskMsPerSecond\":7.851333333333432,\"heapMiB\":20.51785659790039}"
+    },
+    {
+      "name": "无运行异常与CSP加载错误",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "actions": [
+    {
+      "animation": "attacked",
+      "pass": true
+    },
+    {
+      "animation": "beg",
+      "pass": true
+    },
+    {
+      "animation": "boat",
+      "pass": true
+    },
+    {
+      "animation": "climb",
+      "pass": true
+    },
+    {
+      "animation": "climbing",
+      "pass": true
+    },
+    {
+      "animation": "death",
+      "pass": true
+    },
+    {
+      "animation": "elytra_fly",
+      "pass": true
+    },
+    {
+      "animation": "extra0",
+      "pass": true
+    },
+    {
+      "animation": "extra1",
+      "pass": true
+    },
+    {
+      "animation": "extra2",
+      "pass": true
+    },
+    {
+      "animation": "extra3",
+      "pass": true
+    },
+    {
+      "animation": "extra4",
+      "pass": true
+    },
+    {
+      "animation": "extra5",
+      "pass": true
+    },
+    {
+      "animation": "extra6",
+      "pass": true
+    },
+    {
+      "animation": "extra7",
+      "pass": true
+    },
+    {
+      "animation": "fly",
+      "pass": true
+    },
+    {
+      "animation": "game_lost",
+      "pass": true
+    },
+    {
+      "animation": "game_win",
+      "pass": true
+    },
+    {
+      "animation": "head:default",
+      "pass": true
+    },
+    {
+      "animation": "idle",
+      "pass": true
+    },
+    {
+      "animation": "jump",
+      "pass": true
+    },
+    {
+      "animation": "keyboard",
+      "pass": true
+    },
+    {
+      "animation": "ladder_down",
+      "pass": true
+    },
+    {
+      "animation": "ladder_stillness",
+      "pass": true
+    },
+    {
+      "animation": "ladder_up",
+      "pass": true
+    },
+    {
+      "animation": "lever_left_to_right",
+      "pass": true
+    },
+    {
+      "animation": "lever_right_to_left",
+      "pass": true
+    },
+    {
+      "animation": "new_idle_1",
+      "pass": true
+    },
+    {
+      "animation": "new_idle_2",
+      "pass": true
+    },
+    {
+      "animation": "new_idle_3",
+      "pass": true
+    },
+    {
+      "animation": "new_idle_4",
+      "pass": true
+    },
+    {
+      "animation": "picnic",
+      "pass": true
+    },
+    {
+      "animation": "pre_parallel0",
+      "pass": true
+    },
+    {
+      "animation": "run",
+      "pass": true
+    },
+    {
+      "animation": "sit",
+      "pass": true
+    },
+    {
+      "animation": "sleep",
+      "pass": true
+    },
+    {
+      "animation": "sneak",
+      "pass": true
+    },
+    {
+      "animation": "sneaking",
+      "pass": true
+    },
+    {
+      "animation": "swim",
+      "pass": true
+    },
+    {
+      "animation": "swim_stand",
+      "pass": true
+    },
+    {
+      "animation": "swing_hand",
+      "pass": true
+    },
+    {
+      "animation": "use_mainhand",
+      "pass": true
+    },
+    {
+      "animation": "use_mainhand:gohei",
+      "pass": true
+    },
+    {
+      "animation": "use_offhand",
+      "pass": true
+    },
+    {
+      "animation": "walk",
+      "pass": true
+    }
+  ],
+  "performance": [
+    {
+      "name": "running idle",
+      "fps": 27,
+      "taskMsPerSecond": 40.14666666666667,
+      "heapMiB": 33.46339416503906
+    },
+    {
+      "name": "paused",
+      "fps": 0,
+      "taskMsPerSecond": 10.224999999999993,
+      "heapMiB": 33.750057220458984
+    },
+    {
+      "name": "disabled",
+      "fps": 0,
+      "taskMsPerSecond": 7.851333333333432,
+      "heapMiB": 20.51785659790039
+    }
+  ]
+}

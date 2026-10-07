@@ -3,12 +3,12 @@
 // the model are imported only when enabled; an epoch invalidates late loaders.
 (function wineFoxPreferences(){
   const KEY='qqa-wine-fox';
-  const DEFAULTS={enabled:false,size:280,paused:false,animation:'idle',expression:-1,x:null,y:null};
+  const DEFAULTS={enabled:false,size:280,paused:false,animation:'idle',expression:-1,voice:true,x:null,y:null};
   let prefs={...DEFAULTS},instance=null,controller=null,epoch=0,loading=false,error='';
   try{prefs={...prefs,...JSON.parse(localStorage.getItem(KEY)||'{}')};}catch{/* defaults */}
   function clean(p){return {
     enabled:p.enabled===true,size:Math.min(400,Math.max(160,Number(p.size)||280)),paused:p.paused===true,
-    animation:typeof p.animation==='string'?p.animation:'idle',expression:[-1,0,1,2,3,4,5,6].includes(Number(p.expression))?Number(p.expression):-1,
+    animation:typeof p.animation==='string'&&!/^gui2?$/i.test(p.animation)?p.animation:'idle',voice:p.voice!==false,expression:[-1,0,1,2,3,4,5,6].includes(Number(p.expression))?Number(p.expression):-1,
     x:Number.isFinite(p.x)?p.x:null,y:Number.isFinite(p.y)?p.y:null
   };}
   prefs=clean(prefs);
@@ -20,7 +20,7 @@
     const status=root.querySelector('[data-wine-fox-status]');if(status)status.textContent=error|| (loading?'酒狐正在过来…':prefs.enabled?'已开启':'已关闭');
     for(const el of root.querySelectorAll('[data-wine-fox-pref]')){
       const key=el.dataset.wineFoxPref;
-      if(key==='animation'&&instance){const names=instance.state().animations;
+      if(key==='animation'&&instance){const names=instance.state().visibleAnimations;
         if(el.options.length!==names.length)el.replaceChildren(...names.map(name=>{const opt=document.createElement('option');opt.value=name;opt.textContent=name;return opt;}));}
       if(document.activeElement!==el){if(el.type==='checkbox')el.checked=prefs[key];else el.value=String(prefs[key]);}
       if(key==='animation')el.disabled=!instance;

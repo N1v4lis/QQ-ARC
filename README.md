@@ -18,8 +18,9 @@ SnowLuma启动优化：异步补丁后执行 `node tools/patch-host-snow-startup
 仪表盘加载优化：再执行 `node tools/patch-host-dashboard.mjs`，共享一次总览/排行统计，卡片独立更新，布局不变；[实现与测量](docs/DASHBOARD-LOADING.md)。
 
 酒狐完整资源保留在 `Wine_Fox/`，已作为主题互动宠物接入。
+新互动与双模型GUI拆分见 [WINE-FOX-INTERACTION.md](docs/WINE-FOX-INTERACTION.md)，完整语音保存在 `Wine_Fox_PECO`。
 接入与实测性能见 [`docs/WINE-FOX-INTEGRATION.md`](docs/WINE-FOX-INTEGRATION.md)。
-在「设置 → 主题 → 酒狐互动宠物」开启，支持拖动、轻点互动、46个动作、表情、大小与暂停。默认关闭，开启后按需加载；暂停与最小化停止绘制。独立参考页仍可运行 `node Wine_Fox/WebPet/server.mjs`。
+在「设置 → 主题 → 酒狐互动宠物」开启，支持随机开心动作与语音、拖拽Fly、45个可见动作（完整47片段含GUI两段）、表情、大小与暂停。默认关闭，开启后按需加载；暂停与最小化停止绘制。独立参考页仍可运行 `node Wine_Fox/WebPet/server.mjs`。
 
 > 这个目录是 **QQ Agent 前端的一次完整重写**：新外壳（无边框窗口 + 自绘标题栏 + 新侧栏/仪表盘）
 > ＋ 一套 Minecraft 像素风皮肤（配色 / 字体 / 音效 / 背景图 / 像素图标 / 拉杆开关）。
