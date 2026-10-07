@@ -1,0 +1,141 @@
+{
+  "animation": 2000,
+  "mode": "cold",
+  "requests": [
+    {
+      "path": "/api/accounts",
+      "start": 603,
+      "ms": 74
+    },
+    {
+      "path": "/api/status",
+      "start": 652,
+      "ms": 2301
+    },
+    {
+      "path": "/api/status",
+      "start": 2960,
+      "ms": 15
+    },
+    {
+      "path": "/api/status",
+      "start": 3003,
+      "ms": 5
+    },
+    {
+      "path": "/api/dashboard/usage",
+      "start": 3010,
+      "ms": 430
+    },
+    {
+      "path": "/api/status",
+      "start": 3010,
+      "ms": 21
+    },
+    {
+      "path": "/api/chats",
+      "start": 3010,
+      "ms": 30
+    },
+    {
+      "path": "/api/accounts",
+      "start": 3010,
+      "ms": 30
+    },
+    {
+      "path": "/api/chats",
+      "start": 3011,
+      "ms": 35
+    },
+    {
+      "path": "/api/status",
+      "start": 3837,
+      "ms": 10
+    },
+    {
+      "path": "/api/status",
+      "start": 3837,
+      "ms": 14
+    },
+    {
+      "path": "/api/status",
+      "start": 3837,
+      "ms": 18
+    },
+    {
+      "path": "/api/status",
+      "start": 3837,
+      "ms": 21
+    },
+    {
+      "path": "/api/status",
+      "start": 9856,
+      "ms": 8
+    },
+    {
+      "path": "/api/status",
+      "start": 9856,
+      "ms": 19
+    },
+    {
+      "path": "/api/status",
+      "start": 9856,
+      "ms": 19
+    },
+    {
+      "path": "/api/status",
+      "start": 9856,
+      "ms": 25
+    },
+    {
+      "path": "/api/accounts",
+      "start": 10896,
+      "ms": 8
+    },
+    {
+      "path": "/api/status",
+      "start": 18891,
+      "ms": 14
+    },
+    {
+      "path": "/api/accounts",
+      "start": 20888,
+      "ms": 4
+    },
+    {
+      "path": "/api/status",
+      "start": 21871,
+      "ms": 7
+    },
+    {
+      "path": "/api/status",
+      "start": 21872,
+      "ms": 13
+    },
+    {
+      "path": "/api/status",
+      "start": 21872,
+      "ms": 18
+    },
+    {
+      "path": "/api/status",
+      "start": 21872,
+      "ms": 21
+    },
+    {
+      "path": "/api/accounts",
+      "start": 30887,
+      "ms": 6
+    },
+    {
+      "path": "/api/status",
+      "start": 34885,
+      "ms": 2276
+    },
+    {
+      "path": "/api/accounts",
+      "start": 40700,
+      "ms": 2
+    }
+  ]
+}

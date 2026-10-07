@@ -22,6 +22,7 @@
 
 /** 页面状态：只存"这次渲染用的原始数据"，避免重复请求 */
 let dashData = null;
+const dashSnapshots = new Map();
 /** 图表指标：cost（成本）| runs（调用次数）—— AdminLTE 那排按钮的对应物 */
 let dashMetric = 'cost';
 /** 加载序号：保证"同一时刻只认最后一次加载"，防止旧请求覆盖新结果（见 loadDashboard） */
@@ -386,10 +387,13 @@ const dashPointFmt = (v, metric) => (metric === 'runs' ? `${Math.round(Number(v)
  *           卡片顺序将来会调整，序号会静默指错区块。
  *           也允许传数组（如「Token 总量」要同时高亮"输入 token + 输出 token"）。
  */
-function dashSmallBox({ label, value, sub, icon, tone, target, flash }) {
+function dashSmallBox({ label, value, sub, icon, tone, target, flash, source, data, region }) {
+  if (source && !data?.[source]) {
+    value = '—'; sub = data?.errors?.[source] ? '读取失败，点击刷新重试' : '加载中…'; tone = 'accent';
+  }
   const flashAttr = flash ? ` data-flash="${Array.isArray(flash) ? flash.join(',') : flash}"` : '';
   return `
-    <div class="dash-box tone-${tone || 'accent'}"${target ? ` data-goto="${target}"${flashAttr} role="button" tabindex="0"` : ''}>
+    <div class="dash-box tone-${tone || 'accent'}"${region ? ` data-dash-region="${region}"` : ''}${source ? ` aria-busy="${!data?.[source] && !data?.errors?.[source]}"` : ''}${target ? ` data-goto="${target}"${flashAttr} role="button" tabindex="0"` : ''}>
       <div class="db-main">
         <div class="db-value">${value}</div>
         <div class="db-label">${dashEsc(label)}</div>
@@ -413,7 +417,7 @@ const DASH_ICON = {
 };
 
 /** 渲染整个仪表盘。参数是 loadDashboard 收集好的数据包。 */
-function renderDashboard(data) {
+function renderDashboard(data, regions = null) {
   const box = document.getElementById('dashboard-page');
   if (!box || !data) return;
   const { stats, st, chats, accounts, breakdown } = data;
@@ -461,7 +465,7 @@ function renderDashboard(data) {
   const nFetch = Number(stats?.toolCounts?.web_fetch) || 0;
   const nDays = days.length;
 
-  box.innerHTML = `
+  const markup = `
     <div class="dash-wrap" data-range="${dashEsc(dashRange)}">
       ${dashBetaNotice()}
       <div class="dash-head">
@@ -475,7 +479,7 @@ function renderDashboard(data) {
                   （"最近 7 天"），两者措辞不同，且 rangeLabel 是后端**兜底后**的结果，
                   当范围非法时它会静默回落（本轮就发现写死 30d 一直被当成 7 天）。 -->
           ${dashRangeButtons()}
-          <span class="dash-range-info" title="后端返回的区间与图上天数">${dashEsc(stats?.rangeLabel || '')}${nDays ? ` · 图上 ${nDays} 天` : ''}</span>
+          <span class="dash-range-info" data-dash-region="range" title="后端返回的区间与图上天数">${dashEsc(stats?.rangeLabel || '')}${nDays ? ` · 图上 ${nDays} 天` : ''}</span>
           <button class="btn btn-small" id="dash-refresh-btn" title="立即刷新">刷新</button>
         </div>
       </div>
@@ -485,20 +489,20 @@ function renderDashboard(data) {
       <!-- 一排小方框信息卡（AdminLTE small-box）
            ⚠️ 这 5 张卡**各带一个语义化的 flash 目标**：都跳用量页，
               但跳过去后要高亮的区块不同。见 dashSmallBox 的说明。 -->
-      <div class="dash-boxes">
-        ${dashSmallBox({ label: '调用次数', value: (typeof fmtTok === 'function' ? fmtTok(runs) : runs), sub: `今日 ${today.runs ?? 0} 次`, icon: DASH_ICON.runs, tone: 'accent', target: 'usage', flash: 'runs' })}
-        ${dashSmallBox({ label: '估算成本', value: (typeof fmtYuan === 'function' ? fmtYuan(cost) : cost), sub: '所选区间合计', icon: DASH_ICON.cost, tone: 'ok', target: 'usage', flash: 'cost' })}
-        ${dashSmallBox({ label: 'Token 总量', value: (typeof fmtTok === 'function' ? fmtTok(tokens) : tokens), sub: `入 ${typeof fmtTok === 'function' ? fmtTok(t.promptTokens) : t.promptTokens} · 出 ${typeof fmtTok === 'function' ? fmtTok(t.completionTokens) : t.completionTokens}`, icon: DASH_ICON.tokens, tone: 'accent', target: 'usage', flash: ['prompt', 'completion'] })}
-        ${dashSmallBox({ label: '缓存命中率', value: `${rate.toFixed(1)}%`, sub: `命中 ${typeof fmtTok === 'function' ? fmtTok(t.cachedTokens) : t.cachedTokens}`, icon: DASH_ICON.cache, tone: 'warn', target: 'usage', flash: 'rate' })}
-        ${dashSmallBox({ label: '联网搜索', value: (typeof fmtTok === 'function' ? fmtTok(searches) : searches), sub: `搜索 ${nSearch} · 抓取 ${nFetch}`, icon: DASH_ICON.search, tone: 'ok', target: 'usage', flash: 'search' })}
+      <div class="dash-boxes" data-dash-region="stats">
+        ${dashSmallBox({ source: 'stats', data, label: '调用次数', value: (typeof fmtTok === 'function' ? fmtTok(runs) : runs), sub: st ? `今日 ${today.runs ?? 0} 次` : '今日加载中…', icon: DASH_ICON.runs, tone: 'accent', target: 'usage', flash: 'runs' })}
+        ${dashSmallBox({ source: 'stats', data, label: '估算成本', value: (typeof fmtYuan === 'function' ? fmtYuan(cost) : cost), sub: '所选区间合计', icon: DASH_ICON.cost, tone: 'ok', target: 'usage', flash: 'cost' })}
+        ${dashSmallBox({ source: 'stats', data, label: 'Token 总量', value: (typeof fmtTok === 'function' ? fmtTok(tokens) : tokens), sub: `入 ${typeof fmtTok === 'function' ? fmtTok(t.promptTokens) : t.promptTokens} · 出 ${typeof fmtTok === 'function' ? fmtTok(t.completionTokens) : t.completionTokens}`, icon: DASH_ICON.tokens, tone: 'accent', target: 'usage', flash: ['prompt', 'completion'] })}
+        ${dashSmallBox({ source: 'stats', data, label: '缓存命中率', value: `${rate.toFixed(1)}%`, sub: `命中 ${typeof fmtTok === 'function' ? fmtTok(t.cachedTokens) : t.cachedTokens}`, icon: DASH_ICON.cache, tone: 'warn', target: 'usage', flash: 'rate' })}
+        ${dashSmallBox({ source: 'stats', data, label: '联网搜索', value: (typeof fmtTok === 'function' ? fmtTok(searches) : searches), sub: `搜索 ${nSearch} · 抓取 ${nFetch}`, icon: DASH_ICON.search, tone: 'ok', target: 'usage', flash: 'search' })}
       </div>
 
       <!-- 第二排：会话数 / 账号数 / 运行状态（都可点跳转） -->
       <div class="dash-boxes dash-boxes-sm">
-        ${dashSmallBox({ label: '会话总数', value: String(chatCount), sub: '群 + 私聊', icon: DASH_ICON.chat, tone: 'accent', target: 'chats' })}
-        ${dashSmallBox({ label: '账号', value: String(accountCount || 1), sub: '多开分账号', icon: DASH_ICON.account, tone: 'accent', target: 'accounts' })}
+        ${dashSmallBox({ source: 'chats', data, region: 'chats', label: '会话总数', value: String(chatCount), sub: '群 + 私聊', icon: DASH_ICON.chat, tone: 'accent', target: 'chats' })}
+        ${dashSmallBox({ source: 'accounts', data, region: 'accounts', label: '账号', value: String(accountCount), sub: '多开分账号', icon: DASH_ICON.account, tone: 'accent', target: 'accounts' })}
         ${dashSmallBox({
-          label: 'OneBot 连接',
+          source: 'st', data, region: 'onebot', label: 'OneBot 连接',
           value: st?.onebot?.connected ? '已连接' : '未连接',
           sub: st?.onebot?.connected ? '点击查看 SnowLuma' : '点击去连接',
           icon: DASH_ICON.plug,
@@ -512,7 +516,7 @@ function renderDashboard(data) {
 
       <!-- 主图区：左 2/3 折线图 + 右 1/3 环形图 -->
       <div class="dash-row">
-        <div class="dash-card dash-card-main">
+        <div class="dash-card dash-card-main" data-dash-region="trend">
           <div class="dash-card-head">
             <h3>用量趋势</h3>
             <div class="dash-metric">
@@ -521,30 +525,31 @@ function renderDashboard(data) {
             </div>
           </div>
           <div class="dash-card-body">
-            ${dashLineChart(series, labels, { metric, altValues: seriesAlt })}
+            ${stats ? dashLineChart(series, labels, { metric, altValues: seriesAlt }) : dashPending(data, 'stats')}
           </div>
-          <div class="dash-card-foot">${nDays ? `近 ${nDays} 天有数据 · 悬停曲线上的点看具体数值` : '所选区间暂无用量数据'}</div>
+          <div class="dash-card-foot">${!stats ? '用量统计加载中' : nDays ? `近 ${nDays} 天有数据 · 悬停曲线上的点看具体数值` : '所选区间暂无用量数据'}</div>
         </div>
 
-        <div class="dash-card">
+        <div class="dash-card" data-dash-region="models">
           <div class="dash-card-head"><h3>模型成本占比</h3></div>
           <div class="dash-card-body">
-            ${dashDonut(modelRows, { centerLabel: '个模型' })}
+            ${stats ? dashDonut(modelRows, { centerLabel: '个模型' }) : dashPending(data, 'stats')}
           </div>
         </div>
       </div>
 
       <!-- 底部：排行 + 状态信息 -->
       <div class="dash-row">
-        <div class="dash-card dash-card-main">
+        <div class="dash-card dash-card-main" data-dash-region="rank">
           <div class="dash-card-head"><h3>会话排行（按调用次数）</h3></div>
-          <div class="dash-card-body">${dashBarChart(chatRows, { metric: 'runs', barFmt: (v) => (typeof fmtTok === 'function' ? fmtTok(v) : String(Math.round(v))) })}</div>
-          <div class="dash-card-foot">${chatRows.length ? '柱形高度即调用次数 · 悬停柱子看精确值' : '所选区间暂无会话数据'}</div>
+          <div class="dash-card-body">${breakdown ? dashBarChart(chatRows, { metric: 'runs', barFmt: (v) => (typeof fmtTok === 'function' ? fmtTok(v) : String(Math.round(v))) }) : dashPending(data, 'stats')}</div>
+          <div class="dash-card-foot">${!breakdown ? '会话统计加载中' : chatRows.length ? '柱形高度即调用次数 · 悬停柱子看精确值' : '所选区间暂无会话数据'}</div>
         </div>
-        <div class="dash-card">
+        <div class="dash-card" data-dash-region="status">
           <div class="dash-card-head"><h3>运行状态</h3></div>
           <div class="dash-card-body">
-            <ul class="dash-kv">
+            ${!st ? dashPending(data, 'st') : ''}
+            <ul class="dash-kv"${!st ? ' hidden' : ''}>
               <li><span>机器人</span><b class="${st?.paused ? 'kv-warn' : 'kv-ok'}">${st?.paused ? '已暂停' : '运行中'}</b></li>
               <li><span>模型</span><b title="${dashEsc(st?.orchestrator?.model || '')}">${dashEsc(st?.orchestrator?.model || '未设置')}</b></li>
               <li><span>今日调用</span><b>${today.runs ?? 0} 次</b></li>
@@ -557,61 +562,52 @@ function renderDashboard(data) {
       </div>
     </div>`;
 
-  // 交互接线
-  box.querySelectorAll('[data-goto]').forEach((el) => {
-    const go = () => {
-      const flash = el.dataset.flash;
-      const goto = el.dataset.goto;
-      // 跳到"设置里的某个区块"（如 OneBot/SnowLuma）：走 openSettingsSection，
-      // 它会 switchTab('settings') + 设区块 + 重渲染；直接 switchTab('settings')
-      // 只会落到上次记住的区块，不一定是想要的那个。
-      if (goto === 'settings' && flash && typeof openSettingsSection === 'function') {
-        openSettingsSection(flash);
-        return;
-      }
-      // 先登记"跳过去要高亮谁"，再切页签。
-      // 顺序很重要：目标页是异步渲染的，切页签会立刻触发它的加载，
-      // 渲染完成时再去登记就晚了（那时 flush 已经跑过）。
-      if (flash && typeof requestHighlight === 'function') {
-        flash.split(',').map((s) => s.trim()).filter(Boolean).forEach((f) => requestHighlight(f));
-      }
-      if (typeof switchTab === 'function') switchTab(goto);
-    };
-    el.addEventListener('click', go);
-    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  if (regions && box.querySelector('.dash-wrap')) {
+    const template = document.createElement('template'); template.innerHTML = markup;
+    for (const region of regions) {
+      const selector = '[data-dash-region="' + region + '"]';
+      const old = box.querySelector(selector), next = template.content.querySelector(selector);
+      if (old && next) old.replaceWith(next);
+    }
+  } else { box.innerHTML = markup; bindBetaPin(box); }
+  bindDashboardActions(box);
+  if (!regions || regions.includes('trend')) bindChartHover(box);
+}
+
+function dashPending(data, source) {
+  return '<div class="dash-empty" role="status">' + (data.errors?.[source] ? '读取失败，点击刷新重试' : '加载中…') + '</div>';
+}
+
+// One delegated handler survives regional updates; header focus and unaffected charts remain intact.
+function bindDashboardActions(box) {
+  if (box.dataset.dashBound) return;
+  box.dataset.dashBound = '1';
+  const navigate = el => {
+    const { goto, flash } = el.dataset;
+    if (goto === 'settings' && flash && typeof openSettingsSection === 'function') { openSettingsSection(flash); return; }
+    if (flash && typeof requestHighlight === 'function') flash.split(',').filter(Boolean).forEach(requestHighlight);
+    if (typeof switchTab === 'function') switchTab(goto);
+  };
+  box.addEventListener('click', e => {
+    const el = e.target.closest('[data-goto], [data-metric], #dash-refresh-btn, .dash-range[data-range]');
+    if (!el || !box.contains(el)) return;
+    if (el.dataset.goto) { navigate(el); return; }
+    if (el.dataset.metric) {
+      if (dashMetric === el.dataset.metric) return;
+      dashMetric = el.dataset.metric;
+      if (dashData) renderDashboard(dashData, ['trend']);
+      return;
+    }
+    if (el.dataset.range) {
+      if (el.dataset.range === dashRange) return;
+      setDashRange(el.dataset.range); dashData = null;
+    }
+    loadDashboard({ force: true });
   });
-  box.querySelectorAll('[data-metric]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      if (dashMetric === btn.dataset.metric) return;
-      dashMetric = btn.dataset.metric;
-      // 切换指标是纯前端行为：用已有数据重画，不重新请求（那两个接口很慢）
-      if (dashData) renderDashboard(dashData);
-    });
+  box.addEventListener('keydown', e => {
+    const el = e.target.closest('[data-goto]');
+    if (el && box.contains(el) && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); navigate(el); }
   });
-  const rf = box.querySelector('#dash-refresh-btn');
-  if (rf) rf.addEventListener('click', () => { dashData = null; loadDashboard({ force: true }); });
-  // 数据区间切换：改区间 → 清缓存 → 重新拉。
-  // ⚠️ 必须清 dashData：不清的话 loadDashboard 会在 `if (!force && dashData)` 处
-  //    直接复用旧数据、只重绘一遍 —— 看起来"点了没反应"。
-  box.querySelectorAll('.dash-range[data-range]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const v = btn.dataset.range;
-      if (v === dashRange) return;
-      setDashRange(v);
-      dashData = null;
-      // 先本地更新按钮态，让点击立刻有反馈（不用等接口回来）
-      box.querySelectorAll('.dash-range[data-range]').forEach((b) => {
-        const on = b.dataset.range === v;
-        b.classList.toggle('is-on', on);
-        b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      });
-      loadDashboard({ force: true });
-    });
-  });
-  // 折线图的悬停提示接线（委托在容器上，重绘后依然有效）
-  bindChartHover(box);
-  // Beta 通告的"已钉住"状态
-  bindBetaPin(box);
 }
 
 /**
@@ -668,59 +664,38 @@ function dashChatLabel(key) {
   return kind === 'group' ? `群 ${id}` : (kind === 'private' ? `私聊 ${id}` : s);
 }
 
-/** 拉数据并渲染。
- *
- * ⚠️ 为什么必须**渐进渲染**（2026-10-04 实测踩到）：
- *   `/api/usage/stats?range=30d` 冷启动 **5.3 秒**、`/api/usage/breakdown` **3.9 秒**
- *   （后端要遍历全部会话文件）。一开始我写成 Promise.all 一起等 —— 结果是
- *   "启动落在仪表盘 → 页面停在'正在加载…'五秒以上"，看起来就像坏了。
- *   现在：骨架先出（0ms），五个接口各自回来就各自填，谁慢谁自己转圈。
- *   骨架里带旋转占位块，用户能看出"在加载"而不是"空了"。 */
+/** Independent data regions: expensive statistics never gate status/account cards. */
 async function loadDashboard({ force = false } = {}) {
-  const box = document.getElementById('dashboard-page');
-  if (!box) return;
-  // ⚠️ 同一时刻只认最后一次加载（2026-10-04 加）。
-  //    没有这个守卫时：连点刷新 / 启动加载与手动刷新叠在一起，
-  //    两个请求都在飞，**先发的后到**就会把新结果覆盖成旧数据；
-  //    更糟的是刷新会把 dashData 清空，若旧请求中途返回并渲染，
-  //    页面会直接停在骨架态（卡上的数字全是占位条）。
-  //    用量页早有同类守卫（usageLoadToken），这里对齐。
+  const box = document.getElementById('dashboard-page'); if (!box) return;
+  const range = dashRange;
+  const snapshotKey = range + ':' + (document.getElementById('account-switch')?.value || '');
+  const cached = !force && dashSnapshots.get(snapshotKey);
+  const data = cached && Date.now() - cached.at < 30000 ? { ...cached.data, errors: {} } : { errors: {} };
+  dashData = data;
+  renderDashboard(data);
   const token = ++dashLoadToken;
-  if (!force && dashData) { renderDashboard(dashData); return; }
-
-  // 先出骨架（立刻可见，不依赖任何网络）
-  box.innerHTML = dashSkeleton();
-  // ⚠️ 骨架里也有 Beta 通告（dashBetaNotice 在骨架与正式渲染里都出现），
-  //    所以这里也要接一次钉住观察 —— 否则"接口慢、页面停在骨架"的那段时间里，
-  //    通告是有的、但滚动时不会进入钉住态（缺 .is-pinned 投影）。
-  //    bindBetaPin 内部会先断开上一次的观察器，重复调用安全。
-  bindBetaPin(box);
-
-  // ⚠️ range 必须是**当前选择的值**：原来写死 `range=30d`（后端只认 1..30 的数字，
-  //    "30d" 会被 Number() 解析成 NaN → 回落成 7 天！），
-  //    结果就是"标题说 30 天、数据其实是 7 天"的口径错位。
-  //    现在与用量页用同一套 range 值（today / 7 / 30 / all）。
-  const enc = encodeURIComponent(dashRange);
-  const [stats, st, chats, accounts, breakdown] = await Promise.all([
-    dashSafe(`/api/usage/stats?range=${enc}`, null),
-    dashSafe('/api/status', null),
-    dashSafe('/api/chats', null),
-    dashSafe('/api/accounts', null),
-    dashSafe(`/api/usage/breakdown?range=${enc}`, null)
-  ]);
-  // 期间又发起了新的加载 → 这次结果作废（避免旧数据盖新数据 / 停在骨架）
-  if (token !== dashLoadToken) return;
-  // 用户可能已经切走页签
-  if (typeof state !== 'undefined' && state.tab !== 'dashboard') return;
-  // ⚠️ 重新确认容器还挂在文档里（renderDashboard 内部会自己再取一次，
-  //    但这里先判一次能省掉一次无意义的渲染）。
-  //    背景：await 期间容器可能被换成了新节点 —— 那 renderDashboard 会往
-  //    游离节点里写，用户看到的仍是骨架。同类问题在 SnowLuma 面板上实测出现过。
-  const live = document.getElementById('dashboard-page');
-  if (!live || !live.isConnected) return;
-
-  dashData = { stats, st, chats, accounts, breakdown };
-  renderDashboard(dashData);
+  const live = () => token === dashLoadToken && range === dashRange &&
+    (typeof state === 'undefined' || state.tab === 'dashboard') &&
+    document.getElementById('dashboard-page') === box && box.isConnected;
+  const jobs = [
+    ['stats', '/api/dashboard/usage?range=' + encodeURIComponent(range) + (force ? '&fresh=1' : ''), ['stats', 'range', 'trend', 'models', 'rank']],
+    ['st', '/api/status', ['onebot', 'status', 'stats']],
+    ['chats', '/api/chats', ['chats', 'rank']],
+    ['accounts', '/api/accounts', ['accounts']]
+  ];
+  await Promise.all(jobs.map(async ([source, url, regions]) => {
+    const result = await dashSafe(url, null);
+    if (!live()) return;
+    if (result && result.ok !== false && (source !== 'stats' || (result.stats?.totals && Array.isArray(result.breakdown?.rows)))) {
+      if (source === 'stats') { data.stats = result.stats; data.breakdown = result.breakdown; }
+      else data[source] = result;
+      delete data.errors[source];
+    } else { data.errors[source] = true; }
+    renderDashboard(data, regions);
+  }));
+  if (live() && data.stats && data.st && data.chats && data.accounts && !Object.keys(data.errors).length) {
+    dashSnapshots.set(snapshotKey, { at: Date.now(), data: { ...data, errors: {} } });
+  }
 }
 
 /** 数据区间按钮组。正式渲染与骨架共用，避免两处 HTML 写岔。 */

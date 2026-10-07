@@ -87,7 +87,7 @@ export class ParticleSystem {
 }
 export class StartupAnimation {
   static async create(canvas,options={}){const images=await assets();return new StartupAnimation(canvas,images,options);}
-  constructor(canvas,images,{theme=()=>document.documentElement.dataset.theme==='dark'?'dark':'light',reduced=false,duration=4000,onComplete=()=>{}}={}){
+  constructor(canvas,images,{theme=()=>document.documentElement.dataset.theme==='dark'?'dark':'light',reduced=false,duration=2000,onComplete=()=>{}}={}){
     this.canvas=canvas;this.ctx=canvas.getContext('2d');if(!this.ctx)throw Error('Canvas 2D unavailable');
     this.images=images;this.theme=theme;this.reduced=reduced;this.duration=reduced?500:duration;this.onComplete=onComplete;
     this.system=new ParticleSystem(images,canvas.clientWidth<600);this.frames=0;this.time=0;this.raf=0;this.holdTimer=0;this.disposed=false;this.complete=false;

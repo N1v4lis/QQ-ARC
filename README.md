@@ -5,7 +5,7 @@
 > 本次接手结果与版本流程见 [`docs/CODEX-MIGRATION.md`](docs/CODEX-MIGRATION.md)。
 
 ARCFØX 六阶段启动动画已接入，亮暗轨迹同步；[实现与预览](docs/STARTUP-ANIMATION.md)。
-当前冷启动4秒、刷新2.6秒，动画画布16:9；底部QQ/OneBot进度来自实际状态。首次部署或宿主重装后执行 `node tools/patch-host-qq-detection.mjs` 并重启，普通QQ检测复用宿主已有进程查询。
+当前冷启动2秒、刷新1秒，动画画布16:9；底部QQ/OneBot进度来自实际状态。首次部署或宿主重装后执行 `node tools/patch-host-qq-detection.mjs` 并重启，普通QQ检测复用宿主已有进程查询。
 
 宿主异步启动补丁：`node tools/patch-host-async-startup.mjs`，重启后HTTP监听即创建窗口，插件与SnowLuma后台并行初始化。实现与实测见 [冷启动优化](docs/ASYNC-STARTUP.md)。未经用户明确允许，不自动上传GitHub。
 
@@ -14,6 +14,8 @@ SnowLuma启动优化：异步补丁后执行 `node tools/patch-host-snow-startup
 插件导入优化：再执行 `node tools/patch-host-plugin-loading.mjs` 并重启，冷启动4路准备、按原顺序注册，热重载只扫描一次；[实现、回退与SnowLuma源码坐标](docs/PLUGIN-LOADING.md)。
 
 进入界面后的卡顿优化：上述补丁后执行 `node tools/patch-host-usage-responsiveness.mjs` 并重启，将会话解析移到后台线程、计价复用配置；[原因、对照测量与回退](docs/POST-STARTUP-RESPONSIVENESS.md)。
+
+仪表盘加载优化：再执行 `node tools/patch-host-dashboard.mjs`，共享一次总览/排行统计，卡片独立更新，布局不变；[实现与测量](docs/DASHBOARD-LOADING.md)。
 
 酒狐完整资源保留在 `Wine_Fox/`，已作为主题互动宠物接入。
 接入与实测性能见 [`docs/WINE-FOX-INTEGRATION.md`](docs/WINE-FOX-INTEGRATION.md)。

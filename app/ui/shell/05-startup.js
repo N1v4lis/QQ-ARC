@@ -8,7 +8,7 @@
   const media=matchMedia('(prefers-reduced-motion: reduce)');
   let mode=performance.getEntriesByType('navigation')[0]?.type==='reload'?'reload':'cold';
   try{if(sessionStorage.getItem('arcfox-window-started')==='1')mode='reload';sessionStorage.setItem('arcfox-window-started','1');}catch{/* navigation type remains available */}
-  const duration=mode==='cold'?4000:2600;
+  const duration=mode==='cold'?2000:1000;
   overlay.dataset.startupMode=mode;
   const reduced=()=>media.matches||document.documentElement.dataset.motion==='off';
   function cleanup(){if(disposed)return;disposed=true;clearTimeout(assetTimer);animation?.dispose();observer.disconnect();media.removeEventListener('change',motionChange);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',cleanup);overlay.remove();resolveDone();}

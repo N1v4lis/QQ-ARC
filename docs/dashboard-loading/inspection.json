@@ -1,0 +1,62 @@
+{
+  "real": {
+    "animation": 2000,
+    "requests": [
+      {
+        "path": "/api/accounts",
+        "start": 163,
+        "ms": 12
+      },
+      {
+        "path": "/api/status",
+        "start": 180,
+        "ms": 10
+      },
+      {
+        "path": "/api/status",
+        "start": 367,
+        "ms": 8
+      },
+      {
+        "path": "/api/status",
+        "start": 412,
+        "ms": 9
+      },
+      {
+        "path": "/api/dashboard/usage",
+        "start": 422,
+        "ms": 522
+      },
+      {
+        "path": "/api/status",
+        "start": 423,
+        "ms": 18
+      },
+      {
+        "path": "/api/chats",
+        "start": 423,
+        "ms": 26
+      },
+      {
+        "path": "/api/accounts",
+        "start": 423,
+        "ms": 24
+      },
+      {
+        "path": "/api/chats",
+        "start": 423,
+        "ms": 38
+      }
+    ]
+  },
+  "refresh": 1000,
+  "checks": [
+    "8 cards immediately",
+    "fast cards independent of statistics",
+    "partial DOM updates preserve focus",
+    "explicit failure state",
+    "old-response and range race guards",
+    "cold 2000ms / refresh 1000ms"
+  ],
+  "exceptions": []
+}
