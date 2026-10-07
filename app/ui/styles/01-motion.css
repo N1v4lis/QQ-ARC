@@ -122,6 +122,16 @@
 /* 弹窗关闭：JS 移除节点，这里给"正在关闭"用的类留一个钩子（可选） */
 .model-modal-overlay.q-closing { animation: qFadeIn var(--q-mo-fast) var(--q-ease) reverse both; }
 
+/* 对话框基础动效：短淡入 + 6px位移，退出更快。 */
+@keyframes appWindowIn { from { opacity: 0; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: none; } }
+@keyframes appWindowOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(3px) scale(.99); } }
+@media (prefers-reduced-motion: no-preference) {
+ html:not([data-motion='off']) .model-modal-overlay:not(.closing) { animation: qFadeIn 180ms ease-out both; }
+ html:not([data-motion='off']) .model-modal-overlay:not(.closing) > .model-modal { animation: appWindowIn 180ms ease-out both; }
+ html:not([data-motion='off']) .model-modal-overlay.closing { animation: qFadeIn 100ms ease-in reverse both; pointer-events: none; }
+ html:not([data-motion='off']) .model-modal-overlay.closing > .model-modal { animation: appWindowOut 100ms ease-in both; }
+}
+
 /* ── 骨架屏 / 加载 ──────────────────────────────────────────────────────── */
 .q-skeleton, .skeleton {
   background-image: linear-gradient(

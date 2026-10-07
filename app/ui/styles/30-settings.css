@@ -481,6 +481,9 @@ html[data-skin='minecraft'] #view-persona :is(.persona-target small,.persona-dir
 .persona-context-menu button { display: block; width: 100%; padding: 10px 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .persona-context-menu button:hover, .persona-context-menu button:focus-visible { background: var(--q-accent-soft); outline: none; }
 .persona-context-menu button:disabled { opacity: .5; cursor: wait; }
+.persona-context-menu { animation: persona-library-open 140ms ease-out; transform-origin: top left; }
+html[data-motion='off'] .persona-context-menu { animation: none; }
+@media (prefers-reduced-motion: reduce) { .persona-context-menu { animation: none; } }
 #view-persona #persona-manual-save { min-width: 82px; white-space: nowrap; }
 #view-persona #persona-manual-save.persona-save-success { animation: persona-save-flash 650ms ease-out; }
 @keyframes persona-save-flash {

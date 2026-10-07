@@ -3,6 +3,8 @@
 // ── 模型选择/添加/删除 模态框 ──
 function closeAnimatedOverlay(overlay) {
   if (!overlay || overlay.classList.contains('closing')) return;
+  if (!uiCanAnimate(overlay)) { overlay.remove(); return; }
+  overlay.style.pointerEvents = 'none';
   overlay.classList.add('closing');
   let done = false;
   const finish = () => {
@@ -13,7 +15,7 @@ function closeAnimatedOverlay(overlay) {
   overlay.addEventListener('animationend', (e) => {
     if (e.target === overlay) finish();
   }, { once: true });
-  setTimeout(finish, 400);
+  setTimeout(finish, overlay.classList.contains('model-modal-overlay') ? 160 : 400);
 }
 
 function closeModelModal(overlay) {
