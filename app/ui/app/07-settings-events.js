@@ -48,6 +48,7 @@ function personaTextChanged(values = personaEditorText(), key = personaRevisionK
 }
 let personaManualBusy = false;
 let personaSaveShortcutBound = false;
+let personaTemplateOutsideBound = false;
 function showPersonaSaveFeedback(success) {
   const button = document.getElementById('persona-manual-save');
   if (!button) return;
@@ -1392,6 +1393,20 @@ function bindSettingsEvents(c) {
     const opener = $('[data-persona-left="templates"]');
     if (opener) { opener.setAttribute('aria-expanded',String(name === 'templates')); opener.setAttribute('aria-controls','persona-template-library'); }
   };
+  if (form) form.__closePersonaTemplates = () => {
+    window.qqaMcTheme?.playToggle(false);
+    setPersonaLeft('chats');
+  };
+  if (!personaTemplateOutsideBound) {
+    personaTemplateOutsideBound = true;
+    document.addEventListener('pointerdown',event=>{
+      if (state.tab !== 'persona') return;
+      const drawer = $('#persona-template-library');
+      if (!drawer || drawer.hidden || drawer.contains(event.target)) return;
+      if (event.target.closest('[data-persona-left="templates"],.persona-context-menu,.model-modal-overlay,.modal-overlay')) return;
+      $('#settings-form')?.__closePersonaTemplates?.();
+    });
+  }
   $$('[data-persona-left]').forEach(button => button.addEventListener('click', () => {
     const name=button.dataset.personaLeft === 'templates' && state.personaLeft === 'templates' ? 'chats' : button.dataset.personaLeft;
     window.qqaMcTheme?.playToggle(name==='templates');

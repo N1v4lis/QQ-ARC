@@ -14,6 +14,11 @@ await withPage({url,width:1360,height:900},async page=>{
  assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),false);
  await page.eval('document.querySelector("[data-persona-left=templates]").click()');
  assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),true,'同一入口收起');
+ await page.eval('document.querySelector("[data-persona-left=templates]").click();document.querySelector(".persona-template-drawer").dispatchEvent(new PointerEvent("pointerdown",{bubbles:true}))');
+ assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),false,'内部点击不收起');
+ await page.eval('document.querySelector("#cfg-roletext").dispatchEvent(new PointerEvent("pointerdown",{bubbles:true}))');
+ assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),true,'外部点击收起');
+ assert.equal(await page.eval('document.querySelector("[data-persona-left=templates]").getAttribute("aria-expanded")'),'false');
  assert.equal(await page.eval('!!document.querySelector("#view-persona #new-persona-btn") || !!document.querySelector("[data-persona-left=chats]")'),false,'无新建/收起按钮');
  assert.equal(await page.eval('document.querySelector("#cfg-persona-unified").getClientRects().length'),0,'统一开关不占用正文页面');
  assert.equal(await page.eval('document.querySelector("#cfg-botname").getClientRects().length'),0,'身份信息不占用正文页面');
