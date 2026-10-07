@@ -1,0 +1,66 @@
+// 全量联系人和白名单双向联动；所有配置写入仅在浏览器内模拟。
+import assert from 'node:assert/strict';
+import {withPage} from './cdp.mjs';
+const url=process.argv[2]||'http://127.0.0.1:3210/';
+const before=await(await fetch(new URL('/api/config',url))).json();
+await withPage({url,width:1360,height:900},async page=>{
+ await page.waitFor('!!window.qqaSkin && !!state.config',{timeout:15000});
+ await page.eval(`(()=>{
+  window.__contactConfig=structuredClone(state.config);window.__contactPosts=[];window.__contactFail=false;
+  const original=window.fetch;
+  const merge=(base,patch)=>{for(const [k,v] of Object.entries(patch)){if(v&&typeof v==='object'&&!Array.isArray(v)){if('__replace__' in v)base[k]=structuredClone(v.__replace__);else {base[k]||={};merge(base[k],v);}}else base[k]=v;}return base;};
+  const json=value=>new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}});
+  window.fetch=async function(input,init){const u=typeof input==='string'?input:input.url;
+   if(u.includes('/api/config')){if(init?.method==='POST'){const patch=JSON.parse(init.body);window.__contactPosts.push(patch);merge(window.__contactConfig,patch);return json({ok:true,config:structuredClone(window.__contactConfig)});}return json(structuredClone(window.__contactConfig));}
+   if(u.includes('/api/onebot/groups')){if(window.__contactFail)return new Response('offline',{status:503});return json({groups:[{id:'991000001',name:'全量群聊甲'},{id:'991000002',name:'全量群聊乙'}]});}
+   if(u.includes('/api/onebot/friends'))return json({friends:[{id:'992000001',name:'好友昵称',remark:'好友备注甲'},{id:'992000002',name:'好友乙'}]});
+   return original.call(this,input,init);
+  };
+  window.qqaSkin.set('minecraft');state.personaTarget='global';document.querySelector('.tab[data-tab=persona]').click();
+ })()`);
+ await page.waitFor('!!document.querySelector("[data-persona-target=\\"group:991000001\\"]") && !state.personaContacts.loading');
+ assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"private:992000001\\"]").textContent.includes("好友备注甲")'),true);
+ assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"]").textContent.includes("未加入白名单")'),true);
+ assert.equal(await page.eval('getComputedStyle(document.querySelector("#cfg-roletext")).borderTopWidth'),'1px');
+ await page.eval('window.__draft=document.querySelector("#cfg-roletext").value;document.querySelector("#cfg-roletext").value="刷新不会丢失的草稿";document.querySelector("#persona-contacts-refresh").click()');
+ await page.waitFor('!state.personaContacts.loading');
+ assert.equal(await page.eval('document.querySelector("#cfg-roletext").value'),'刷新不会丢失的草稿');
+ await page.eval('document.querySelector("#cfg-roletext").value=window.__draft');
+ const context=async target=>page.eval(`document.querySelector('[data-persona-target="${target}"]').dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,button:2,clientX:1358,clientY:898}))`);
+ await context('group:991000001');
+ assert.equal(await page.eval('(()=>{const r=document.querySelector(".persona-context-menu").getBoundingClientRect();return r.right<=innerWidth && r.bottom<=innerHeight})()'),true);
+ await page.eval('document.querySelector("[data-persona-whitelist]").click()');
+ await page.waitFor('state.config.allow.groups.map(String).includes("991000001") && !personaWhitelistBusy');
+ assert.deepEqual(await page.eval('state.config.allow.private'),before.allow.private);
+ const whitelistPatch=await page.eval('window.__contactPosts.filter(p=>p.allow).at(-1)');
+ assert.deepEqual(Object.keys(whitelistPatch),['allow']);
+ await context('group:991000001');
+ await page.eval('document.querySelector("[data-persona-allow-settings]").click()');
+ await page.waitFor('!!document.querySelector("#cfg-allowgroups")');
+ await page.waitFor('settingsGuard.pending===0 && state.tab==="settings" && state.settingsSection==="allow"');
+ assert.equal(await page.eval('document.querySelector("#cfg-allowgroups").value.includes("991000001")'),true);
+ await page.eval('(()=>{const input=document.querySelector("#cfg-allowgroups");input.focus();input.value=input.value.split(",").filter(id=>id.trim()!=="991000001").join(",");input.dispatchEvent(new Event("input",{bubbles:true}));})()');
+ await page.waitFor('!state.config.allow.groups.map(String).includes("991000001")');
+ await page.eval('document.querySelector(".tab[data-tab=persona]").click()');
+ await page.waitFor('!!document.querySelector("[data-persona-target=\\"group:991000001\\"]")');
+ assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"]").textContent.includes("未加入白名单")'),true);
+ await context('private:992000001');
+ await page.eval('document.querySelector("[data-persona-whitelist]").click()');
+ await page.waitFor('state.config.allow.private.map(String).includes("992000001") && !personaWhitelistBusy');
+ await context('private:992000001');
+ await page.eval('document.querySelector("[data-persona-whitelist]").click()');
+ await page.waitFor('!state.config.allow.private.map(String).includes("992000001") && !personaWhitelistBusy');
+ assert.deepEqual(await page.eval('state.config.allow'),before.allow);
+ await context('group:991000002');
+ await page.eval('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}))');
+ assert.equal(await page.eval('!!document.querySelector(".persona-context-menu")'),false);
+ await page.eval('window.__contactFail=true;document.querySelector("#persona-contacts-refresh").click()');
+ await page.waitFor('!state.personaContacts.loading && state.personaContacts.errors.length>0');
+ assert.equal(await page.eval('document.querySelector("#persona-contacts-status").textContent.includes("群聊")'),true);
+ assert.equal(await page.eval('!!document.querySelector("[data-persona-target=\\"group:991000002\\"]")'),true,'失败保留已同步名单');
+ await page.waitFor('!document.querySelector("#loading-overlay")',{timeout:15000});
+ await page.screenshot('shots/final/persona-contacts.png');
+ console.log('✔ 全量群聊/好友备注、文本框、刷新保留草稿、右键菜单边界/关闭、群和好友白名单增删、设置双向联动、失败保留缓存');
+});
+assert.deepEqual(await(await fetch(new URL('/api/config',url))).json(),before,'真实配置不变');
+console.log('✔ 真实配置未改');

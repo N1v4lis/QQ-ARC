@@ -240,6 +240,7 @@ function renderSettings() {
     // 挂在 #settings-form 上的委托不受影响。放后面绑定则能找到最终结构。
     if (typeof enhanceConcept2UI === 'function') enhanceConcept2UI(box);
     bindSettingsEvents(c);
+    if (state.tab === 'persona') void loadPersonaContacts();
     // 「主题」卡页的接线（皮肤卡 / 亮度档 / Minecraft 二级设置）。
     // 放这里而不是 renderThemeSection 里：渲染与接线分开是本项目的既有约定，
     // 重渲染时不会重复绑（DOM 已整块换掉，旧监听随之消失）。
@@ -576,16 +577,62 @@ function renderMemorySettingsSection(c) {
     <div class="hint">条数超过阈值且距上次整理超过该冷却时间后，才会在运行结束后后台整理。默认 6 小时（21600000 毫秒）。</div>`;
 }
 
+function renderPersonaDirectoryItems(c) {
+  const contacts = state.personaContacts || {};
+  const target = state.personaTarget || 'global';
+  const row = (key, name, note) => `<button type="button" class="persona-target${key === target ? ' active' : ''}" data-persona-target="${esc(key)}" aria-pressed="${key === target}"><span>${esc(name)}</span><small>${esc(note)}</small></button>`;
+  const rows = (kind, list) => {
+    const byId = new Map((list || []).map(item => [String(item.id), item]));
+    const configured = kind === 'group' ? c.allow?.groups : c.allow?.private;
+    const whitelist = new Set((configured || []).map(String));
+    const savedKeys = [...Object.keys(c.personaByChat || {}), ...Object.keys(c.api?.apiByChat?.byChat || {})];
+    const ids = [...new Set([...byId.keys(), ...whitelist, ...savedKeys.filter(key => key.startsWith(kind + ':')).map(key => key.split(':')[1])])];
+    return ids.map(id => {
+      const item = byId.get(id);
+      const name = item?.remark || item?.name || item?.nickname || (kind === 'group' ? '群 ' : '好友 ') + id;
+      const allowed = whitelist.has(id);
+      return row(kind + ':' + id, name, `${id} · ${allowed ? '白名单' : '未加入白名单'}${item ? '' : ' · 未同步'}`);
+    }).join('') || '<p class="hint">' + (contacts.loading ? '正在加载…' : kind === 'group' ? '暂无群聊' : '暂无好友') + '</p>';
+  };
+  return row('global', '默认人设', '所有会话的起点') + '<h3>群聊</h3>' + rows('group', contacts.groups) + '<h3>好友</h3>' + rows('private', contacts.friends);
+}
+
+async function loadPersonaContacts({ refresh = false } = {}) {
+  const contacts = state.personaContacts ||= { groups: [], friends: [], attempted: false, loading: false, errors: [] };
+  if (contacts.loading || (contacts.attempted && !refresh)) return;
+  contacts.loading = true; contacts.attempted = true; contacts.errors = [];
+  const paint = () => {
+    const list = document.querySelector('#view-persona .persona-object-list');
+    if (!list) return;
+    list.innerHTML = renderPersonaDirectoryItems(state.config || {});
+    const status = document.getElementById('persona-contacts-status');
+    if (status) status.textContent = contacts.loading ? '正在同步QQ列表…' : contacts.errors.length ? '部分列表未同步：' + contacts.errors.join('；') : `已同步 ${contacts.groups.length} 个群 · ${contacts.friends.length} 位好友`;
+    const button = document.getElementById('persona-contacts-refresh');
+    if (button) button.disabled = contacts.loading;
+    document.querySelector('.persona-studio')?.__personaFilter?.();
+  };
+  paint();
+  const results = await Promise.allSettled(['groups', 'friends'].map(async key => {
+    const data = await api('/api/onebot/' + key);
+    if (!Array.isArray(data[key])) throw new Error(data.error || 'QQ列表未返回');
+    if (!data[key].length && state.status?.onebot?.connected === false) throw new Error('OneBot未连接');
+    contacts[key] = data[key];
+  }));
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') contacts.errors.push((index === 0 ? '群聊' : '好友') + '（检查OneBot连接后刷新）');
+  });
+  contacts.loading = false;
+  paint();
+}
+
 function renderPersonaSection(c) {
   const target = state.personaTarget || 'global';
   const global = target === 'global';
   const per = global ? c.persona : (c.personaByChat?.[target] || {});
-  const title = global ? '全局人设' : formatChatTitle(target, chatNameOf(target));
-  const ids = [...new Set([...(c.allow?.groups || []).map(id => 'group:' + id), ...(c.allow?.private || []).map(id => 'private:' + id), ...Object.keys(c.personaByChat || {}), ...Object.keys(c.api?.apiByChat?.byChat || {})])];
+  const contact = global ? null : (state.personaContacts?.[target.startsWith('group:') ? 'groups' : 'friends'] || []).find(item => String(item.id) === target.split(':')[1]);
+  const title = global ? '全局人设' : formatChatTitle(target, contact?.remark || contact?.name || contact?.nickname || chatNameOf(target));
   const templates = Object.entries(state.personaTemplates || {});
   const panel = state.personaPanel || 'role';
-  const nav = (id, name, sub) => '<button type="button" class="persona-target' + (id === target ? ' active' : '') + '" data-persona-target="' + esc(id) + '" aria-pressed="' + (id === target) + '"><span>' + esc(name) + '</span><small>' + esc(sub) + '</small></button>';
-  const chats = kind => ids.filter(id => id.startsWith(kind + ':')).map(id => nav(id, formatChatTitle(id, chatNameOf(id)), c.personaByChat?.[id]?.roleText ? '独立人设' : '跟随全局')).join('') || '<p class="hint">暂无' + (kind === 'group' ? '群聊' : '私聊') + '</p>';
   const currentModel = c.api?.apiByChat?.byChat?.[target];
   const missingModel = currentModel?.model && !(state.providers || []).some(p => p.id === currentModel.provider && (p.models || []).includes(currentModel.model));
   const retainedModel = missingModel ? '<option selected value="' + esc(JSON.stringify([currentModel.provider || '', currentModel.model])) + '">' + esc(currentModel.model) + '（目录未加载）</option>' : '';
@@ -595,7 +642,8 @@ function renderPersonaSection(c) {
     <aside class="persona-directory" aria-label="选择编辑对象">
       <header><h2>人设</h2><p>选择要编辑的对象</p></header>
       <input type="search" id="persona-search" data-persona-filter placeholder="查找群聊或私聊" aria-label="查找编辑对象" value="${esc(state.personaSearch || '')}" autocomplete="off" />
-      <div class="persona-object-list">${nav('global', '默认人设', '所有会话的起点')}<h3>群聊</h3>${chats('group')}<h3>私聊</h3>${chats('private')}</div>
+      <div class="persona-directory-sync"><span id="persona-contacts-status">${state.personaContacts?.errors?.length ? 'QQ列表未同步，可刷新重试' : state.personaContacts?.attempted ? 'QQ列表已缓存' : '正在同步QQ列表…'}</span><button type="button" id="persona-contacts-refresh">刷新</button></div>
+      <div class="persona-object-list">${renderPersonaDirectoryItems(c)}</div>
       <p class="hint hidden" id="persona-search-empty">没有匹配的对象</p>
     </aside>
     <section class="persona-desk" aria-label="人设编辑器">

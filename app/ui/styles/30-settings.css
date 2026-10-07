@@ -466,3 +466,15 @@ html[data-skin='minecraft'] #view-persona :is(.persona-target small,.persona-dir
  #view-persona .persona-desk { min-height: 600px; }
  #view-persona .persona-document { min-height: 350px; }
 }
+
+/* QQ目录同步与共用聊天白名单菜单。 */
+#view-persona .persona-directory-sync { display: flex; gap: 8px; align-items: flex-start; margin: -8px 0 18px; color: var(--q-fg-3); font-size: 12px; line-height: 1.6; }
+#view-persona .persona-directory-sync span { flex: 1; }
+#view-persona #persona-contacts-refresh { border: 0; background: transparent; color: var(--q-accent); font: inherit; cursor: pointer; padding: 0; }
+#view-persona #persona-contacts-refresh:disabled { opacity: .5; cursor: wait; }
+#view-persona #cfg-roletext { border: 1px solid var(--q-line-2); background: var(--q-bg-base); padding: 16px; border-radius: var(--q-r-sm); }
+#view-persona #cfg-roletext:focus { border-color: var(--q-accent); box-shadow: 0 0 0 1px var(--q-accent); }
+.persona-context-menu { position: fixed; z-index: 10020; min-width: 210px; max-width: calc(100vw - 8px); padding: 5px; border: 1px solid var(--q-line-2); border-radius: var(--q-r-sm); background: var(--q-bg-1); color: var(--q-fg); box-shadow: 0 6px 24px #0003; }
+.persona-context-menu button { display: block; width: 100%; padding: 10px 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.persona-context-menu button:hover, .persona-context-menu button:focus-visible { background: var(--q-accent-soft); outline: none; }
+.persona-context-menu button:disabled { opacity: .5; cursor: wait; }

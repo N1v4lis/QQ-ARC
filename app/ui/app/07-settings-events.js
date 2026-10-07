@@ -30,6 +30,78 @@ function flushSettingsSaves() {
   }));
 }
 
+let closePersonaWhitelistMenu = null;
+let personaWhitelistBusy = false;
+function openPersonaWhitelistMenu(target, x, y) {
+  closePersonaWhitelistMenu?.();
+  const [kind, id] = target.split(':');
+  const key = kind === 'group' ? 'groups' : 'private';
+  const allowed = (state.config?.allow?.[key] || []).map(String).includes(id);
+  const menu = document.createElement('div');
+  menu.className = 'persona-context-menu'; menu.setAttribute('role', 'menu');
+  menu.innerHTML = `<button type="button" role="menuitem" data-persona-whitelist>${allowed ? '移出聊天白名单' : '加入聊天白名单'}</button><button type="button" role="menuitem" data-persona-allow-settings>打开聊天白名单设置</button>`;
+  document.body.append(menu);
+  menu.style.left = Math.max(4, Math.min(x, innerWidth - menu.offsetWidth - 4)) + 'px';
+  menu.style.top = Math.max(4, Math.min(y, innerHeight - menu.offsetHeight - 4)) + 'px';
+  const outside = event => { if (!menu.contains(event.target)) close(); };
+  const keyboard = event => {
+    if (event.key === 'Escape') close();
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const buttons = [...menu.querySelectorAll('button')];
+      const next = (buttons.indexOf(document.activeElement) + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
+      buttons[next].focus();
+    }
+  };
+  function close() {
+    menu.remove(); document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', keyboard);
+    window.removeEventListener('resize', close); window.removeEventListener('blur', close);
+    if (closePersonaWhitelistMenu === close) closePersonaWhitelistMenu = null;
+  }
+  closePersonaWhitelistMenu = close;
+  document.addEventListener('pointerdown', outside); document.addEventListener('keydown', keyboard);
+  window.addEventListener('resize', close); window.addEventListener('blur', close);
+  menu.querySelector('button').focus();
+  menu.querySelector('[data-persona-allow-settings]').addEventListener('click', () => { close(); openSettingsSection('allow'); });
+  menu.querySelector('[data-persona-whitelist]').addEventListener('click', async event => {
+    if (personaWhitelistBusy) return;
+    personaWhitelistBusy = true; event.currentTarget.disabled = true;
+    const studio = document.querySelector('.persona-studio');
+    let guarded = false;
+    try {
+      const deadline = Date.now() + 15000;
+      while (settingsGuard.pending > 0) {
+        if (Date.now() > deadline) throw new Error('保存仍在进行，请稍后重试');
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+      const results = await flushSettingsSaves();
+      if (results.some(result => result === false)) throw new Error('当前人设保存失败，请稍后重试');
+      beginSettingsGuard(); guarded = true;
+      if (studio) studio.inert = true;
+      const latest = await api('/api/config');
+      const items = (latest.allow?.[key] || []).map(String);
+      const next = allowed ? items.filter(value => value !== id) : [...new Set([...items, id])];
+      const allow = { ...(latest.allow || {}), [key]: next };
+      const response = await api('/api/config', { method: 'POST', body: JSON.stringify({ allow }) });
+      state.config = response.config || { ...latest, allow };
+      const list = document.querySelector('#view-persona .persona-object-list');
+      if (list) list.innerHTML = renderPersonaDirectoryItems(state.config);
+      document.querySelector('.persona-studio')?.__personaFilter?.();
+      const status = document.getElementById('persona-save-status');
+      if (status) status.textContent = allowed ? '已移出白名单' : '已加入白名单';
+      close();
+    } catch (error) {
+      const status = document.getElementById('persona-save-status');
+      if (status) status.textContent = error.message;
+      close();
+    } finally {
+      if (studio) studio.inert = false;
+      if (guarded) endSettingsGuard();
+      personaWhitelistBusy = false;
+    }
+  });
+}
+
 function bindSettingsEvents(c) {
   /* ── 即时保存：任何设置项变动 → 防抖 600ms 自动保存 ──
      变动的设置块背景变成流动的浅黄色渐变（.dirty-glow）。
@@ -1091,8 +1163,13 @@ function bindSettingsEvents(c) {
       tab.setAttribute('aria-pressed', String(tab === button));
     });
   }));
-  $$('[data-persona-target]').forEach(button => button.addEventListener('click', async () => {
-    const studio = $('.persona-studio');
+  const personaStudio = $('.persona-studio');
+  if (personaStudio) personaStudio.__personaFilter = filterPersonas;
+  $('#persona-contacts-refresh')?.addEventListener('click', () => void loadPersonaContacts({ refresh: true }));
+  personaStudio?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-persona-target]');
+    if (!button) return;
+    const studio = personaStudio;
     if (!studio || studio.dataset.switching || button.dataset.personaTarget === (state.personaTarget || 'global')) return;
     studio.dataset.switching = 'true';
     try {
@@ -1111,7 +1188,13 @@ function bindSettingsEvents(c) {
       const status = $('#persona-save-status');
       if (status) status.textContent = error.message;
     } finally { delete studio.dataset.switching; }
-  }));
+  });
+  personaStudio?.addEventListener('contextmenu', event => {
+    const target = event.target.closest('[data-persona-target]')?.dataset.personaTarget;
+    if (!target || target === 'global') return;
+    event.preventDefault();
+    openPersonaWhitelistMenu(target, event.clientX, event.clientY);
+  });
 
   // ── 白名单区块事件 ──
   const pickGroupsBtn = $('#pick-groups-btn');
@@ -1152,7 +1235,7 @@ function bindSettingsEvents(c) {
   // 分群模式的「全局人设设置」入口：编辑未单独配置会话所跟随的全局字段
   $('#open-global-persona-btn')?.addEventListener('click', () => openGlobalPersonaModal());
   // 群名异步补显：按钮文字先显示"群 号"，拉到群名后替换
-  api('/api/onebot/groups').then((d) => {
+  if (perChatBox) api('/api/onebot/groups').then((d) => {
     const names = new Map((d.groups || []).map((g) => [String(g.id), g.name]));
     if (perChatBox) $$('.persona-chat-btn', perChatBox).forEach((btn) => {
       const m = /^group:(\d+)$/.exec(String(btn.dataset.chat || ''));
