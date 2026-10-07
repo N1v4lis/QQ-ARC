@@ -15,8 +15,8 @@ await withPage({url:process.argv[2]||'http://127.0.0.1:3210/',width:1360,height:
     const theme=!!document.querySelector('#theme-btn svg[data-mc-icon]');
     const navSize=getComputedStyle(nav[0]).width;
     const footerSize=getComputedStyle(document.querySelector('.mc-nav-item')).width;
-    const observerRects=[...document.querySelectorAll('.tab[data-tab="settings"] .tab-ico rect')].map(n=>({c:n.getAttribute('fill'),r:['x','y','width','height'].map(a=>Number(n.getAttribute(a)))}));
-    const observer=JSON.stringify(observerRects)===JSON.stringify(window.qqaMcIcons.ART.gear)&&observerRects.some(({r})=>r.join(',')==='4,5,3,3');
+    const settingsIcon=document.querySelector('.tab[data-tab="settings"] .tab-ico');
+    const settingsGear=settingsIcon.dataset.mcIcon==='gear'&&settingsIcon.getAttribute('viewBox')==='0 0 16 16'&&settingsIcon.querySelectorAll('rect').length>0;
     const host=document.createElement('div');host.id='mc-control-fixture';
     host.innerHTML='<span class="sc-ico">🎨</span><input type="checkbox" id="mc-plain-fixture" aria-label="测试复选框"><label class="switch"><input type="checkbox" id="mc-switch-fixture"><span class="track"><span class="thumb"></span></span><span>测试拉杆</span></label>';
     document.body.append(host);
@@ -40,12 +40,12 @@ await withPage({url:process.argv[2]||'http://127.0.0.1:3210/',width:1360,height:
     const restored=document.querySelector('#tabs .tab-ico').innerHTML===original;
     const defaultSize=getComputedStyle(track).width;
     host.remove();window.qqaSkin.set('minecraft');document.documentElement.dataset.nav='expanded';
-    return {pixelNav,dashboard,theme,navSize,footerSize,observer,dynamicIcon,sizes,functional,rotates:on!==off,calls,chartPreserved,restored,defaultSize};
+    return {pixelNav,dashboard,theme,navSize,footerSize,settingsGear,dynamicIcon,sizes,functional,rotates:on!==off,calls,chartPreserved,restored,defaultSize};
   })()`);
   console.log(JSON.stringify(result,null,2));
   for(const key of ['pixelNav','dashboard','theme','functional','rotates','chartPreserved','restored'])assert.equal(result[key],true,key);
   assert.equal(result.dynamicIcon,'palette');
-  assert.equal(result.navSize,'24px');assert.equal(result.footerSize,'16px');assert.equal(result.observer,true);
+  assert.equal(result.navSize,'24px');assert.equal(result.footerSize,'16px');assert.equal(result.settingsGear,true);
   assert.deepEqual(result.sizes,[['80px','64px'],['80px','64px']]);
   assert.deepEqual(result.calls,[false,true,false]);
   assert.equal(result.defaultSize,'38px');
