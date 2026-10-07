@@ -39,6 +39,13 @@ function readPersonaRevisions(config = state.config, target = state.personaTarge
     return Array.isArray(entries) ? entries.filter(item => Number.isFinite(item.time) && typeof item.roleText === 'string' && typeof item.customRules === 'string' && typeof item.systemPromptOverride === 'string').slice(0,5) : [];
   } catch { return []; }
 }
+function personaEditorText() {
+  return Object.fromEntries([['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([field,selector])=>[field,document.querySelector(selector)?.value || '']));
+}
+function personaTextChanged(values = personaEditorText(), key = personaRevisionKey()) {
+  const baseline = state.personaEditBaselines?.[key];
+  return !!baseline && Object.entries(values).some(([field,value])=>value !== (baseline[field] || ''));
+}
 let personaManualBusy = false;
 let personaSaveShortcutBound = false;
 function showPersonaSaveFeedback(success) {
@@ -149,8 +156,8 @@ function bindSettingsEvents(c) {
       const draft = Object.fromEntries([['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([key,selector])=>[key,$(selector)?.value || '']));
       state.personaDrafts ||= {};
       const key = personaRevisionKey();
-      const dirty = Object.entries(draft).some(([field,value])=>value !== (saved[field] || ''));
-      if (dirty) state.personaDrafts[key] = draft; else delete state.personaDrafts[key];
+      const dirty = personaTextChanged(draft,key);
+      if (Object.entries(draft).some(([field,value])=>value !== (saved[field] || ''))) state.personaDrafts[key] = draft; else delete state.personaDrafts[key];
       const status = $('#persona-save-status');
       if (status) status.textContent = dirty ? '有未保存修改' : '已保存';
       return;
@@ -1095,6 +1102,12 @@ function bindSettingsEvents(c) {
 
   // ── 人设区块事件 ──
   const personaPick = $('#cfg-persona-pick');
+  if ($('.persona-studio')) {
+    state.personaEditBaselines ||= {};
+    state.personaEditBaselines[personaRevisionKey()] ||= personaEditorText();
+    const status = $('#persona-save-status');
+    if (status) status.textContent = personaTextChanged() ? '有未保存修改' : '未修改';
+  }
   state.personaEditingTemplates ||= {};
   function currentPersonaId() {
     const selected = state.personaEditingTemplates[personaRevisionKey()];
@@ -1210,6 +1223,7 @@ function bindSettingsEvents(c) {
       state.config = response.config;
       syncPersonaButtons(false);
       if (state.personaDrafts) delete state.personaDrafts[key];
+      state.personaEditBaselines[key] = {...revision};
       const history = readPersonaRevisions(state.config,target);
       let historySaved = true;
       if (!history[0] || ['name','roleText','customRules','systemPromptOverride'].some(field=>history[0][field] !== revision[field])) {
@@ -1247,7 +1261,7 @@ function bindSettingsEvents(c) {
     syncPersonaButtons(false);
   });
   const beforePersonaReplacement = async () => {
-    if (!state.personaDrafts?.[personaRevisionKey()]) return true;
+    if (!personaTextChanged()) return true;
     const name = $('#cfg-persona-name')?.value || '未命名人设';
     const yes = await uiConfirm(`是否要将更改保存至：${name}`,{title:'保存人设更改',okText:'是',cancelText:'否',immediateClose:true});
     if (yes && !(await $('#settings-form').__savePersonaDraft())) return false;
@@ -1259,6 +1273,7 @@ function bindSettingsEvents(c) {
     $('#cfg-customrules').value = tpl.customRules || '';
     if ($('#cfg-persona-name')) $('#cfg-persona-name').value = tpl.name || '';
     if ($('#cfg-sysprompt')) $('#cfg-sysprompt').value = '';
+    state.personaEditBaselines[personaRevisionKey()] = personaEditorText();
     $('#cfg-roletext').dispatchEvent(new Event('input', { bubbles: true }));
     syncPersonaButtons(false);
     if ($('.persona-canvas')) {
