@@ -15,5 +15,6 @@
 - 改行为同步专题文档；design-notes.md 只追加，历史记录不批量改写路径。
 - VERSION 是本 UI 分支版本；宿主 0.4.0 与 UI 分支版本分别记录。首次 UI 基线为 0.4.0；当前用户指定归档版为 0.4.01。
 - GitHub 目标仓库：N1v4lis/QQARCFOX，私有，描述 A modern, beautifully designed QQ Agent.。提交身份 N1v4lis <487271667@qq.com>；上游 Kondius/qq-agent 不等于用户的发布仓库。
+- 用户2026-10-07最新要求：未经用户明确允许，不再自动上传GitHub，包括推送分支、标签、创建/更新Release；默认仅本地修改与验证。
 - 发布前检查差异、素材许可及敏感配置；只提交源码、工具、文档和必要资产。
 - 自动 QQ 回传来自原 DSH 桥接的既有机制，本会话不会自动使用它发送消息。

@@ -2,6 +2,8 @@
 
 日期：2026-10-07（Asia/Shanghai）。
 
+用户最新发布权限：后续未经用户明确允许，不自动上传GitHub，不推送分支/标签或创建/更新Release。默认本地开发与验证；下文既往自动推送流程不再作为授权。
+
 ## 迁移结果
 
 来源 `E:\QQ Agent Dev`，目标 `E:\CodeX-YSM\QQ Agent Dev`。
