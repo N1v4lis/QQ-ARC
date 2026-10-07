@@ -9,6 +9,7 @@
 - 保留原生功能及 DOM 契约；无边框、自绘标题栏；亮暗两档；默认与 MC 两种皮肤。
 - 酒狐已通过最新 GLB 接入主题卡页，默认关闭、按需加载。完整来源位于 Wine_Fox，运行资源为 app/ui/assets/wine-fox。读 docs/WINE-FOX-INTEGRATION.md；新启停验收替代旧删除守卫，不恢复旧 CPU 光栅化实现。
 - 不裁剪用户素材、动画，不编造角色设定。遵守 MC 字体链和音效用途约定。
+- 启动动画遵守 docs/STARTUP-ANIMATION.md 与原要求：六阶段、同一粒子模拟、SVG掩膜、ARCFØX、第6阶段静止；亮暗切换不得重建几何。
 - JS 修改后检查语法。实际 UI 变更按部署流程执行，再跑全量回归。
 - CSP 检查用 node tools/csp-hash.mjs；写回需要 --write。
 - 改行为同步专题文档；design-notes.md 只追加，历史记录不批量改写路径。

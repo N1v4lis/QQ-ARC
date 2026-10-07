@@ -1,0 +1,32 @@
+/* ARCFØX has one geometry/timeline across themes; only its illumination changes. */
+#loading-overlay.arcfox-startup {
+  --arc-bg: #f7f9fc;
+  --arc-fg: #3f5f96;
+  --arc-muted: #6e819e;
+  inset: var(--q-titlebar-h, 38px) 0 0;
+  background: var(--arc-bg);
+  backdrop-filter: none;
+  display: block;
+  font-family: var(--q-font-ui, system-ui, sans-serif);
+}
+html[data-theme="dark"] #loading-overlay.arcfox-startup {
+  --arc-bg: #0b0f1a;
+  --arc-fg: #dcebff;
+  --arc-muted: #8b9bb5;
+}
+#arcfox-startup { display: block; width: 100%; height: 100%; }
+.arcfox-startup-fallback { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; flex-direction: column; gap: 26px; }
+.arcfox-startup-fallback img:first-child { width: clamp(90px, 11vw, 220px); }
+.arcfox-startup-fallback img:last-child { width: clamp(157px, 19.25vw, 385px); }
+#loading-overlay[data-animation="fallback"] .arcfox-startup-fallback { display: flex; }
+#loading-overlay[data-animation="fallback"] #arcfox-startup { visibility: hidden; }
+.arcfox-startup-status { position: absolute; left: 24px; right: 24px; bottom: 38px; text-align: center; color: var(--arc-muted); }
+#loading-overlay .loading-sub { font-size: 12px; font-weight: 400; line-height: 1.6; margin: 0; }
+.arcfox-startup-details { margin: 10px auto 0; max-width: 560px; font-size: 11px; }
+.arcfox-startup-details summary { cursor: pointer; display: inline-list-item; color: var(--arc-muted); }
+#loading-overlay .loading-logs { max-height: 100px; margin: 10px 0 0; background: var(--arc-bg); color: var(--arc-muted); border: 1px solid color-mix(in srgb, var(--arc-muted) 18%, transparent); box-shadow: none; }
+@media (max-width: 600px) {
+  .arcfox-startup-status { bottom: 24px; left: 16px; right: 16px; }
+  .arcfox-startup-fallback img:first-child { width: 24vw; }
+  .arcfox-startup-fallback img:last-child { width: 42vw; }
+}

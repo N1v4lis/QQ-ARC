@@ -1,0 +1,115 @@
+{
+  "date": "2026-10-07T00:15:32.280Z",
+  "base": "http://127.0.0.1:3210/",
+  "checks": [
+    {
+      "name": "亮暗13个采样时刻每粒子坐标、尺寸与延迟完全相同",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "切换亮暗从未重建粒子系统",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "固定seed且桌面320粒子",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "目标来自SVG alpha mask且非空",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "第6阶段逐像素静止，没有追加阶段",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面logo尺寸与文字比例",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "播放完成停止rAF绘制",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "320粒子Canvas单帧绘制p95低于33ms",
+      "pass": true,
+      "detail": "{\"meanMs\":0.4831250000279397,\"p95Ms\":0.7999999970197678}"
+    },
+    {
+      "name": "预览无CSP与运行错误",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "移动端212粒子且logo宽24%",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "移动端无横向溢出且DPR封顶1.5",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "减弱动态效果500ms完成并静止",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "真实启动等待后端时停留最终画面",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "等待服务不持续绘制",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "外壳桥存在时启动遮罩不覆盖窗口按钮",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "启动详情与ARIA状态保留",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "启动详情可展开",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "服务就绪后摘除遮罩并释放画布",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "真实接入没有新的脚本或CSP错误",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "应用动效关闭也不会阻塞启动",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "SVG资源失败降级静态画面且不阻塞就绪",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "render": {
+    "meanMs": 0.4831250000279397,
+    "p95Ms": 0.7999999970197678
+  }
+}

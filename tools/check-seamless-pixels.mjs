@@ -87,6 +87,8 @@ for (const theme of ['light', 'dark']) {
     await page.eval(`(() => { try { localStorage.setItem('qqa-theme-pref', ${JSON.stringify(theme)}); } catch (e) {} return 1; })()`);
     await page.send('Page.navigate', { url: URL_ });
     await sleep(2600);
+    await page.waitFor(`!!document.querySelector('#tabs .tab.active') && !document.getElementById('loading-overlay')`,
+      { timeout: 30000, label: '换主题后启动动画与应用就绪' });
     fs.mkdirSync(OUT, { recursive: true });
     const f = path.join(OUT, `seam-${theme}.png`);
     await page.screenshot(f);

@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-07T00:18:32.850Z",
+  "url": "http://127.0.0.1:3210/",
+  "initial": {
+    "total": 43,
+    "passed": 41,
+    "durationSeconds": 603
+  },
+  "retests": [
+    {
+      "suite": "无痕（像素级）",
+      "pass": true,
+      "reason": "每次导航后等待启动遮罩摘除再做像素检查"
+    },
+    {
+      "suite": "Beta 通告钉住",
+      "pass": true,
+      "reason": "等待真实ready后做elementFromPoint命中检查"
+    }
+  ],
+  "finalVerified": 43,
+  "startupChecks": 21,
+  "realElectronChecks": 7,
+  "realElectronFps": 60,
+  "wineFoxChecks": 29
+}

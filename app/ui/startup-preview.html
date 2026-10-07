@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ARCFØX · 启动动画预览</title>
+  <link rel="icon" href="/assets/startup/arcfox-logo.svg" />
+  <link rel="stylesheet" href="/styles/startup-preview.css" />
+  <script type="module" src="/shell/startup-preview.mjs"></script>
+</head>
+<body>
+  <main aria-label="ARCFØX 启动动画">
+    <canvas id="preview-canvas" aria-hidden="true"></canvas>
+    <div id="preview-error" role="status" hidden>暂时无法加载预览，请刷新重试。</div>
+  </main>
+  <footer>
+    <span class="preview-brand">ARCFØX <span>启动动画</span></span>
+    <div class="preview-controls">
+      <button type="button" id="preview-light" aria-pressed="true">亮色</button>
+      <button type="button" id="preview-dark" aria-pressed="false">暗色</button>
+      <button type="button" id="preview-replay">重播</button>
+      <input id="preview-time" aria-label="动画进度" type="range" min="0" max="2600" value="0" step="10" />
+      <output id="preview-clock">0.00 s</output>
+    </div>
+  </footer>
+</body>
+</html>

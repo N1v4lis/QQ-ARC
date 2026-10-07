@@ -34,6 +34,7 @@ const CHECKS = [
   ['宿主插件注入', 'check-plugin-inject.mjs', []],
   ['MC音效素材（清单↔磁盘一致）', 'check-mc-sfx.mjs', []],
   ['外壳静态结构', 'check-shell-markup.mjs', []],
+  ['ARCFØX启动动画', 'check-startup.mjs', [URL_]],
   ['无痕（像素级）', 'check-seamless-pixels.mjs', [URL_]],
   ['导航颜色连续性', 'check-nav-color-continuity.mjs', [URL_]],
   ['导航底部入口', 'check-nav-consistency.mjs', [URL_]],

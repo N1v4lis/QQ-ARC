@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="ARCFØX abstract fox mark">
+  <defs><linearGradient id="tile" x2="0" y2="1"><stop stop-color="#BBD8FF"/><stop offset="1" stop-color="#DCEBFF"/></linearGradient></defs>
+  <rect x="10" y="10" width="172" height="172" rx="34" fill="url(#tile)"/>
+  <path d="M34 104 29 37 40 31 77 62H115L152 31 163 37 158 104 167 133 154 159 129 171H63L38 159 25 133Z" fill="#F8FBFF"/>
+  <path d="m35 40 7 51 25-23Z m122 0-7 51-25-23Z" fill="#6F96DA"/>
+  <path d="m35 40 7 30 13-14Z m122 0-7 30-13-14Z" fill="#416FC5"/>
+  <path d="m40 31 37 31-10 6-20-12Z m112 0-37 31 10 6 20-12Z" fill="#FFFFFF"/>
+  <path d="M77 62 64 89 41 91 34 116 25 133 47 137 59 105 80 99Z M115 62 128 89 151 91 158 116 167 133 145 137 133 105 112 99Z" fill="#DCEBFF"/>
+  <path d="M77 62H115L121 100 108 129H84L71 100Z" fill="#FFFFFF"/>
+  <path d="M77 62 71 100 84 129 86 83Z M115 62 121 100 108 129 106 83Z" fill="#E8F2FF"/>
+  <path d="m47 137 12-32 11 15-8 40-24-1Z m98 0-12-32-11 15 8 40 24-1Z" fill="#BBD8FF"/>
+  <path d="M64 128H80V146H64Z M112 128H128V146H112Z" fill="#416FC5"/>
+  <path d="M65 139H75V149H65Z M117 139H127V149H117Z" fill="#8DBAFF"/>
+  <path d="M80 149H112L121 164 108 171H84L71 164Z" fill="#FFFFFF"/>
+  <path d="m38 159 24 1 9 4 13 7H63Z m116 0-24 1-9 4-13 7h21Z" fill="#A9CCFF"/>
+</svg>

@@ -1,5 +1,7 @@
 # 开发工作流
 
+> ARCFØX：当前部署89个UI文件，完整回归43套件。预览 http://127.0.0.1:3400/startup-preview.html；专项 node tools/check-startup.mjs http://127.0.0.1:3210/；真机 node tools/verify-startup-electron.mjs（需临时CDP9224，结束普通重启关闭）。实现 [STARTUP-ANIMATION.md](STARTUP-ANIMATION.md)。
+
 > 0.4.01 新工具：node tools/prepare-wine-fox.mjs 生成最小运行资产；node tools/check-wine-fox.mjs http://127.0.0.1:3210/ 验收宠物；真机检查先 node tools/restart-agent.mjs --apply --cdp-port 9224，再 node tools/verify-wine-fox-electron.mjs。完成后用普通 restart-agent --apply 重启结束调试。部署 app/ui 共81文件（约26.88 MiB），当前工具79文件；旧统计为历史。
 
 ---

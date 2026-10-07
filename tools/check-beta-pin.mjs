@@ -14,6 +14,8 @@ const ok = (n, p, d) => { console.log(`${p ? '✔' : '✗'} ${n}${d ? ' — ' + 
 //    "钉住"这条就无从验证（1440×760 时实测只能滚 22px）。
 //    560px 高大约能滚 130px+，足够覆盖"通告从起始位置滚到贴顶"的全过程。
 await withPage({ url: URL_, width: 1440, height: 560 }, async (page) => {
+  await page.waitFor(`!!document.querySelector('#tabs .tab.active') && !document.getElementById('loading-overlay')`,
+    { timeout: 30000, label: '启动动画与应用就绪后检查通告' });
   await page.waitFor(`document.querySelector('#dashboard-page .dash-beta')`, { timeout: 30000, label: 'Beta 通告' });
   await sleep(1500);
 

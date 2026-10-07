@@ -1,0 +1,18 @@
+:root { color-scheme: light; --bg: #f7f9fc; --fg: #3f5f96; --muted: #7788a2; --line: #dce5f1; --button: #eaf1fb; }
+:root[data-theme="dark"] { color-scheme: dark; --bg: #0b0f1a; --fg: #dcebff; --muted: #8b9bb5; --line: #233049; --button: #142038; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; }
+body { display: flex; flex-direction: column; }
+main { flex: 1; min-height: 0; position: relative; }
+canvas { width: 100%; height: 100%; display: block; }
+footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 64px; padding: 16px 28px; border-top: 1px solid var(--line); }
+.preview-brand { font-size: 13px; font-weight: 600; letter-spacing: .08em; white-space: nowrap; }
+.preview-brand span { color: var(--muted); font-size: 11px; font-weight: 400; margin-left: 12px; letter-spacing: 0; }
+.preview-controls { display: flex; gap: 8px; align-items: center; }
+button { appearance: none; border: 1px solid var(--line); border-radius: 7px; padding: 7px 13px; color: var(--fg); background: transparent; cursor: pointer; font: inherit; font-size: 12px; }
+button[aria-pressed="true"], button:hover { background: var(--button); }
+button:focus-visible, input:focus-visible { outline: 2px solid #669eff; outline-offset: 3px; }
+input { width: 140px; accent-color: #669eff; margin-left: 10px; }
+output { width: 46px; font-size: 11px; font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+#preview-error { position: absolute; inset: 45% 0 auto; text-align: center; font-size: 13px; color: var(--muted); }
+@media (max-width: 600px) { footer { flex-direction: column; gap: 12px; padding: 14px; } input { width: 90px; } .preview-controls { gap: 5px; } button { padding: 7px 10px; } }

@@ -1,5 +1,7 @@
 ﻿# 需求与硬约束（动手前必读）
 
+> 用户2026-10-07补充：以0.4.01为基线按附件制作ARCFØX启动动画，允许自行改代码但不得脱离要求。六阶段、2600ms、亮暗共享轨迹、SVG采样、正式ARCFØX字标、第6阶段静止、减少动态效果均为约束。见 [STARTUP-ANIMATION.md](STARTUP-ANIMATION.md)。
+
 > **2026-10-07 最新指示**：用户明确提出后续将酒狐移植至 QQ Agent 主题，作为互动宠物。
 > Finish-end 完整收录至 Wine_Fox，且已按“尝试移植”接入主题；下文“不恢复酒狐”的历史需求已更新。
 > 当前采用最新 GLB 的按需 WebGL2 方案。实现见 [WINE-FOX-INTEGRATION.md](WINE-FOX-INTEGRATION.md)。

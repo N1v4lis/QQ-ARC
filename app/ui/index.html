@@ -46,6 +46,7 @@
   <link rel="stylesheet" href="/styles/02-titlebar.css" />
   <link rel="stylesheet" href="/styles/03-sidebar.css" />
   <link rel="stylesheet" href="/styles/04-layout.css" />
+  <link rel="stylesheet" href="/styles/05-startup.css" />
   <link rel="stylesheet" href="/styles/20-content.css" />
   <link rel="stylesheet" href="/styles/21-dashboard.css" />
   <link rel="stylesheet" href="/styles/30-settings.css" />
@@ -390,12 +391,18 @@
     </div>
 
     <!-- 启动遮罩 -->
-    <div id="loading-overlay" class="loading-overlay">
-      <div class="loading-card">
-        <div class="loading-title">QQ Agent 正在启动</div>
-        <div class="loading-sub" id="loading-status">正在启动 SnowLuma 与 OneBot 服务，请稍候…</div>
-        <div class="loading-spinner"></div>
-        <pre class="loading-logs" id="loading-logs"></pre>
+    <div id="loading-overlay" class="loading-overlay arcfox-startup" aria-label="ARCFØX 正在启动" aria-busy="true">
+      <canvas id="arcfox-startup" aria-hidden="true"></canvas>
+      <div class="arcfox-startup-fallback" aria-hidden="true">
+        <img src="/assets/startup/arcfox-logo.svg" alt="" />
+        <img src="/assets/startup/arcfox-wordmark.svg" alt="" />
+      </div>
+      <div class="arcfox-startup-status">
+        <div class="loading-sub" id="loading-status" role="status" aria-live="polite">正在启动 QQ Agent 服务…</div>
+        <details class="arcfox-startup-details">
+          <summary>启动详情</summary>
+          <pre class="loading-logs" id="loading-logs"></pre>
+        </details>
       </div>
     </div>
 
@@ -429,6 +436,7 @@
        都要早于 app/06+07（渲染/接线设置页时就要能读到 window.qqaColors / qqaMotion）。 -->
   <script defer src="/shell/10-personalize.js?v=ui2"></script>
   <script defer src="/shell/11-motion.js?v=ui2"></script>
+  <script defer src="/shell/05-startup.js?v=arcfox1"></script>
   <script defer src="/shell/12-color-format.js?v=ui2"></script>
   <script defer src="/app/01-boot.js?v=ui2"></script>
   <script defer src="/app/02-sse-sessions.js?v=ui2"></script>

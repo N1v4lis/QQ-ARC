@@ -11,7 +11,7 @@ ok('部署模型与完整最新成品相同',digest('app/ui/assets/wine-fox/wine
 ok('来源与 Three.js 许可随运行资源保留',fs.existsSync('app/ui/assets/wine-fox/SOURCE.txt')&&fs.existsSync('app/ui/assets/wine-fox/three/LICENSE'));
 const report={url,results,actions:[],performance:[]};
 try{await withPage({url,width:1400,height:900},async(page,logs)=>{
-  await page.waitFor('window.qqaWineFox && document.querySelector("#tabs .tab.active")',{timeout:60000,label:'界面启动'});
+  await page.waitFor('window.qqaWineFox && document.querySelector("#tabs .tab.active") && !document.getElementById("loading-overlay")',{timeout:60000,label:'界面启动'});
   ok('默认关闭且未加载 GLB',await page.eval('!qqaWineFox.read().enabled && !document.getElementById("wine-fox-pet") && !performance.getEntriesByType("resource").some(r=>r.name.includes("winefox.glb"))'));
   await page.click('#tabs .tab[data-tab="settings"]');
   await page.waitFor('!!document.querySelector("#settings-sidebar [data-section=theme]")',{timeout:30000,label:'设置导航'});

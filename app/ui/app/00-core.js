@@ -798,6 +798,10 @@ function setLoadingStatus(text) {
 
 function hideLoading() {
   appReady = true;
+  if (window.qqaStartup) {
+    window.qqaStartup.finish();
+    return;
+  }
   if (loadingOverlay) {
     loadingOverlay.style.transition = 'opacity .25s ease';
     loadingOverlay.style.opacity = '0';
@@ -829,7 +833,8 @@ async function bootLoop() {
     if (await pollUntilReady(startedAt)) break;
     await new Promise((r) => setTimeout(r, 1000));
   }
-  hideLoading();
+  // init() owns dismissal after config, navigation and shell setup. The startup
+  // animation can finish earlier and hold its static final mark while boot waits.
   refreshStatus();
   if (state.tab === 'sessions') loadSessions();
   if (state.tab === 'memory') loadMemoryView();
