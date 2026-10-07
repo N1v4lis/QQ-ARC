@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import {withPage} from './cdp.mjs';
+const url=process.argv[2]||'http://127.0.0.1:3210/';
+const before=await(await fetch(new URL('/api/config',url))).json();
+await withPage({url,width:1360,height:900},async page=>{
+ await page.waitFor('!!window.qqaSkin && !!state.config',{timeout:15000});
+ await page.eval(`(()=>{
+  window.__manualConfig=structuredClone(state.config);window.__manualPosts=[];window.__manualFail=false;
+  const original=window.fetch;
+  const merge=(base,patch)=>{for(const [k,v] of Object.entries(patch)){if(v&&typeof v==='object'&&!Array.isArray(v)){if('__replace__' in v)base[k]=structuredClone(v.__replace__);else {base[k]||={};merge(base[k],v);}}else base[k]=v;}return base;};
+  const json=value=>new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}});
+  window.fetch=async function(input,init){const u=typeof input==='string'?input:input.url;
+   if(u.includes('/api/config')){if(init?.method==='POST'){const patch=JSON.parse(init.body);window.__manualPosts.push(patch);if(window.__manualFail)return new Response('模拟保存失败',{status:503});merge(window.__manualConfig,patch);return json({ok:true,config:structuredClone(window.__manualConfig)});}return json(structuredClone(window.__manualConfig));}
+   return original.call(this,input,init);
+  };
+  window.qqaSkin.set('minecraft');state.personaTarget='global';document.querySelector('.tab[data-tab=persona]').click();
+ })()`);
+ await page.waitFor('!!document.querySelector("#persona-manual-save")');
+ await page.eval('window.__baseline=window.__manualPosts.length;document.querySelector("#cfg-roletext").value="正文草稿";document.querySelector("#cfg-roletext").dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#cfg-customrules").value="附加规则草稿";document.querySelector("#cfg-customrules").dispatchEvent(new Event("input",{bubbles:true}));window.__typedAt=Date.now()');
+ await page.waitFor('Date.now()-window.__typedAt>900');
+ assert.equal(await page.eval('window.__manualPosts.length===window.__baseline'),true,'输入不自动请求保存');
+ await page.eval('document.querySelector("[data-persona-panel=model]").click();document.querySelector("#cfg-participation").value="high";document.querySelector("#cfg-participation").dispatchEvent(new Event("change",{bubbles:true}))');
+ await page.waitFor('window.__manualPosts.some(p=>p.persona?.participation==="high")');
+ assert.equal(await page.eval('state.config.persona.roleText'),before.persona.roleText,'改其他设置不保存正文');
+ assert.equal(await page.eval('state.config.persona.customRules'),before.persona.customRules || '');
+ await page.eval('document.querySelector("[data-persona-panel=role]").click();document.querySelector("#persona-manual-save").click()');
+ await page.waitFor('!personaManualBusy && state.config.persona.roleText==="正文草稿"');
+ assert.equal(await page.eval('state.config.persona.customRules'),'附加规则草稿');
+ for(let index=1;index<=6;index++){
+  await page.eval(`document.querySelector('#cfg-roletext').value='保存版本${index}';document.querySelector('#cfg-roletext').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#persona-manual-save').click()`);
+  await page.waitFor(`!personaManualBusy && state.config.persona.roleText==='保存版本${index}'`);
+ }
+ const history=await page.eval('readPersonaRevisions()');
+ assert.equal(history.length,5);assert.equal(history[0].roleText,'保存版本6');assert.equal(history[4].roleText,'保存版本2');assert(history.every(item=>Number.isFinite(item.time)));
+ await page.eval('window.__baseline=window.__manualPosts.length;document.querySelector("#persona-revisions").value="4";document.querySelector("#persona-revisions").dispatchEvent(new Event("change",{bubbles:true}));window.__typedAt=Date.now()');
+ await page.waitFor('Date.now()-window.__typedAt>900');
+ assert.equal(await page.eval('window.__manualPosts.length===window.__baseline'),true,'历史选择不直接生效');
+ assert.equal(await page.eval('document.querySelector("#cfg-roletext").value'),'保存版本2');
+ assert.equal(await page.eval('state.config.persona.roleText'),'保存版本6');
+ await page.eval('renderSettings()');
+ assert.equal(await page.eval('document.querySelector("#cfg-roletext").value'),'保存版本2','重绘保留草稿');
+ assert.equal(await page.eval('document.querySelector("#persona-revisions").options.length'),6);
+ assert.equal(await page.eval('readPersonaRevisions({...state.config,account:"other-test-account"}).length'),0,'账号历史隔离');
+ assert.equal(await page.eval('readPersonaRevisions(state.config,"group:test-other").length'),0,'对象历史隔离');
+ await page.eval('window.__manualFail=true;document.querySelector("#persona-manual-save").click()');
+ await page.waitFor('!personaManualBusy && document.querySelector("#persona-save-status").textContent.includes("保存失败")');
+ assert.equal(await page.eval('document.querySelector("#cfg-roletext").value'),'保存版本2');
+ assert.equal(await page.eval('readPersonaRevisions()[0].roleText'),'保存版本6','失败不加入历史');
+ assert.equal(await page.eval('document.querySelector(".persona-editor-status").textContent.includes("自动保存")'),false);
+ await page.waitFor('!document.querySelector("#loading-overlay")',{timeout:15000});
+ await page.screenshot('shots/final/persona-manual-save.png');
+ console.log('✔ 正文/规则不自动保存、其他设置不夹带草稿、手动保存、最近五次记录、时间/账号/对象隔离、恢复不自动生效、重绘保留草稿、失败不记历史');
+});
+assert.deepEqual(await(await fetch(new URL('/api/config',url))).json(),before,'真实配置不变');
+console.log('✔ 真实配置未改');

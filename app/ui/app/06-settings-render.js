@@ -632,7 +632,8 @@ async function loadPersonaContacts({ refresh = false } = {}) {
 function renderPersonaSection(c) {
   const target = state.personaTarget || 'global';
   const global = target === 'global';
-  const per = global ? c.persona : (c.personaByChat?.[target] || {});
+  const savedPersona = global ? c.persona : (c.personaByChat?.[target] || {});
+  const per = { ...savedPersona, ...state.personaDrafts?.[personaRevisionKey(c, target)] };
   const contact = global ? null : (state.personaContacts?.[target.startsWith('group:') ? 'groups' : 'friends'] || []).find(item => String(item.id) === target.split(':')[1]);
   const title = global ? '全局人设' : formatChatTitle(target, contact?.remark || contact?.name || contact?.nickname || chatNameOf(target));
   const templates = Object.entries(state.personaTemplates || {});
@@ -664,7 +665,8 @@ function renderPersonaSection(c) {
         <p class="persona-rail-note">${global?'这套人设作为所有会话的默认。':'为左侧选中的对象编辑；空白字段沿用默认人设。'}</p>
       </nav>
       <div class="persona-edit-surface">
-      <div class="persona-document" data-persona-pane="role" ${panel==='role'?'':'hidden'}><header class="persona-page-heading"><h3>角色正文</h3><p>身份、性格、说话方式，都写在这里。</p></header><textarea id="cfg-roletext" class="persona-role-text" aria-label="角色正文" placeholder="${global?'从一句角色描述开始…':'留空，沿用默认人设'}">${esc(per.roleText || '')}</textarea><footer><span>${global?'直接编辑，改动自动保存':'只编辑当前会话的人设'}</span><span id="persona-character-count">${(per.roleText || '').length} 字</span></footer></div>
+      <div class="persona-manual-tools" ${panel==='model'?'hidden':''}><span id="persona-save-status" role="status">${state.personaDrafts?.[personaRevisionKey(c,target)]?'有未保存修改':'已保存'}</span><select id="persona-revisions" data-persona-filter aria-label="最近五次保存的人设"><option value="">最近保存记录</option>${readPersonaRevisions(c,target).map((revision,index)=>`<option value="${index}">${esc(new Date(revision.time).toLocaleString('zh-CN',{hour12:false}))}</option>`).join('')}</select><button type="button" class="btn btn-primary" id="persona-manual-save">保存</button></div>
+      <div class="persona-document" data-persona-pane="role" ${panel==='role'?'':'hidden'}><header class="persona-page-heading"><h3>角色正文</h3><p>身份、性格、说话方式，都写在这里。</p></header><textarea id="cfg-roletext" class="persona-role-text" aria-label="角色正文" placeholder="${global?'从一句角色描述开始…':'留空，沿用默认人设'}">${esc(per.roleText || '')}</textarea><footer><span>修改后点击保存</span><span id="persona-character-count">${(per.roleText || '').length} 字</span></footer></div>
       <div class="persona-options" data-persona-pane="rules" ${panel==='rules'?'':'hidden'}>
         <header class="persona-page-heading"><h3>回应规则</h3><p>在角色正文之外，补充需要遵守的约定。</p></header>
         <div class="field"><label for="cfg-customrules">附加规则</label><textarea id="cfg-customrules" class="persona-role-text" placeholder="${global?'补充角色应遵守的规则':'留空，沿用默认规则'}">${esc(per.customRules || '')}</textarea></div>
@@ -677,7 +679,7 @@ function renderPersonaSection(c) {
         <h3>应用范围</h3><div class="checkbox-row"><input type="checkbox" id="cfg-persona-unified" ${c.personaUnified!==false?'checked':''} /><label for="cfg-persona-unified">所有会话统一使用默认人设</label></div><p class="hint">关闭后，各会话的独立人设生效。已编辑的内容会保留。</p>
       </div>
       </div></div>
-      <footer class="persona-editor-status"><span id="persona-save-status">自动保存</span>${!global?`<span class="persona-scope-note" id="persona-unified-note" ${c.personaUnified!==false?'':'hidden'}>统一模式开启 · 当前使用默认人设，可在“身份与模型”调整。</span>`:'<span>默认人设 · 未单独配置的会话使用这套内容</span>'}</footer>
+      <footer class="persona-editor-status">${!global?`<span class="persona-scope-note" id="persona-unified-note" ${c.personaUnified!==false?'':'hidden'}>统一模式开启 · 当前使用默认人设，可在“身份与模型”调整。</span>`:'<span>默认人设 · 未单独配置的会话使用这套内容</span>'}</footer>
     </section>
   </div>`;
 

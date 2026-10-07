@@ -1388,11 +1388,12 @@ async function saveConfig({ quiet = false } = {}) {
   if (sec === 'persona') {
     if (document.querySelector('.persona-studio')) {
       const target = state.personaTarget || 'global';
+      const savedPersona = target === 'global' ? c.persona : (c.personaByChat?.[target] || {});
       const entry = {
         participation: val('#cfg-participation', ''),
-        roleText: val('#cfg-roletext', ''),
-        customRules: val('#cfg-customrules', ''),
-        systemPromptOverride: val('#cfg-sysprompt', '')
+        roleText: savedPersona.roleText || '',
+        customRules: savedPersona.customRules || '',
+        systemPromptOverride: savedPersona.systemPromptOverride || ''
       };
       if (target === 'global') {
         patch.persona = { ...c.persona, ...entry,
