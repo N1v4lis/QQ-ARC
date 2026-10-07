@@ -791,9 +791,36 @@ let appReady = false;
 let bootLogs = [];
 
 function setLoadingStatus(text) {
+  if (bootLogs.at(-1)?.endsWith('] ' + text)) return;
   bootLogs.push(`[${new Date().toLocaleTimeString('zh-CN', { hour12: false })}] ${text}`);
   if (loadingStatus) loadingStatus.textContent = text;
   if (loadingLogs) loadingLogs.textContent = bootLogs.slice(-12).join('\n');
+  if (window.qqaStartup?.state().mode === 'cold') {
+    const progress = document.getElementById('startup-progress');
+    if (progress) {
+      const line = document.createElement('li');
+      line.textContent = text;
+      progress.appendChild(line);
+      while (progress.children.length > 4) progress.firstElementChild.remove();
+    }
+  }
+}
+
+let bootInspectionDone = false;
+async function inspectStartupServices(status) {
+  const qqFound = status.qqPortable?.detectedRunning === true || status.qqPortable?.running === true || status.onebot?.connected === true;
+  setLoadingStatus(qqFound ? '已检索到 QQ' : '未检索到运行中的 QQ');
+  // Read the host's real Hook preference and linked accounts; never launch/inject here.
+  if (qqFound) {
+    try {
+      const hook = await api('/api/snowluma/hook-autoload', { timeoutMs: 1200 });
+      const eligible = hook.accounts?.some(a => a.enabled !== false && a.hasSnowlumaConfig === true);
+      if (hook.hookAutoLoad === true && eligible && status.snowluma?.running === true && !status.onebot?.connected) {
+        setLoadingStatus('试图自动注入 SnowLuma…（由 SnowLuma 自动处理）');
+      }
+    } catch { /* No verified autoload/account configuration: omit the injection line. */ }
+  }
+  setLoadingStatus('查看 OneBot 状态…');
 }
 
 function hideLoading() {
@@ -812,7 +839,11 @@ function hideLoading() {
 async function pollUntilReady(startedAt) {
   try {
     const status = await api('/api/status');
-    if (!status.onebot?.connected) setLoadingStatus(status.onebot?.diagnosis || 'SnowLuma 已就绪，正在连接 OneBot…');
+    if (!bootInspectionDone && window.qqaStartup?.state().mode === 'cold') {
+      bootInspectionDone = true;
+      await inspectStartupServices(status);
+    }
+    if (!status.onebot?.connected) setLoadingStatus(status.onebot?.diagnosis || 'OneBot 未连接');
     else setLoadingStatus(`OneBot 已连接${status.onebot.self ? `（${status.onebot.self.nickname}）` : ''}，即将进入控制台…`);
     // 服务已可达，无需等到 OneBot 完全连上即可进入控制台（体检卡会继续提示）
     return true;
@@ -829,6 +860,7 @@ async function pollUntilReady(startedAt) {
 
 async function bootLoop() {
   const startedAt = Date.now();
+  if (window.qqaStartup?.state().mode === 'cold') setLoadingStatus('检索 QQ…');
   for (let i = 0; i < 90; i++) {
     if (await pollUntilReady(startedAt)) break;
     await new Promise((r) => setTimeout(r, 1000));

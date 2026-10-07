@@ -1,0 +1,68 @@
+{
+  "visual": {
+    "duration": 4000,
+    "ratio": 1.7778148298120668,
+    "count": 320
+  },
+  "motion": [
+    {
+      "u": 0.05,
+      "speed": 0.007155278838967131
+    },
+    {
+      "u": 0.25,
+      "speed": 0.323747216000161
+    },
+    {
+      "u": 0.45,
+      "speed": 0.6737700236868893
+    },
+    {
+      "u": 0.65,
+      "speed": 0.15240858045548986
+    },
+    {
+      "u": 0.85,
+      "speed": 0.010281176734572408
+    }
+  ],
+  "shared": true,
+  "still": true,
+  "gaps": [
+    14,
+    14,
+    14,
+    14,
+    14
+  ],
+  "cases": [
+    {
+      "name": "missing",
+      "mode": "cold",
+      "duration": 4000,
+      "text": "检索 QQ…未检索到运行中的 QQ查看 OneBot 状态…OneBot 未连接",
+      "ratio": 1.7778036133652662
+    },
+    {
+      "name": "disabled",
+      "mode": "cold",
+      "duration": 4000,
+      "text": "检索 QQ…已检索到 QQ查看 OneBot 状态…OneBot 未连接",
+      "ratio": 1.7778036133652662
+    },
+    {
+      "name": "unconfigured",
+      "mode": "cold",
+      "duration": 4000,
+      "text": "检索 QQ…已检索到 QQ查看 OneBot 状态…OneBot 未连接",
+      "ratio": 1.7778036133652662
+    },
+    {
+      "name": "eligible",
+      "mode": "cold",
+      "duration": 4000,
+      "text": "已检索到 QQ试图自动注入 SnowLuma…（由 SnowLuma 自动处理）查看 OneBot 状态…OneBot 未连接",
+      "ratio": 1.7778036133652662
+    }
+  ]
+}

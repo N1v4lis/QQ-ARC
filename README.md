@@ -5,6 +5,7 @@
 > 本次接手结果与版本流程见 [`docs/CODEX-MIGRATION.md`](docs/CODEX-MIGRATION.md)。
 
 ARCFØX 六阶段启动动画已接入，亮暗轨迹同步；[实现与预览](docs/STARTUP-ANIMATION.md)。
+当前冷启动4秒、刷新2.6秒，动画画布16:9；底部QQ/OneBot进度来自实际状态。首次部署或宿主重装后执行 `node tools/patch-host-qq-detection.mjs` 并重启，普通QQ检测复用宿主已有进程查询。
 
 酒狐完整资源保留在 `Wine_Fox/`，已作为主题互动宠物接入。
 接入与实测性能见 [`docs/WINE-FOX-INTEGRATION.md`](docs/WINE-FOX-INTEGRATION.md)。

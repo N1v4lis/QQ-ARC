@@ -1,16 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="ARCFØX abstract fox mark">
-  <defs><linearGradient id="tile" x2="0" y2="1"><stop stop-color="#BBD8FF"/><stop offset="1" stop-color="#DCEBFF"/></linearGradient></defs>
-  <rect x="10" y="10" width="172" height="172" rx="34" fill="url(#tile)"/>
-  <path d="M34 104 29 37 40 31 77 62H115L152 31 163 37 158 104 167 133 154 159 129 171H63L38 159 25 133Z" fill="#F8FBFF"/>
-  <path d="m35 40 7 51 25-23Z m122 0-7 51-25-23Z" fill="#6F96DA"/>
-  <path d="m35 40 7 30 13-14Z m122 0-7 30-13-14Z" fill="#416FC5"/>
-  <path d="m40 31 37 31-10 6-20-12Z m112 0-37 31 10 6 20-12Z" fill="#FFFFFF"/>
-  <path d="M77 62 64 89 41 91 34 116 25 133 47 137 59 105 80 99Z M115 62 128 89 151 91 158 116 167 133 145 137 133 105 112 99Z" fill="#DCEBFF"/>
-  <path d="M77 62H115L121 100 108 129H84L71 100Z" fill="#FFFFFF"/>
-  <path d="M77 62 71 100 84 129 86 83Z M115 62 121 100 108 129 106 83Z" fill="#E8F2FF"/>
-  <path d="m47 137 12-32 11 15-8 40-24-1Z m98 0-12-32-11 15 8 40 24-1Z" fill="#BBD8FF"/>
-  <path d="M64 128H80V146H64Z M112 128H128V146H112Z" fill="#416FC5"/>
-  <path d="M65 139H75V149H65Z M117 139H127V149H117Z" fill="#8DBAFF"/>
-  <path d="M80 149H112L121 164 108 171H84L71 164Z" fill="#FFFFFF"/>
-  <path d="m38 159 24 1 9 4 13 7H63Z m116 0-24 1-9 4-13 7h21Z" fill="#A9CCFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="ARCFØX blue-white fox">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#C6E3FF"/><stop offset=".5" stop-color="#91BEFA"/><stop offset="1" stop-color="#C9DFFF"/></linearGradient>
+    <linearGradient id="rim" x2="0" y2="1"><stop stop-color="#DCEBFF"/><stop offset="1" stop-color="#A9CCFF"/></linearGradient>
+    <clipPath id="bounds"><rect x="6" y="6" width="180" height="180" rx="29"/></clipPath>
+  </defs>
+  <rect x="6" y="6" width="180" height="180" rx="29" fill="url(#tile)" stroke="url(#rim)" stroke-width="1.5"/>
+  <g clip-path="url(#bounds)">
+    <path d="M20 31 28 27 75 71 61 107 24 97Z M172 31 164 27 117 71 131 107 168 97Z" fill="#4568AE"/>
+    <path d="M20 31 24 75 32 67 30 43Z M172 31 168 75 160 67 162 43Z" fill="#253F82"/>
+    <path d="M28 27 75 71 62 76 42 51Z M164 27 117 71 130 76 150 51Z" fill="#FFFFFF"/>
+    <path d="M42 51 62 76 52 89 37 84 43 75 37 68Z M150 51 130 76 140 89 155 84 149 75 155 68Z" fill="#EAF3FF"/>
+    <path d="M61 70 78 66H114L131 70 153 96 162 126 177 155 181 180 155 190H37L11 180 15 155 30 126 39 96Z" fill="#DCEBFF"/>
+    <path d="M58 89 78 66 91 68 82 93 62 106 39 103Z M134 89 114 66 101 68 110 93 130 106 153 103Z" fill="#F8FBFF"/>
+    <path d="M39 103 62 106 52 123 30 126Z M153 103 130 106 140 123 162 126Z" fill="#C8DEFF"/>
+    <path d="M30 126 52 123 47 144 20 150Z M162 126 140 123 145 144 172 150Z" fill="#EAF3FF"/>
+    <path d="M20 150 47 144 41 166 11 180Z M172 150 145 144 151 166 181 180Z" fill="#FFFFFF"/>
+    <path d="M41 166 48 186 37 190 11 180Z M151 166 144 186 155 190 181 180Z" fill="#A9CCFF"/>
+    <path d="M52 123 71 119H121L140 123 139 187H53Z" fill="#F8FBFF"/>
+    <path d="M71 119H121L129 143 121 159 96 164 71 159 63 143Z" fill="#FFFFFF"/>
+    <path d="M50 105 67 99 70 127 64 157 62 189H42L43 163 41 140Z M142 105 125 99 122 127 128 157 130 189H150L149 163 151 140Z" fill="#F8FBFF"/>
+    <path d="M50 105 67 99 64 120 46 125Z M142 105 125 99 128 120 146 125Z" fill="#EAF3FF"/>
+    <path d="M46 125 64 120 61 140 43 140Z M146 125 128 120 131 140 149 140Z" fill="#DCEBFF"/>
+    <path d="M43 140H61L60 164H42Z M149 140H131L132 164H150Z" fill="#EAF3FF"/>
+    <path d="M42 164H60L62 189H42Z M150 164H132L130 189H150Z" fill="#C8DEFF"/>
+    <path d="M57 139H79V152H57Z M113 139H135V152H113Z" fill="#2B4B92"/>
+    <path d="M63 152H79V169H63Z M113 152H129V169H113Z" fill="#80DFFF"/>
+    <path d="M68 151H76V161H68Z M116 151H124V161H116Z" fill="#3EBDF4"/>
+    <path d="M78 66H114L123 90 118 114 107 128 105 145 94 153 83 141 79 113 71 91Z" fill="#F8FBFF"/>
+    <path d="M78 66 91 68 83 96 79 113 71 91Z" fill="#EAF3FF"/>
+    <path d="M91 68H108L115 89 83 96Z" fill="#FFFFFF"/>
+    <path d="M83 96 115 89 118 114 107 128 84 123Z" fill="#EAF3FF"/>
+    <path d="M84 123 107 128 105 145 94 153 83 141Z" fill="#FFFFFF"/>
+    <path d="M91 176 96 179 101 176 97 181H95Z" fill="#DCEBFF"/>
+  </g>
 </svg>

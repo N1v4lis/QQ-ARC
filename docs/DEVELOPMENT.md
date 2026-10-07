@@ -2,7 +2,7 @@
 
 > 用户最新范围：自动回归仅原编号1、2、3、5、30，默认5项core；文档/工具用4项static；其他38套停用，发布不自动恢复。旧quick/full均映射core。见 [REGRESSION-WORKFLOW.md](REGRESSION-WORKFLOW.md)。
 
-> ARCFØX：当前部署89个UI文件，完整回归43套件。预览 http://127.0.0.1:3400/startup-preview.html；专项 node tools/check-startup.mjs http://127.0.0.1:3210/；真机 node tools/verify-startup-electron.mjs（需临时CDP9224，结束普通重启关闭）。实现 [STARTUP-ANIMATION.md](STARTUP-ANIMATION.md)。
+> ARCFØX：当前部署89个UI文件，冷启动4秒、刷新2.6秒、画布16:9。预览 http://127.0.0.1:3400/startup-preview.html；只做改动所需的定点观察，不自动调用已停用的启动专项。首次部署/宿主重装执行 `node tools/patch-host-qq-detection.mjs` 并重启，将宿主已有QQ进程扫描摘要暴露给冷启动进度；不增加查询。实现 [STARTUP-ANIMATION.md](STARTUP-ANIMATION.md)。
 
 > 0.4.01 新工具：node tools/prepare-wine-fox.mjs 生成最小运行资产；node tools/check-wine-fox.mjs http://127.0.0.1:3210/ 验收宠物；真机检查先 node tools/restart-agent.mjs --apply --cdp-port 9224，再 node tools/verify-wine-fox-electron.mjs。完成后用普通 restart-agent --apply 重启结束调试。部署 app/ui 共81文件（约26.88 MiB），当前工具79文件；旧统计为历史。
 

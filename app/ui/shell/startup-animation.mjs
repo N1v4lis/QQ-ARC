@@ -5,10 +5,11 @@ export const THEMES = Object.freeze({
   light:{background:'#F7F9FC',particles:['#BBD8FF','#8DBAFF','#DCEBFF','#669EFF','#E8F2FF'],shadow:'rgba(65,111,197,.08)'},
   dark:{background:'#0B0F1A',particles:['#203C73','#315DA8','#4F8CFF','#7FB0FF','#D8E8FF'],shadow:'rgba(79,140,255,.15)'}
 });
-const DARK_COLORS={'#BBD8FF':'#7FAEFF','#DCEBFF':'#C7DCFF','#F8FBFF':'#EAF3FF','#FFFFFF':'#EAF3FF','#6F96DA':'#416FC5','#416FC5':'#1A2A44','#E8F2FF':'#C7DCFF','#8DBAFF':'#7FAEFF','#A9CCFF':'#7FAEFF'};
+const DARK_COLORS={'#BBD8FF':'#7FAEFF','#DCEBFF':'#C7DCFF','#F8FBFF':'#F5F9FF','#FFFFFF':'#EAF3FF','#EAF3FF':'#D8E8FF','#6F96DA':'#416FC5','#416FC5':'#1A2A44','#E8F2FF':'#C7DCFF','#8DBAFF':'#7FAEFF','#A9CCFF':'#7FAEFF'};
 const clamp=x=>Math.max(0,Math.min(1,x));
-const quart=x=>1-(1-clamp(x))**4;
 const cubic=x=>1-(1-clamp(x))**3;
+// Anticipation, fast launch, then a soft arrival, matching the reference cadence.
+const launch=x=>{const u=clamp(x),a=u**3,b=(.72*(1-u))**3;return a/(a+b);};
 const mix=(a,b,t)=>a+(b-a)*t;
 function random(seed){let n=seed>>>0;return ()=>{n^=n<<13;n^=n>>>17;n^=n<<5;return (n>>>0)/4294967296;};}
 function surface(w,h){if(typeof OffscreenCanvas==='function')return new OffscreenCanvas(w,h);const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
@@ -33,7 +34,8 @@ async function assets(){
   const coords=slash?.getAttribute('d').match(/-?\d+(?:\.\d+)?/g)?.map(Number);
   if(coords?.length!==4)throw Error('Startup slash must be a straight SVG segment');
   const accent={x0:coords[0],y0:coords[1],x1:coords[2],y1:coords[3],width:Number(slash.getAttribute('stroke-width'))};
-  const darkLogo=logo.replace(/#[0-9A-F]{6}/g,c=>DARK_COLORS[c]||c);
+  const darkLogo=logo.replace(/#[0-9A-F]{6}/g,c=>DARK_COLORS[c]||c)
+    .replace('#C6E3FF','#315DA8').replace('#91BEFA','#142D55').replace('#C9DFFF','#203C73');
   const darkWord=wordWithoutSlash.replaceAll('#416FC5','#DCEBFF');
   const [lightLogo,darkLogoImage,lightWord,darkWordImage]=await Promise.all([raster(logo,192,192),raster(darkLogo,192,192),raster(wordWithoutSlash,336,54),raster(darkWord,336,54)]);
   return {light:{logo:lightLogo,word:lightWord},dark:{logo:darkLogoImage,word:darkWordImage},accent,letters};
@@ -71,11 +73,11 @@ export class ParticleSystem {
     if(p.phase==='word'){
       const start=TIMELINE.wordStart+p.letter*TIMELINE.stagger;
       const u=clamp((t-start)/(TIMELINE.word-start));
-      // Smooth acceleration leaves enough visible travel before the stroke locks in.
-      const q=u*u*(3-2*u);
+      // Visible acceleration toward the mask, followed by a soft stop at the stroke.
+      const q=launch(u);
       return {id:p.id,x:mix(p.wordStartX,p.targetX,q),y:mix(p.wordStartY,p.targetY,q),q,opacity:clamp((t-start)/45)*(1-clamp((q-.96)/.04))};
     }
-    const a=quart((t-TIMELINE.seed-p.delay)/(TIMELINE.expansion-TIMELINE.seed)),q=quart((t-TIMELINE.expansion-p.delay)/(TIMELINE.formation-TIMELINE.expansion-p.delay));
+    const a=launch((t-TIMELINE.seed-p.delay)/(TIMELINE.expansion-TIMELINE.seed-p.delay)),q=launch((t-TIMELINE.expansion-p.delay)/(TIMELINE.formation-TIMELINE.expansion-p.delay));
     const ex=mix(p.startX,p.expansionX,a)+Math.sin((t+p.id*17)/420)*p.velocityX*a*(1-q);
     const ey=mix(p.startY,p.expansionY,a)+p.velocityY*a*(1-q)*.2;
     const opacity=t<TIMELINE.seed?(p.id<6?clamp(t/120):0):clamp((t-TIMELINE.seed-p.delay)/100);
@@ -85,7 +87,7 @@ export class ParticleSystem {
 }
 export class StartupAnimation {
   static async create(canvas,options={}){const images=await assets();return new StartupAnimation(canvas,images,options);}
-  constructor(canvas,images,{theme=()=>document.documentElement.dataset.theme==='dark'?'dark':'light',reduced=false,duration=5500,onComplete=()=>{}}={}){
+  constructor(canvas,images,{theme=()=>document.documentElement.dataset.theme==='dark'?'dark':'light',reduced=false,duration=4000,onComplete=()=>{}}={}){
     this.canvas=canvas;this.ctx=canvas.getContext('2d');if(!this.ctx)throw Error('Canvas 2D unavailable');
     this.images=images;this.theme=theme;this.reduced=reduced;this.duration=reduced?500:duration;this.onComplete=onComplete;
     this.system=new ParticleSystem(images,canvas.clientWidth<600);this.frames=0;this.time=0;this.raf=0;this.holdTimer=0;this.disposed=false;this.complete=false;

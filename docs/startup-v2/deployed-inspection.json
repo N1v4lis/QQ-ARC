@@ -1,0 +1,27 @@
+{
+  "cold": {
+    "mode": "cold",
+    "duration": 4000
+  },
+  "reload": {
+    "mode": "reload",
+    "duration": 2600
+  },
+  "process": {
+    "detectedRunning": true,
+    "detectedCount": 18
+  },
+  "ratios": [
+    {
+      "width": 1600,
+      "height": 800,
+      "ratio": 1.7778060845381398
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "ratio": 1.7777777777777777
+    }
+  ],
+  "exceptions": []
+}

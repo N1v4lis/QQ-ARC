@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 336 54" role="img" aria-label="ARCFØX">
-  <g fill="none" stroke="#416FC5" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
-    <g data-letter="A" data-origin="13" transform="translate(13)"><path d="M3.25 41.75 20 8 36.75 41.75M10 28H30"/></g>
-    <g data-letter="R" data-origin="67" transform="translate(67)"><path d="M3.25 41.75V8H23.25C41.25 8 41.25 28 23.25 28H3.25M23.25 28 36.75 41.75"/></g>
-    <g data-letter="C" data-origin="121" transform="translate(121)"><path d="M36.75 10C29 3 3.25 4 3.25 25S29 47 36.75 40"/></g>
-    <g data-letter="F" data-origin="175" transform="translate(175)"><path d="M3.25 41.75V8H36.75M3.25 25H32"/></g>
-    <g data-letter="Ø" data-origin="229" transform="translate(229)"><path d="M20 5C-2.333333 5-2.333333 45 20 45S42.333333 5 20 5Z"/></g>
-    <g data-letter="X" data-origin="283" transform="translate(283)"><path d="M3.25 8 36.75 41.75M36.75 8 3.25 41.75"/></g>
+  <g fill="#416FC5">
+    <g data-letter="A" data-origin="13" transform="translate(13)"><path d="M0 45 15 8Q20 0 25 8L40 45H31L20 16 9 45Z"/></g>
+    <g data-letter="R" data-origin="67" transform="translate(67)"><path d="M0 5H27Q40 5 40 17T27 29H0V22H26Q32 22 32 17T26 12H0ZM0 31H8V45H0ZM20 28H29L40 45H30Z"/></g>
+    <g data-letter="C" data-origin="121" transform="translate(121)"><path d="M40 5V13H16Q8 13 8 21V29Q8 37 16 37H40V45H15Q0 45 0 30V20Q0 5 15 5Z"/></g>
+    <g data-letter="F" data-origin="175" transform="translate(175)"><path d="M0 5H40V13H8V22H34V30H8V45H0Z"/></g>
+    <g data-letter="Ø" data-origin="229" transform="translate(229)"><path fill-rule="evenodd" d="M15 5H25Q40 5 40 20V30Q40 45 25 45H15Q0 45 0 30V20Q0 5 15 5ZM15 13Q8 13 8 21V29Q8 37 15 37H25Q32 37 32 29V21Q32 13 25 13Z"/></g>
+    <g data-letter="X" data-origin="283" transform="translate(283)"><path d="M0 5H11L20 17 29 5H40L25 25 40 45H29L20 33 11 45H0L15 25Z"/></g>
   </g>
   <path d="M232 47 266 3" fill="none" stroke="#669EFF" stroke-width="5" stroke-linecap="round" data-accent="slash"/>
 </svg>
