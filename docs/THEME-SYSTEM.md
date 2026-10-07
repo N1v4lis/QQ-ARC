@@ -2,7 +2,7 @@
 
 > ARCFØX启动画面与默认/MC皮肤独立，共享图形几何，读取当前亮暗主题；切换只重绘照明，不重建粒子。系统减弱动态效果与qqa-motion关闭均使用500ms简化动画。见 [STARTUP-ANIMATION.md](STARTUP-ANIMATION.md)。
 
-> 0.4.01：设置 → 主题 → 酒狐互动宠物，两套皮肤均支持。默认关闭；可启停、暂停、调整大小 / 动作 / 表情和复位位置。偏好与位置以 qqa-wine-fox 保存在 localStorage；与主题皮肤独立。
+> 当前酒狐仅MC自动出现，隐藏启用及关闭按钮。设置保留暂停、语音、大小、位置、表情及动作；首项自然允许自主走跑飞，手动选择不随机替换。长按圆形菜单含八个Extra。偏好与位置以qqa-wine-fox保存在localStorage，见WINE-FOX-INTERACTION.md。
 
 ---
 

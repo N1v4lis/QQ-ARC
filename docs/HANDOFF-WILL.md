@@ -5,6 +5,7 @@
 > **2026-10-07 最新指示**：用户明确提出后续将酒狐移植至 QQ Agent 主题，作为互动宠物。
 > Finish-end 完整收录至 Wine_Fox，且已按“尝试移植”接入主题；下文“不恢复酒狐”的历史需求已更新。
 > 最新三阶段：仅MC默认启用，隐藏开关/关闭按钮；双角色GUI全身展示，循环动作与death单次；闲置60–120秒情绪、1–5秒自主动作，情绪拖动run回原位，多点恢复，拖动不中断语音。详见 [WINE-FOX-INTERACTION.md](WINE-FOX-INTERACTION.md)。
+> 后续最新规则：自然模式才自主走跑飞、平滑朝向目的地与回头；手动动作不随机换，sleep持续循环，Extra2结束归idle。呆住仅picnic/sneaking/keyboard都有左至右连续气泡，生气10秒，情绪动作周期20秒。隐藏jump，长按550ms展开Extra0–Extra7圆形菜单。
 > 当前采用最新 GLB 的按需 WebGL2 方案。实现见 [WINE-FOX-INTEGRATION.md](WINE-FOX-INTEGRATION.md)。
 
 > 这份是**交接的第一份文档**。它记录的不是"代码怎么写的"，而是"**哪些事不能做、为什么**"。

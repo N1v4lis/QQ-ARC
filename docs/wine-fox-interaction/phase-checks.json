@@ -1,27 +1,27 @@
 {
   "results": [
     {
-      "name": "默认主题不出现宠物，偏好默认开启",
+      "name": "默认主题无宠物",
       "pass": true
     },
     {
-      "name": "设置隐藏启用开关",
+      "name": "启用开关隐藏",
       "pass": true
     },
     {
-      "name": "MC自动加载且无关闭按钮",
+      "name": "MC自动加载，无关闭按钮",
       "pass": true
     },
     {
-      "name": "两套GUI保留但菜单隐藏",
+      "name": "自然在首位，GUI和jump隐藏",
       "pass": true
     },
     {
-      "name": "轻点开心并播放语音",
+      "name": "轻点开心语音，jump不在候选",
       "pass": true
     },
     {
-      "name": "正常拖动Fly且语音不中断",
+      "name": "拖动Fly，声音保持且朝向目的地",
       "pass": true
     },
     {
@@ -29,19 +29,19 @@
       "pass": true
     },
     {
-      "name": "连续3次点击生气并使用指定语音",
+      "name": "过量点击生气10秒、指定语音、20秒动作周期",
       "pass": true
     },
     {
-      "name": "情绪下再点3次恢复开心",
+      "name": "多点恢复开心",
       "pass": true
     },
     {
-      "name": "walk循环",
+      "name": "睡觉持续循环且手动模式不切换",
       "pass": true
     },
     {
-      "name": "run循环",
+      "name": "手动walk超过两轮仍保持",
       "pass": true
     },
     {
@@ -49,27 +49,91 @@
       "pass": true
     },
     {
-      "name": "动作结束恢复idle，等待1–5秒",
+      "name": "手动单次动作结束不随机换动作",
       "pass": true
     },
     {
-      "name": "等待后自动播放其他动作",
+      "name": "Extra2单次结束恢复默认idle",
       "pass": true
     },
     {
-      "name": "呆住keyboard气泡与模型同一容器",
+      "name": "旧jump选择迁移自然且不播放jump",
       "pass": true
     },
     {
-      "name": "情绪下拖动不切换Fly",
+      "name": "长按展开8个Extra圆形菜单",
       "pass": true
     },
     {
-      "name": "松开使用run返回",
+      "name": "菜单选择Extra2单次播放并关闭菜单",
       "pass": true
     },
     {
-      "name": "回到原位",
+      "name": "菜单Extra2结束恢复原手动idle",
+      "pass": true
+    },
+    {
+      "name": "Extra0–Extra7均可通过圆形菜单触发单次动作",
+      "pass": true
+    },
+    {
+      "name": "Esc关闭菜单并恢复手动动作",
+      "pass": true
+    },
+    {
+      "name": "自然walk移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "walk到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "自然run移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "run到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "自然elytra_fly移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "elytra_fly到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "自然fly移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "fly到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "呆住picnic连续滚动气泡，20秒周期",
+      "pass": true
+    },
+    {
+      "name": "呆住sneaking连续滚动气泡，20秒周期",
+      "pass": true
+    },
+    {
+      "name": "呆住keyboard连续滚动气泡，20秒周期",
+      "pass": true
+    },
+    {
+      "name": "呆住拖动不Fly",
+      "pass": true
+    },
+    {
+      "name": "情绪下run朝向原位返回",
+      "pass": true
+    },
+    {
+      "name": "回到原位并恢复情绪动作",
       "pass": true
     },
     {
@@ -77,7 +141,7 @@
       "pass": true
     },
     {
-      "name": "离开MC销毁宠物",
+      "name": "离开MC销毁宠物和菜单",
       "pass": true
     },
     {
@@ -88,5 +152,7 @@
       "name": "无运行异常和CSP错误",
       "pass": true
     }
-  ]
+  ],
+  "date": "2026-10-07",
+  "scope": "Original core suite 30 only; virtual-time behavior checks separately; no disabled suites"
 }
