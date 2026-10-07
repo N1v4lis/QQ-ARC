@@ -40,6 +40,21 @@ function readPersonaRevisions(config = state.config, target = state.personaTarge
   } catch { return []; }
 }
 let personaManualBusy = false;
+let personaSaveShortcutBound = false;
+function showPersonaSaveFeedback(success) {
+  const button = document.getElementById('persona-manual-save');
+  if (!button) return;
+  clearTimeout(button.__feedbackTimer);
+  button.classList.remove('persona-save-success');
+  button.textContent = success ? '✓ 已保存' : '保存失败';
+  if (success) {
+    void button.offsetWidth;
+    button.classList.add('persona-save-success');
+  }
+  button.__feedbackTimer = setTimeout(() => {
+    button.textContent = '保存'; button.classList.remove('persona-save-success');
+  }, success ? 1000 : 1600);
+}
 let closePersonaWhitelistMenu = null;
 let personaWhitelistBusy = false;
 function openPersonaWhitelistMenu(target, x, y) {
@@ -1138,6 +1153,18 @@ function bindSettingsEvents(c) {
   
   syncPersonaButtons(false);   // 初始装填不播动画（重渲染后是全新节点）
   $('#cfg-roletext')?.addEventListener('input', () => syncPersonaButtons(false));
+  if (!personaSaveShortcutBound) {
+    personaSaveShortcutBound = true;
+    document.addEventListener('keydown', event => {
+      if (state.tab !== 'persona' || !event.ctrlKey || event.altKey || event.shiftKey || event.key.toLowerCase() !== 's' || event.isComposing) return;
+      if (document.querySelector('.model-modal-overlay,.modal-overlay,[aria-modal="true"]')) return;
+      event.preventDefault();
+      const button = $('#persona-manual-save');
+      if (!event.repeat && button && !button.disabled && !personaManualBusy) button.click();
+    });
+  }
+  $('#persona-manual-save')?.setAttribute('title', '保存人设（Ctrl+S）');
+  $('#persona-manual-save')?.setAttribute('aria-keyshortcuts', 'Control+s');
   $('#persona-manual-save')?.addEventListener('click', async event => {
     if (personaManualBusy) return;
     const button = event.currentTarget;
@@ -1146,8 +1173,12 @@ function bindSettingsEvents(c) {
     const key = personaRevisionKey();
     const revision = Object.fromEntries([['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([field,selector])=>[field,$(selector)?.value || '']));
     button.disabled = true;
+    clearTimeout(button.__feedbackTimer);
+    button.classList.remove('persona-save-success');
+    button.textContent = '保存中…';
     if (studio) studio.inert = true;
     let guarded = false;
+    let success = false;
     try {
       const deadline = Date.now() + 15000;
       while (settingsGuard.pending > 0) {
@@ -1172,6 +1203,7 @@ function bindSettingsEvents(c) {
       if (select) select.innerHTML = '<option value="">最近保存记录</option>' + history.slice(0,5).map((item,index)=>`<option value="${index}">${esc(new Date(item.time).toLocaleString('zh-CN',{hour12:false}))}</option>`).join('');
       const status = $('#persona-save-status');
       if (status) status.textContent = historySaved ? '已保存' : '已保存，历史记录存储失败';
+      success = true;
     } catch (error) {
       const status = $('#persona-save-status');
       if (status) status.textContent = '保存失败：' + error.message;
@@ -1180,6 +1212,7 @@ function bindSettingsEvents(c) {
       if (studio) studio.inert = false;
       button.disabled = false;
       if (guarded) endSettingsGuard();
+      if (state.tab === 'persona' && (state.personaTarget || 'global') === target) showPersonaSaveFeedback(success);
     }
   });
   $('#persona-revisions')?.addEventListener('change', event => {

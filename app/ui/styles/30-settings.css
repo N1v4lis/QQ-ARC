@@ -481,6 +481,17 @@ html[data-skin='minecraft'] #view-persona :is(.persona-target small,.persona-dir
 .persona-context-menu button { display: block; width: 100%; padding: 10px 12px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .persona-context-menu button:hover, .persona-context-menu button:focus-visible { background: var(--q-accent-soft); outline: none; }
 .persona-context-menu button:disabled { opacity: .5; cursor: wait; }
+#view-persona #persona-manual-save { min-width: 82px; white-space: nowrap; }
+#view-persona #persona-manual-save.persona-save-success { animation: persona-save-flash 650ms ease-out; }
+@keyframes persona-save-flash {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 var(--q-accent); }
+  35% { transform: scale(1.04); box-shadow: 0 0 0 5px var(--q-accent-soft); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+html[data-motion='off'] #view-persona #persona-manual-save.persona-save-success { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+ #view-persona #persona-manual-save.persona-save-success { animation: none; }
+}
 
 /* 右侧重建：写作区 + 纵向编辑目录，左侧联系人布局保持。 */
 #view-persona .persona-manual-tools { position: absolute; top: 24px; right: 28px; display: flex; align-items: center; gap: 10px; max-width: 65%; }

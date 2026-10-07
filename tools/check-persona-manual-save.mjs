@@ -23,9 +23,16 @@ await withPage({url,width:1360,height:900},async page=>{
  await page.waitFor('window.__manualPosts.some(p=>p.persona?.participation==="high")');
  assert.equal(await page.eval('state.config.persona.roleText'),before.persona.roleText,'改其他设置不保存正文');
  assert.equal(await page.eval('state.config.persona.customRules'),before.persona.customRules || '');
- await page.eval('document.querySelector("[data-persona-panel=role]").click();document.querySelector("#persona-manual-save").click()');
+ await page.eval('document.querySelector("[data-persona-panel=role]").click();window.__shortcut=new KeyboardEvent("keydown",{key:"s",ctrlKey:true,bubbles:true,cancelable:true});document.dispatchEvent(window.__shortcut);document.dispatchEvent(new KeyboardEvent("keydown",{key:"s",ctrlKey:true,repeat:true,bubbles:true,cancelable:true}))');
  await page.waitFor('!personaManualBusy && state.config.persona.roleText==="正文草稿"');
  assert.equal(await page.eval('state.config.persona.customRules'),'附加规则草稿');
+ assert.equal(await page.eval('window.__shortcut.defaultPrevented'),true,'阻止浏览器保存网页');
+ assert.equal(await page.eval('document.querySelector("#persona-manual-save").classList.contains("persona-save-success")'),true,'成功动画');
+ assert.equal(await page.eval('document.querySelector("#persona-manual-save").textContent'),'✓ 已保存');
+ assert.equal(await page.eval('window.__manualPosts.filter(p=>p.persona?.roleText==="正文草稿").length'),1,'长按不重复提交');
+ await page.eval('document.documentElement.dataset.motion="off"');
+ assert.equal(await page.eval('getComputedStyle(document.querySelector("#persona-manual-save")).animationName'),'none','遵守关闭动效');
+ await page.eval('delete document.documentElement.dataset.motion');
  for(let index=1;index<=6;index++){
   await page.eval(`document.querySelector('#cfg-roletext').value='保存版本${index}';document.querySelector('#cfg-roletext').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#persona-manual-save').click()`);
   await page.waitFor(`!personaManualBusy && state.config.persona.roleText==='保存版本${index}'`);
@@ -42,10 +49,12 @@ await withPage({url,width:1360,height:900},async page=>{
  assert.equal(await page.eval('document.querySelector("#persona-revisions").options.length'),6);
  assert.equal(await page.eval('readPersonaRevisions({...state.config,account:"other-test-account"}).length'),0,'账号历史隔离');
  assert.equal(await page.eval('readPersonaRevisions(state.config,"group:test-other").length'),0,'对象历史隔离');
- await page.eval('window.__manualFail=true;document.querySelector("#persona-manual-save").click()');
+ await page.eval('window.__manualFail=true;document.dispatchEvent(new KeyboardEvent("keydown",{key:"s",ctrlKey:true,bubbles:true,cancelable:true}))');
  await page.waitFor('!personaManualBusy && document.querySelector("#persona-save-status").textContent.includes("保存失败")');
  assert.equal(await page.eval('document.querySelector("#cfg-roletext").value'),'保存版本2');
  assert.equal(await page.eval('readPersonaRevisions()[0].roleText'),'保存版本6','失败不加入历史');
+ assert.equal(await page.eval('document.querySelector("#persona-manual-save").classList.contains("persona-save-success")'),false,'失败不播放成功动画');
+ assert.equal(await page.eval('(()=>{state.tab="dashboard";const e=new KeyboardEvent("keydown",{key:"s",ctrlKey:true,bubbles:true,cancelable:true});document.dispatchEvent(e);state.tab="persona";return e.defaultPrevented})()'),false,'其他页面不劫持快捷键');
  assert.equal(await page.eval('document.querySelector(".persona-editor-status").textContent.includes("自动保存")'),false);
  await page.waitFor('!document.querySelector("#loading-overlay")',{timeout:15000});
  await page.screenshot('shots/final/persona-manual-save.png');
