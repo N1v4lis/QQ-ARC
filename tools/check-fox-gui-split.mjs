@@ -8,7 +8,11 @@ for(const name of ['winefox','snowfox']){
   assert(derived.bin.subarray(0,source.bin.length).equals(source.bin),'Original binary data must remain intact');
   for(const key of ['meshes','nodes','materials','images','textures','skins'])assert.deepEqual(derived.doc[key],source.doc[key]);
   const withoutPolicy=a=>{const copy=structuredClone(a);if(copy.extras){delete copy.extras.arcfoxPlayback;if(!Object.keys(copy.extras).length)delete copy.extras;}return copy;};
-  assert.deepEqual(derived.doc.animations.filter(a=>!/^gui2?$/.test(a.name)).map(withoutPolicy),source.doc.animations.filter(a=>a.name!=='gui'));
+  assert.deepEqual(derived.doc.animations.filter(a=>!/^gui2?$/.test(a.name)&&a.name!=='extra2').map(withoutPolicy),source.doc.animations.filter(a=>a.name!=='gui'&&a.name!=='extra2'));
+  const extra2=derived.doc.animations.find(a=>a.name==='extra2');
+  assert.deepEqual(extra2.channels,source.doc.animations.find(a=>a.name==='extra2').channels);
+  assert.deepEqual(extra2.extras.arcfoxLoop,{sourceWindow:[.5,1.5],closureSeconds:.2});
+  for(const sampler of extra2.samplers){const times=values(derived,sampler.input),out=values(derived,sampler.output),width=out.length/times.length;assert(Math.abs(times.at(-1)-1.2)<1e-6);assert.deepEqual(out.slice(0,width),out.slice(-width));}
   assert.equal(derived.doc.animations.find(a=>a.name==='death').extras.arcfoxPlayback,'once');
   for(const name of ['run','walk'])assert.equal(derived.doc.animations.find(a=>a.name===name).extras.arcfoxPlayback,'repeat');
   const original=source.doc.animations.find(a=>a.name==='gui'),first=derived.doc.animations.find(a=>a.name==='gui'),second=derived.doc.animations.find(a=>a.name==='gui2');

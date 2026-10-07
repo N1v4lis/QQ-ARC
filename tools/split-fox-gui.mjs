@@ -54,6 +54,20 @@ export function splitGui(bytes){
   const duration=Math.max(...original.samplers.map(s=>read(s.input).at(-1)));if(Math.abs(duration-18)>1e-4)throw Error('GUI duration changed');
   const first=clip('gui',0,4),second=clip('gui2',4,duration);doc.animations.splice(index,1,first,second);
   for(const animation of doc.animations)animation.extras={...animation.extras,arcfoxPlayback:animation.name==='death'?'once':LOOP_ACTIONS.has(animation.name)?'repeat':'once'};
+  // Extra2's first half-second is an entrance, not part of its sustained loop.
+  const extra2=doc.animations.find(a=>a.name==='extra2'),loopStart=.5,loopEnd=1.5,closing=.2;
+  extra2.samplers=extra2.samplers.map((sampler,index)=>{
+    const times=read(sampler.input),values=read(sampler.output),width=values.length/times.length;
+    const rotation=extra2.channels.some(c=>c.sampler===index&&c.target.path==='rotation');
+    function sample(time){let hi=times.findIndex(t=>t>=time);if(hi<0)hi=times.length-1;let lo=Math.max(0,hi-1);if(Math.abs(times[hi]-time)<1e-5)lo=hi;const a=values.slice(lo*width,(lo+1)*width),b=values.slice(hi*width,(hi+1)*width),span=times[hi]-times[lo],ratio=span?(time-times[lo])/span:0;if(lo===hi||sampler.interpolation==='STEP')return a;if(rotation){const q=[];Quaternion.slerpFlat(q,0,a,0,b,0,ratio);return q;}return a.map((v,k)=>v+(b[k]-v)*ratio);}
+    const keys=[loopStart,...times.filter(t=>t>loopStart+1e-5&&t<loopEnd-1e-5),loopEnd],output=keys.flatMap(sample),start=sample(loopStart),end=sample(loopEnd);
+    for(let i=1;i<=6;i++){const progress=i/6,ease=progress*progress*(3-2*progress);keys.push(loopEnd+closing*progress);if(rotation){const q=[];Quaternion.slerpFlat(q,0,end,0,start,0,ease);output.push(...q);}else output.push(...end.map((v,k)=>v+(start[k]-v)*ease));}
+    // Identical endpoints, including visibility/morph tracks.
+    output.splice(output.length-width,width,...start);
+    const accessor=doc.accessors[sampler.output],components={SCALAR:1,VEC2:2,VEC3:3,VEC4:4}[accessor.type];
+    return {...sampler,interpolation:'LINEAR',input:append(keys.map(t=>t-loopStart),'SCALAR',keys.length,[0],[loopEnd-loopStart+closing]),output:append(output,accessor.type,output.length/components)};
+  });
+  extra2.extras={...extra2.extras,arcfoxLoop:{sourceWindow:[loopStart,loopEnd],closureSeconds:closing}};
   doc.buffers[0].byteLength=length;
   let json=Buffer.from(JSON.stringify(doc));json=Buffer.concat([json,Buffer.alloc((4-json.length%4)%4,0x20)]);
   let body=Buffer.concat(chunks);body=Buffer.concat([body,Buffer.alloc((4-body.length%4)%4)]);

@@ -244,7 +244,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
       const parsed=THREE.PropertyBinding.parseTrackName(track.name),node=THREE.PropertyBinding.findNode(model,parsed.nodeName);
       return node?.name==='FaceMode_1'&&parsed.propertyName==='scale'&&Array.from(track.values).every(value=>value>.5);
     })).map(clip=>clip.name);
-    mixer=new THREE.AnimationMixer(model);mixer.addEventListener('finished',finishMotion);
+    mixer=new THREE.AnimationMixer(model);mixer.addEventListener('finished',e=>queueMicrotask(()=>{if(!disposed&&action===e.action)finishMotion();}));
     listen(menu,'click',e=>{const button=e.target.closest('button');if(!button)return;acknowledge();e.preventDefault();e.stopPropagation();if(button.hasAttribute('data-menu-close')){closeMenu();return;}const name=button.dataset.extra;if(!name)return;closeMenu(false);brain.mood='normal';brain.reason='';brain.until=0;brain.clicks=[];brain.recovery=[];brain.touch(performance.now());startMotion(name,'menu');});
     listen(menu,'keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeMenu();}else if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();const buttons=[...menu.querySelectorAll('button')],i=buttons.indexOf(document.activeElement),step=['ArrowRight','ArrowDown'].includes(e.key)?1:-1;buttons[(i+step+buttons.length)%buttons.length].focus();}});
     listen(voice,'ended',()=>{voicePlaying=false;});

@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-08",
+  "scope": "仅Extra1姿势及Extra2连续循环定点验证，未运行完整56项",
+  "results": [
+    {
+      "name": "设置Extra1真实播放结束，右臂实际恢复idle",
+      "pass": true,
+      "animation": "idle",
+      "gap": 0
+    },
+    {
+      "name": "菜单Extra1真实播放结束，右臂实际恢复idle",
+      "pass": true,
+      "animation": "idle",
+      "gap": 0
+    },
+    {
+      "name": "Extra2实际连续循环，全部轨道接缝小于浮点精度阈值",
+      "pass": true,
+      "duration": 1.2000000476837158,
+      "maxGap": 5.960464477539063e-8,
+      "tracks": 616
+    },
+    {
+      "name": "无运行异常或CSP拒绝",
+      "pass": true
+    }
+  ]
+}
