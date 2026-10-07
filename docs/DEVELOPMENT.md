@@ -1,5 +1,8 @@
 # 开发工作流
 
+> 2026-10-08最新验证要求：用户停用后续56项完整酒狐互动检查。默认仅四项静态检查，酒狐按本次改动定点验证；完整脚本仅明确要求后手动运行，发布不恢复。此要求覆盖下文历史流程，见[当前规则](REGRESSION-WORKFLOW.md)。
+
+
 > 用户最新范围：自动回归仅原编号1、2、3、5、30，默认5项core；文档/工具用4项static；其他38套停用，发布不自动恢复。旧quick/full均映射core。见 [REGRESSION-WORKFLOW.md](REGRESSION-WORKFLOW.md)。
 
 > ARCFØX：当前部署89个UI文件，冷启动4秒、刷新2.6秒、画布16:9。预览 http://127.0.0.1:3400/startup-preview.html；只做改动所需的定点观察，不自动调用已停用的启动专项。首次部署/宿主重装执行 `node tools/patch-host-qq-detection.mjs` 并重启，将宿主已有QQ进程扫描摘要暴露给冷启动进度；不增加查询。实现 [STARTUP-ANIMATION.md](STARTUP-ANIMATION.md)。

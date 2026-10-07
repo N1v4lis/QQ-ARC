@@ -36,7 +36,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
     thoughts.sync(count);thoughtNextAt=count>=cloudGrid.capacity?Infinity:dazedSince+nextThoughtWave(now-dazedSince);
   }
   function startInjury(){
-    inertia=travel=returning=null;closeMenu(false);injury=new FoxInjury(performance.now());brain.mood='normal';brain.reason='';brain.clicks=[];brain.recovery=[];interaction='injury';motionKind='injury';actionEndAt=nextAutoAt=Infinity;clearThoughts();faceOwner();persistPosition();play('death',true);armBehavior();
+    inertia=travel=returning=null;closeMenu(false);injury=new FoxInjury(performance.now());brain.mood='normal';brain.reason='';brain.clicks=[];brain.recovery=[];interaction='injury';motionKind='injury';actionEndAt=nextAutoAt=Infinity;clearThoughts();faceOwner();persistPosition();play('death',true);speak('dazed');armBehavior();
   }
   function recoverInjury(dazed=false){
     injury=null;interaction='';prefs={...prefs,animation:'natural'};onAnimation?.('natural');brain.clicks=[];brain.recovery=[];brain.until=0;brain.mood=dazed?'dazed':'normal';brain.reason=dazed?'idle':'';brain.touch(performance.now());thoughtResumeAt=0;clearThoughts();if(dazed)startMoodMotion();else returnIdle();

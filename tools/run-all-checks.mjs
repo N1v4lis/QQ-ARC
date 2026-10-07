@@ -1,4 +1,4 @@
-// 用户指定的核心回归：仅原编号1、2、3、5、30；其他套件停用。
+// 默认仅原编号1、2、3、5。原30完整互动只保留显式手动入口。
 // 顺序上把"会改主题/改配色/滚动页面"的套件放后面，减少互相影响。
 //
 // 用法：node tools/run-all-checks.mjs [url]
@@ -13,7 +13,7 @@ const cli = process.argv.slice(2);
 let URL_ = 'http://127.0.0.1:3210/', profile = 'core', listOnly = false, only = '', failedOnly = false;
 function usage() {
   console.log('用法：node tools/run-all-checks.mjs [url] [--profile core|static] [--only 1,2,3,5,30|wine-fox] [--failed] [--list]');
-  console.log('core：默认5套；static：4套无浏览器检查。旧quick/full均映射core，不恢复已停用检查。--failed重跑上次失败，--list只列流程。');
+  console.log('core/static：默认4套无浏览器检查；原30仅显式手动选择。旧quick/full均映射core，不恢复已停用检查。--failed重跑上次失败，--list只列流程。');
 }
 function invalid(message) { console.error(message); usage(); process.exit(1); }
 for (let i = 0; i < cli.length; i++) {
@@ -39,11 +39,11 @@ const CHECKS = [
   [5, '外壳静态结构', 'check-shell-markup.mjs', []],
   [30, '酒狐互动宠物', 'check-wine-fox.mjs', [URL_]]
 ];
-const activeFiles = new Set(CHECKS.map(([, , tool]) => tool));
+const activeFiles = new Set(CHECKS.filter(([id]) => id !== 30).map(([, , tool]) => tool));
 
 const results = [];
 let selected = CHECKS.map(([id, ...entry]) => ({ entry, id }));
-if (profile === 'static') selected = selected.filter(({ id }) => id !== 30);
+if (!only || profile === 'static') selected = selected.filter(({ id }) => id !== 30);
 function selectFiles(tokens) {
   const files = new Set();
   for (const value of tokens) {
