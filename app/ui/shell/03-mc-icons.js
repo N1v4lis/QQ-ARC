@@ -15,7 +15,16 @@
     spark:[...R(C.dark,[1,12,3,3],[3,10,3,3],[5,8,3,3],[4,7,6,2],[7,4,3,5],[9,2,4,5],[12,1,3,3]),...R(C.wood,[2,12,2,2],[4,10,2,2]),...R(C.gold,[5,8,4,1]),...R(C.blue,[8,5,2,3],[10,3,2,3],[12,2,2,2]),...R('#c8ffff',[9,5,1,2],[11,3,1,2])],
     plugin:[...R(C.edge,[1,6,14,8]),...R(C.silver,[2,6,12,6]),...R(C.stone,[2,12,12,2]),...R(C.wood,[4,3,2,5],[10,4,2,5]),...R(C.red,[3,2,4,3],[9,3,4,3],[6,9,4,2]),...R(C.paper,[4,2,2,1],[10,3,2,1])],
     users:[...R(C.dark,[2,1,4,6],[10,1,4,6],[2,5,12,9]),...R(C.light,[3,2,2,5],[11,2,2,5],[3,5,10,8]),...R(C.paper,[4,7,8,6],[6,5,4,3]),...R(C.blue,[4,9,2,2],[10,9,2,2]),...R(C.dark,[7,11,2,1])],
-    gear:[...R(C.edge,[1,10,14,5]),...R(C.stone,[2,10,12,4]),...R(C.silver,[3,11,10,1]),...R(C.dark,[7,3,3,9],[9,1,4,3]),...R(C.wood,[8,3,2,8]),...R(C.light,[10,1,3,2])],
+    // 设置入口：观察者正面，保留 gear 键以兼容导航 DOM。
+    gear:[...R(C.edge,[1,1,14,14]),...R(C.silver,[2,2,12,12]),...R(C.stone,[2,2,12,2],[2,12,12,2],[2,4,2,8],[12,4,2,8]),...R('#a5a8ae',[4,4,8,8]),...R(C.edge,[4,5,3,3],[9,5,3,3],[6,10,4,1]),...R('#edf0f2',[4,5,2,1],[9,5,2,1]),...R(C.stone,[5,9,1,2],[10,9,1,2])],
+    key:[...R(C.dark,[2,1,7,7],[5,7,3,8],[8,11,3,3]),...R(C.gold,[3,2,5,5],[6,7,1,7],[7,11,3,2]),...R(C.dark,[4,3,3,3]),...R('#fff2a5',[3,2,4,1],[6,8,1,2])],
+    hopper:[...R(C.edge,[1,2,14,5],[3,7,10,3],[5,10,6,2],[7,12,3,3]),...R(C.stone,[2,3,12,3],[4,7,8,2],[6,9,4,2],[8,11,1,3]),...R(C.silver,[2,3,12,1],[4,7,3,1])],
+    note:[...R(C.dark,[1,2,14,13]),...R(C.wood,[2,3,12,11]),...R(C.light,[2,3,12,2],[3,6,2,7]),...R(C.dark,[7,6,1,6],[8,6,4,1],[11,7,1,5],[5,11,3,2],[9,11,3,2]),...R(C.red,[8,6,3,1])],
+    paper:[...R(C.dark,[2,1,12,14]),...R(C.paper,[3,2,10,12]),...R(C.wood,[5,4,6,1],[5,7,6,1],[5,10,4,1]),...R(C.gold,[10,11,2,2])],
+    shield:[...R(C.dark,[2,1,12,10],[4,11,8,2],[6,13,4,2]),...R(C.silver,[3,2,10,8],[5,10,6,2],[7,12,2,2]),...R(C.wood,[4,3,8,7],[6,10,4,2]),...R(C.light,[7,3,2,8])],
+    crafting:[...R(C.dark,[1,1,14,14]),...R(C.wood,[2,2,12,12]),...R(C.light,[2,2,12,5],[3,8,2,6],[11,8,2,6]),...R(C.dark,[5,2,1,5],[10,2,1,5],[2,4,12,1],[6,9,4,2],[7,11,2,3])],
+    painting:[...R(C.dark,[1,2,14,12]),...R(C.light,[2,3,12,10]),...R(C.blue,[3,4,10,8]),...R(C.gold,[10,5,2,2]),...R(C.green,[3,9,10,3],[5,7,3,3]),...R(C.paper,[4,5,4,1])],
+    rocket:[...R(C.dark,[7,0,2,2],[5,2,6,9],[3,8,10,4],[6,12,4,3]),...R(C.paper,[6,3,4,8]),...R(C.red,[7,1,2,3],[6,6,4,2],[4,9,2,3],[10,9,2,3]),...R(C.gold,[7,12,2,3])],
     cost:[...R(C.dark,[4,1,8,14],[1,4,14,8]),...R(C.gold,[4,2,8,12],[2,4,12,8]),...R('#b87525',[5,4,6,8]),...R('#fff2a5',[6,4,2,7],[8,4,2,2],[8,7,2,2])],
     search:[...R(C.dark,[3,1,7,10],[1,3,11,6],[10,10,3,3],[12,12,3,3]),...R(C.blue,[3,2,7,8],[2,4,9,4]),...R('#dafaff',[4,3,2,4],[6,3,3,1]),...R(C.wood,[11,10,2,3],[13,12,2,3])],
     sun:[...R('#ab651f',[4,4,8,8]),...R(C.gold,[5,4,6,8],[4,5,8,6],[7,0,2,3],[7,13,2,3],[0,7,3,2],[13,7,3,2],[2,2,2,2],[12,2,2,2],[2,12,2,2],[12,12,2,2]),...R('#fff6b0',[5,5,3,3])],
@@ -52,6 +61,21 @@
     for(const [pattern,key] of [[/[☀🌞]/u,'sun'],[/[🌙🌚]/u,'moon'],[/[🎨🖌]/u,'palette'],[/[🧠💎]/u,'brain'],[/[💰💵💲]/u,'cost'],[/[💬📨📖]/u,'chat'],[/[📦🗃]/u,'archive'],[/[👤👥😄🦊]/u,'users'],[/[🔄⏳⏱]/u,'refresh'],[/[🔍🔎]/u,'search'],[/[✨⚡🚀]/u,'spark'],[/[🧩🔌💉]/u,'plugin'],[/[🔑⚙🛠🔇🖥]/u,'gear'],[/[›▶]/u,'arrow']])if(pattern.test(text))return key;
     return 'gear';
   };
+  // 优先使用卡片身份；自动折叠卡再按标题分类，避免不同功能都退化成同一图标。
+  const cardKeys={
+    'card-api-model':'key','card-api-fallback':'hopper','card-api-bychat-moved':'chat','card-api-price':'cost',
+    'card-send-config':'paper','card-active-config':'chart','card-cmdmute':'shield','card-proactive':'chat','card-sticker':'users',
+    'card-skin':'painting','card-wine-fox':'users','card-mc':'crafting',
+    'card-advanced-autolaunch':'rocket','card-advanced-hook':'plugin','card-advanced-persona':'persona','card-tools-list':'crafting'
+  };
+  function cardKey(node) {
+    const card=node.closest('.setcard');
+    const title=card?.querySelector('.sc-tt h4')?.textContent.trim()||'';
+    if(card?.id==='card-brightness'||/亮度/.test(title))return document.documentElement.dataset.theme==='dark'?'moon':'sun';
+    if(cardKeys[card?.id])return cardKeys[card.id];
+    for(const [pattern,key] of [[/音效|声音|语音/,'note'],[/背景|皮肤|配色|颜色/,'painting'],[/动效/,'spark'],[/Minecraft|主题/,'crafting'],[/搜索/,'search'],[/记忆/,'brain'],[/白名单|允许|禁言/,'shield'],[/人设|角色/,'persona'],[/备选|降级/,'hopper'],[/模型|API|渠道/,'key'],[/成本/,'cost'],[/数据|备份/,'archive'],[/更新/,'refresh'],[/启动/,'rocket'],[/工具|技能/,'crafting'],[/聊天|消息|发送/,'paper'],[/界面|桌面|OneBot|SnowLuma/,'gear']])if(pattern.test(title))return key;
+    return null;
+  }
   const targets='#tabs .tab[data-icon] .tab-ico, .q-tb-logo svg, #theme-btn svg, #q-side-toggle svg, #q-reload-btn svg, .q-wbtn svg, .db-icon svg, .dash-beta-badge svg, .sc-ico, .t-ico, .tool-ico, .tool-icon, .chev-r, .sl-chev';
   function applyToDom(on) {
     for(const node of saved.keys())if(!node.isConnected)saved.delete(node);
@@ -73,7 +97,7 @@
       else if(box)key=({'调用次数':'runs','估算成本':'cost','Token 总量':'tokens','缓存命中率':'cache','联网搜索':'search','会话总数':'chat','账号':'account','OneBot 连接':'plug'}[box.querySelector('.db-label')?.textContent.trim()])||'plugin';
       else if(node.matches('.sl-chev'))key='down';
       else if(node.matches('.sc-ico') && node.closest('#view-persona'))key='persona';
-      else if(node.matches('.sc-ico') && /亮度/.test(node.closest('.setcard-head')?.textContent||''))key=document.documentElement.dataset.theme==='dark'?'moon':'sun';
+      else if(node.matches('.sc-ico'))key=cardKey(node)||emojiKey(saved.get(node)?.html||node.textContent);
       else key=emojiKey(saved.get(node)?.html||node.textContent);
       paint(node,key,true);
     });

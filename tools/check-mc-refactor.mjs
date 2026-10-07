@@ -13,6 +13,10 @@ await withPage({url:process.argv[2]||'http://127.0.0.1:3210/',width:1360,height:
     const pixelNav=nav.length===10&&nav.every(node=>node.dataset.mcIcon&&[...node.children].every(child=>child.tagName==='rect'));
     const dashboard=[...document.querySelectorAll('.db-icon svg')].every(node=>!!node.dataset.mcIcon);
     const theme=!!document.querySelector('#theme-btn svg[data-mc-icon]');
+    const navSize=getComputedStyle(nav[0]).width;
+    const footerSize=getComputedStyle(document.querySelector('.mc-nav-item')).width;
+    const observerRects=[...document.querySelectorAll('.tab[data-tab="settings"] .tab-ico rect')].map(n=>({c:n.getAttribute('fill'),r:['x','y','width','height'].map(a=>Number(n.getAttribute(a)))}));
+    const observer=JSON.stringify(observerRects)===JSON.stringify(window.qqaMcIcons.ART.gear)&&observerRects.some(({r})=>r.join(',')==='4,5,3,3');
     const host=document.createElement('div');host.id='mc-control-fixture';
     host.innerHTML='<span class="sc-ico">🎨</span><input type="checkbox" id="mc-plain-fixture" aria-label="测试复选框"><label class="switch"><input type="checkbox" id="mc-switch-fixture"><span class="track"><span class="thumb"></span></span><span>测试拉杆</span></label>';
     document.body.append(host);
@@ -36,11 +40,12 @@ await withPage({url:process.argv[2]||'http://127.0.0.1:3210/',width:1360,height:
     const restored=document.querySelector('#tabs .tab-ico').innerHTML===original;
     const defaultSize=getComputedStyle(track).width;
     host.remove();window.qqaSkin.set('minecraft');document.documentElement.dataset.nav='expanded';
-    return {pixelNav,dashboard,theme,dynamicIcon,sizes,functional,rotates:on!==off,calls,chartPreserved,restored,defaultSize};
+    return {pixelNav,dashboard,theme,navSize,footerSize,observer,dynamicIcon,sizes,functional,rotates:on!==off,calls,chartPreserved,restored,defaultSize};
   })()`);
   console.log(JSON.stringify(result,null,2));
   for(const key of ['pixelNav','dashboard','theme','functional','rotates','chartPreserved','restored'])assert.equal(result[key],true,key);
   assert.equal(result.dynamicIcon,'palette');
+  assert.equal(result.navSize,'24px');assert.equal(result.footerSize,'16px');assert.equal(result.observer,true);
   assert.deepEqual(result.sizes,[['80px','64px'],['80px','64px']]);
   assert.deepEqual(result.calls,[false,true,false]);
   assert.equal(result.defaultSize,'38px');
@@ -50,6 +55,8 @@ await withPage({url:process.argv[2]||'http://127.0.0.1:3210/',width:1360,height:
   await page.waitFor('!!document.querySelector(\'.settings-menu-item[data-section="theme"]\')',{timeout:15000});
   await page.eval('document.querySelector(\'.settings-menu-item[data-section="theme"]\').click()');
   await page.waitFor('!!document.querySelector(".th-skins")',{timeout:15000});
+  await page.waitFor('document.querySelector("#card-skin .sc-ico")?.dataset.mcIcon === "painting"');
+  assert.equal(await page.eval('document.querySelector("#card-mc .sc-ico").dataset.mcIcon'),'crafting');
   await page.screenshot('shots/final/mc-levers-refactor.png');
   await page.eval('document.documentElement.dataset.theme="dark"; window.qqaMcIcons.sync()');
   assert.equal(await page.eval('document.querySelector("#theme-btn svg").dataset.mcIcon'),'moon');
@@ -60,5 +67,8 @@ await withPage({url:process.argv[2]||'http://127.0.0.1:3210/',width:1360,height:
   const horizontalOverflow=await page.eval('document.documentElement.scrollWidth>innerWidth');
   assert.equal(horizontalOverflow,false,'窄窗横向溢出');
   await page.screenshot('shots/final/mc-levers-refactor-narrow.png');
+  await page.eval('document.querySelector(\'.settings-menu-item[data-section="api"]\').click()');
+  await page.waitFor('document.querySelector("#card-api-model .sc-ico")?.dataset.mcIcon === "key"');
+  assert.deepEqual(await page.eval('[...document.querySelectorAll("#settings-form .sc-ico")].map(n=>n.dataset.mcIcon)'),['key','hopper','chat','cost']);
   console.log('✔ 图标/动态设置、两种大拉杆、导航开关方向、默认主题还原通过');
 });
