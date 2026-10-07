@@ -20,7 +20,7 @@ SnowLuma启动优化：异步补丁后执行 `node tools/patch-host-snow-startup
 酒狐完整资源保留在 `Wine_Fox/`，已作为主题互动宠物接入。
 新互动与双模型GUI拆分见 [WINE-FOX-INTERACTION.md](docs/WINE-FOX-INTERACTION.md)，完整语音保存在 `Wine_Fox_PECO`。
 接入与实测性能见 [`docs/WINE-FOX-INTEGRATION.md`](docs/WINE-FOX-INTEGRATION.md)。
-酒狐默认仅在MC主题自动出现，启用开关与关闭按钮隐藏；支持开心/生气语音、拖拽Fly、闲置60–120秒情绪与跑回原位；动作首项“自然”允许自主走/跑/飞并平滑转身，手动动作不随机替换。长按打开Extra0–Extra7圆形菜单。转身速度加快；呆住三动作显示连续左至右滚动气泡，无人互动时逐渐增多至铺满屏幕，互动立即清空，生气10秒结束，情绪动作20秒周期；GUI/jump隐藏，sleep等循环、death单次；暂停与最小化停止绘制。独立参考页仍可运行 `node Wine_Fox/WebPet/server.mjs`。
+酒狐默认仅在MC主题自动出现，启用开关与关闭按钮隐藏；支持开心/生气语音、拖拽Fly、闲置60–120秒情绪与跑回原位；动作首项“自然”允许自主走/跑/飞并平滑转身，手动动作不随机替换。长按打开Extra0–Extra7圆形菜单。转身速度加快；呆住三动作显示连续左至右滚动气泡，无人互动时逐渐增多至铺满屏幕，点击清空、拖动保留，新增20条death语音随呆住动作随机播放，生气10秒结束，情绪动作20秒周期；GUI/jump隐藏，sleep等循环、death单次；暂停与最小化停止绘制。独立参考页仍可运行 `node Wine_Fox/WebPet/server.mjs`。
 
 > 这个目录是 **QQ Agent 前端的一次完整重写**：新外壳（无边框窗口 + 自绘标题栏 + 新侧栏/仪表盘）
 > ＋ 一套 Minecraft 像素风皮肤（配色 / 字体 / 音效 / 背景图 / 像素图标 / 拉杆开关）。

@@ -21,7 +21,7 @@ html[data-skin='minecraft'] #wine-fox-pet .wine-fox-bubble{border-radius:0;}
 @media (prefers-reduced-motion:reduce){.wine-fox-thought-track{animation:none;}}
 html[data-motion='off'] .wine-fox-thought-track{animation:none;}
 
-.wine-fox-thought-cloud{position:fixed;inset:0;z-index:84;display:grid;gap:6px;padding:8px;pointer-events:none;overflow:hidden;contain:strict;}
+.wine-fox-thought-cloud{position:fixed;inset:0;z-index:84;pointer-events:none;overflow:hidden;contain:strict;}
 .wine-fox-thought-cloud[hidden]{display:none;}
-.wine-fox-cloud-bubble{display:flex;align-items:center;min-width:0;min-height:0;padding:4px 8px;overflow:hidden;border:1px solid var(--q-line-2);border-radius:10px;background:var(--q-bg-1);color:var(--q-fg);font:13px/1.5 var(--q-font);pointer-events:none;}
+.wine-fox-cloud-bubble{position:absolute;display:flex;align-items:center;min-width:0;min-height:0;padding:4px 8px;overflow:hidden;border:1px solid var(--q-line-2);border-radius:10px;background:var(--q-bg-1);color:var(--q-fg);font:13px/1.5 var(--q-font);pointer-events:none;}
 html[data-skin='minecraft'] .wine-fox-cloud-bubble{border-radius:0;}

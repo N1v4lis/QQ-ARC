@@ -1,5 +1,5 @@
 import * as THREE from '../assets/wine-fox/three/three.module.js';
-import {FoxBehavior,MOOD_ACTIONS,LOOP_ACTIONS,MOOD_HOLD_MS,visibleActions,chooseTravel,destination,TURN_RATE,THOUGHT_STEP_MS,thoughtCount,thoughtGrid} from './fox-behavior.mjs';
+import {FoxBehavior,MOOD_ACTIONS,LOOP_ACTIONS,MOOD_HOLD_MS,visibleActions,chooseTravel,destination,TURN_RATE,thoughtCount,thoughtGrid,nextThoughtWave,scatteredThoughts} from './fox-behavior.mjs';
 import {GLTFLoader} from '../assets/wine-fox/three/addons/loaders/GLTFLoader.js';
 
 export async function createWineFox(initial,{signal,onPosition,onDisable,onError}){
@@ -12,7 +12,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
   let drag=null,suppressClick=null,hitTests=0,hitMs=0,currentName='';
   let interaction='',happyNames=[],lastHappy='',voices=[],voicePlaying=false,voiceTicket=0,voiceName='',voiceError='';
   const brain=new FoxBehavior();
-  let angryVoices=[],behaviorTimer=0,nextAutoAt=Infinity,actionEndAt=Infinity,homePoint=null,returning=null,loopPolicy={};
+  let dazedVoices=[],angryVoices=[],behaviorTimer=0,nextAutoAt=Infinity,actionEndAt=Infinity,homePoint=null,returning=null,loopPolicy={};
   let travel=null,motionKind='base',pressTimer=0,menuOpen=false,faceYaw=0,facePitch=0,faceUntil=0;
   const menu=document.createElement('div');menu.className='wine-fox-menu';menu.hidden=true;menu.setAttribute('role','menu');menu.setAttribute('aria-label','酒狐互动动作');document.body.append(menu);
   const natural=()=>prefs.animation==='natural';
@@ -29,15 +29,14 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     if(now<thoughtResumeAt){thoughtNextAt=thoughtResumeAt;return;}
     if(dazedSince===null)dazedSince=now;
     const grid=thoughtGrid(innerWidth,innerHeight);
-    if(!cloudGrid||grid.columns!==cloudGrid.columns||grid.rows!==cloudGrid.rows){
-      thoughtCloud.replaceChildren();cloudGrid=grid;thoughtCloud.style.gridTemplateColumns='repeat('+grid.columns+',1fr)';thoughtCloud.style.gridTemplateRows='repeat('+grid.rows+',1fr)';
-      const r=host.getBoundingClientRect(),cx=(r.left+r.width/2)/innerWidth*grid.columns,cy=(r.top+r.height*.15)/innerHeight*grid.rows;cloudCells=[];
-      for(let row=0;row<grid.rows;row++)for(let column=0;column<grid.columns;column++)cloudCells.push({row,column,distance:(column+.5-cx)**2+(row+.5-cy)**2});cloudCells.sort((a,b)=>a.distance-b.distance);
+    if(!thoughtCloud.childElementCount && thoughtCount(now-dazedSince,grid.capacity)===0){thoughtCloud.hidden=true;thoughtNextAt=dazedSince+nextThoughtWave(now-dazedSince);return;}
+    if(!cloudGrid||grid.columns!==cloudGrid.columns||grid.rows!==cloudGrid.rows||innerWidth!==cloudGrid.width||innerHeight!==cloudGrid.height){
+      thoughtCloud.replaceChildren();cloudGrid={...grid,width:innerWidth,height:innerHeight};cloudCells=scatteredThoughts(innerWidth,innerHeight);
     }
     const count=Math.max(thoughtCloud.childElementCount,thoughtCount(now-dazedSince,grid.capacity)),fragment=document.createDocumentFragment();
-    while(thoughtCloud.childElementCount+fragment.childElementCount<count){const index=thoughtCloud.childElementCount+fragment.childElementCount,cell=cloudCells[index],node=document.createElement('div');node.className='wine-fox-cloud-bubble';node.style.gridColumn=String(cell.column+1);node.style.gridRow=String(cell.row+1);const track=document.createElement('div');track.className='wine-fox-thought-track';const phrase='ご主人様…　'.repeat(Math.ceil(innerWidth/grid.columns/100)+1);for(let i=0;i<2;i++){const span=document.createElement('span');span.textContent=phrase;track.append(span);}node.append(track);fragment.append(node);}
+    while(thoughtCloud.childElementCount+fragment.childElementCount<count){const index=thoughtCloud.childElementCount+fragment.childElementCount,cell=cloudCells[index],node=document.createElement('div');node.className='wine-fox-cloud-bubble';node.style.left=cell.x+'px';node.style.top=cell.y+'px';node.style.width=cell.width+'px';node.style.height=cell.height+'px';node.style.transform='rotate('+cell.angle+'deg)';const track=document.createElement('div');track.className='wine-fox-thought-track';const phrase='ご主人様…　'.repeat(Math.ceil(cell.width/100)+1);for(let i=0;i<2;i++){const span=document.createElement('span');span.textContent=phrase;track.append(span);}node.append(track);fragment.append(node);}
     if(fragment.childElementCount)thoughtCloud.append(fragment);thoughtCloud.hidden=count===0;
-    thoughtNextAt=count>=grid.capacity?Infinity:dazedSince+(Math.floor((now-dazedSince)/THOUGHT_STEP_MS)+1)*THOUGHT_STEP_MS;
+    thoughtNextAt=count>=grid.capacity?Infinity:dazedSince+nextThoughtWave(now-dazedSince);
   }
   function faceDestination(dx,dy,flight=false){faceYaw=Math.abs(dx)>.5?Math.sign(dx)*Math.PI/2:0;facePitch=flight?THREE.MathUtils.clamp(Math.atan2(-dy,Math.abs(dx))*.4,-.35,.35):0;faceUntil=Infinity;}
   function faceOwner(){faceYaw=0;facePitch=0;faceUntil=0;}
@@ -54,7 +53,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
   const voice=new Audio();voice.preload='none';voice.volume=.7;
   function stopVoice(){voiceTicket++;voice.pause();voicePlaying=false;voice.removeAttribute('src');voice.load();}
   function speak(angry=false){
-    const pool=angry?angryVoices:voices;stopVoice();if(prefs.voice===false||!pool.length)return;
+    const pool=angry==='dazed'?dazedVoices:angry?angryVoices:voices;stopVoice();if(prefs.voice===false||!pool.length)return;
     voiceName=pool[Math.floor(Math.random()*pool.length)];voiceError='';
     voice.src=new URL('../assets/wine-fox/voice/'+voiceName,import.meta.url).href;
     const ticket=voiceTicket;voice.play().then(()=>{if(ticket===voiceTicket&&!disposed)voicePlaying=true;}).catch(()=>{
@@ -108,7 +107,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     host.style.width=width+'px';host.style.height=height+'px';camera.left=-1.95*width/height;camera.right=1.95*width/height;camera.updateProjectionMatrix();
     renderer.setSize(width,height,false);if(current)place(current.left,current.top);else place();schedule(true);}
   function updateBubble(){
-    syncThoughtCloud();const thought=brain.mood==='dazed'&&performance.now()>=thoughtResumeAt&&MOOD_ACTIONS.dazed.includes(currentName);
+    syncThoughtCloud();const thought=brain.mood==='dazed'&&performance.now()>=thoughtResumeAt&&(MOOD_ACTIONS.dazed.includes(currentName)||drag||returning);
     if(thought){if(!bubble.classList.contains('wine-fox-thought')){bubble.classList.add('wine-fox-thought');const track=document.createElement('div');track.className='wine-fox-thought-track';track.setAttribute('aria-hidden','true');for(let i=0;i<2;i++){const text=document.createElement('span');text.textContent='ご主人様…　ご主人様…　';if(i)text.setAttribute('aria-hidden','true');track.append(text);}bubble.replaceChildren(track);bubble.setAttribute('aria-label','ご主人様…');}bubble.hidden=false;}
     else{bubble.classList.remove('wine-fox-thought');bubble.removeAttribute('aria-label');const text=brain.mood==='angry'?'💢':interaction==='happy'?'♪':'';if(bubble.textContent!==text)bubble.textContent=text;bubble.hidden=!text;}
   }
@@ -117,7 +116,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     const brainAt=natural()||brain.mood!=='normal'?brain.nextAt():Infinity;
     const motionAt=!menuOpen&&!drag&&!returning&&(!prefs.paused||interaction)?actionEndAt:Infinity;
     const autoAt=natural()&&!prefs.paused&&!menuOpen&&!drag&&!returning&&!travel?nextAutoAt:Infinity;
-    const at=Math.min(brainAt,motionAt,autoAt,!drag&&!menuOpen?thoughtNextAt:Infinity);
+    const at=Math.min(brainAt,motionAt,autoAt,!menuOpen?thoughtNextAt:Infinity);
     if(Number.isFinite(at))behaviorTimer=setTimeout(advanceBehavior,Math.max(10,at-performance.now()));
   }
   function returnIdle(){
@@ -144,7 +143,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     actionEndAt=kind==='mood'?performance.now()+MOOD_HOLD_MS:kind==='manual'?name==='extra2'?performance.now()+clip.duration*1000+250:Infinity:performance.now()+(LOOP_ACTIONS.has(name)&&kind==='auto'?Math.max(500,clip.duration*2000):clip.duration*1000+250);
     armBehavior();
   }
-  function startMoodMotion(){const pool=MOOD_ACTIONS[brain.mood],choices=pool.filter(n=>n!==currentName);startMotion((choices.length?choices:pool)[Math.floor(Math.random()*(choices.length||pool.length))],'mood');}
+  function startMoodMotion(){const pool=MOOD_ACTIONS[brain.mood],choices=pool.filter(n=>n!==currentName);startMotion((choices.length?choices:pool)[Math.floor(Math.random()*(choices.length||pool.length))],'mood');if(brain.mood==='dazed')speak('dazed');}
   function startTravel(){
     const animation=chooseTravel(),r=host.getBoundingClientRect(),from=[r.left,r.top],to=destination(from,r.width,r.height,innerWidth,innerHeight,animation),distance=Math.hypot(to[0]-from[0],to[1]-from[1]);
     if(distance<10){returnIdle();return;}
@@ -194,12 +193,12 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     hitTests++;hitMs+=performance.now()-t;return result;}
   function blocked(e){return [...document.querySelectorAll('dialog[open],[role="dialog"],.modal,#loading-overlay,.qrcode-egg-overlay')].some(el=>el.getBoundingClientRect().width>0&&getComputedStyle(el).visibility!=='hidden');}
   function down(e){if(menuOpen){if(menu.contains(e.target))return;closeMenu();}if(disposed||suspended||contextLost||e.button!==0||!e.isPrimary||blocked(e)||!rayHit(e))return;
-    acknowledge();stopTravel();const rect=host.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:rect.left,top:rect.top,moved:false,moody:brain.mood!=='normal'};returning=null;if(!drag.moody)brain.touch(performance.now());else homePoint||=[rect.left,rect.top];
+    stopTravel();const rect=host.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:rect.left,top:rect.top,moved:false,moody:brain.mood!=='normal'};returning=null;if(!drag.moody)brain.touch(performance.now());else homePoint||=[rect.left,rect.top];
     suppressClick=null;clearTimeout(pressTimer);pressTimer=setTimeout(openMenu,550);canvas.setPointerCapture(e.pointerId);e.preventDefault();e.stopImmediatePropagation();}
   function move(e){if(!drag||drag.id!==e.pointerId||drag.menu)return;e.preventDefault();e.stopImmediatePropagation();
     if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>6){clearTimeout(pressTimer);drag.moved=true;nextAutoAt=Infinity;actionEndAt=Infinity;if(!drag.moody){interaction='drag';play('fly');}armBehavior();}
     if(drag.moved){if(!drag.moody)faceDestination(e.clientX-(drag.lastX??drag.x),e.clientY-(drag.lastY??drag.y),true);drag.lastX=e.clientX;drag.lastY=e.clientY;place(drag.left+e.clientX-drag.x,drag.top+e.clientY-drag.y);}}
-  function finish(e,cancelled=false){if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;clearTimeout(pressTimer);acknowledge();
+  function finish(e,cancelled=false){if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;clearTimeout(pressTimer);
     if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);
     if(d.menu){suppressClick={until:performance.now()+500,x:e.clientX,y:e.clientY};e.preventDefault();e.stopImmediatePropagation();return;}
     if(d.moved){
@@ -222,7 +221,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     // instead of loosening the application's HTTP and meta CSP policies.
     const loader=new GLTFLoader();loader.register(parser=>{parser.textureLoader=new THREE.TextureLoader(parser.options.manager).setCrossOrigin(parser.options.crossOrigin);return {name:'QQARCFOX_embedded_images'};});
     const gltf=await loader.parseAsync(bytes,'');model=gltf.scene;signal.throwIfAborted();clips=gltf.animations;scene.add(model);
-    const manifest=await voiceManifest;signal.throwIfAborted();voices=(manifest.happy||[]).filter(name=>/^eatSugar\d+\.ogg$/.test(name));angryVoices=(manifest.angry||[]).filter(name=>['JaNai.ogg','Sato.ogg','Mo-Ya-Da.ogg'].includes(name));loopPolicy=Object.fromEntries(gltf.parser.json.animations.map(a=>[a.name,a.extras?.arcfoxPlayback]));
+    const manifest=await voiceManifest;signal.throwIfAborted();dazedVoices=(manifest.dazed||[]).filter(name=>/^death[^/\\]*\.ogg$/i.test(name));voices=(manifest.happy||[]).filter(name=>/^eatSugar\d+\.ogg$/.test(name));angryVoices=(manifest.angry||[]).filter(name=>['JaNai.ogg','Sato.ogg','Mo-Ya-Da.ogg'].includes(name));loopPolicy=Object.fromEntries(gltf.parser.json.animations.map(a=>[a.name,a.extras?.arcfoxPlayback]));
     model.traverse(o=>{if(o.userData.expressionMode!==undefined)faceMeshes.push(o);if(/^FaceMode_[0-6]$/.test(o.name))faceBones.push(o);
       if(!o.isMesh)return;if(/^(Lever_|Base_Bolt|Travel_Stop|Grip_Endcap)/.test(o.name))leverMeshes.push(o);
       for(const m of Array.isArray(o.material)?o.material:[o.material]){if(m.map){m.map.magFilter=THREE.NearestFilter;m.map.minFilter=THREE.NearestFilter;m.map.generateMipmaps=false;}m.roughness=.85;m.metalness=0;}});

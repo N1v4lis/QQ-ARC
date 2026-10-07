@@ -36,6 +36,16 @@ export function destination(from,width,height,viewWidth,viewHeight,animation,ran
 }
 
 export const TURN_RATE=12;
-export const THOUGHT_STEP_MS=10000;
-export function thoughtCount(elapsed,capacity){return Math.min(capacity,Math.floor(Math.max(0,elapsed)/THOUGHT_STEP_MS)**2);}
+export const THOUGHT_STEP_MS=3000;
+export function thoughtCount(elapsed,capacity){return Math.min(capacity,elapsed<10000?0:elapsed<15000?2:6+8*Math.floor((elapsed-15000)/THOUGHT_STEP_MS));}
 export function thoughtGrid(width,height){const columns=Math.max(2,Math.min(16,Math.ceil(width/190))),rows=Math.max(2,Math.min(Math.floor(192/columns),Math.ceil(height/48)));return {columns,rows,capacity:columns*rows};}
+
+export function nextThoughtWave(elapsed){return elapsed<10000?10000:elapsed<15000?15000:15000+(Math.floor((elapsed-15000)/THOUGHT_STEP_MS)+1)*THOUGHT_STEP_MS;}
+export function scatteredThoughts(width,height,random=Math.random){
+ const grid=thoughtGrid(width,height),slots=[];
+ for(let row=0;row<grid.rows;row++)for(let col=0;col<grid.columns;col++){
+  const w=Math.min(width,140+random()*90),h=Math.min(height,34+random()*24);
+  slots.push({x:Math.max(0,Math.min(width-w,(col+random())*width/grid.columns-w/2)),y:Math.max(0,Math.min(height-h,(row+random())*height/grid.rows-h/2)),width:w,height:h,angle:(random()-.5)*28});
+ }
+ for(let i=slots.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[slots[i],slots[j]]=[slots[j],slots[i]];}return slots;
+}

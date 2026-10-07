@@ -24,4 +24,6 @@ const voices=fs.readdirSync(voiceSource).filter(n=>/^eatSugar\d+\.ogg$/.test(n))
 for(const name of voices)fs.copyFileSync(path.join(voiceSource,name),path.join(voiceDest,name));
 const angry=['JaNai.ogg','Sato.ogg','Mo-Ya-Da.ogg'];
 for(const name of angry)fs.copyFileSync(path.join(voiceSource,name),path.join(voiceDest,name));
-fs.writeFileSync(path.join(voiceDest,'manifest.json'),JSON.stringify({happy:voices,angry},null,2));
+const dazed=fs.readdirSync(voiceSource).filter(n=>/^death.*\.ogg$/i.test(n)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+for(const name of dazed)fs.copyFileSync(path.join(voiceSource,name),path.join(voiceDest,name));
+fs.writeFileSync(path.join(voiceDest,'manifest.json'),JSON.stringify({happy:voices,angry,dazed},null,2));
