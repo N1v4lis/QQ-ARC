@@ -1,5 +1,5 @@
 export const MOOD_ACTIONS=Object.freeze({angry:['sleep','picnic','sneaking'],dazed:['picnic','sneaking','keyboard']});
-export const LOOP_ACTIONS=new Set(['idle','walk','run','fly','elytra_fly','swim','swim_stand','sneak','sneaking','climb','climbing','ladder_up','ladder_down','ladder_stillness','sit','sleep','picnic','keyboard']);
+export const LOOP_ACTIONS=new Set(['extra2','extra5','extra6','extra7','idle','walk','run','fly','elytra_fly','swim','swim_stand','sneak','sneaking','climb','climbing','ladder_up','ladder_down','ladder_stillness','sit','sleep','picnic','keyboard']);
 export class FoxBehavior {
   constructor({now=performance.now(),random=Math.random}={}){this.random=random;this.mood='normal';this.reason='';this.clicks=[];this.recovery=[];this.until=0;this.touch(now);}
   touch(now){this.idleAt=now+60000+this.random()*60000;}
