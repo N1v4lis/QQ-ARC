@@ -577,108 +577,39 @@ function renderMemorySettingsSection(c) {
 }
 
 function renderPersonaSection(c) {
-  // 统一人设开关：开启（默认）= 所有用同一套全局人设（下方完整编辑器）；
-  // 关闭 = 每个白名单会话一个按钮，点开模态框单独编辑（personaByChat）。
-  const unified = c.personaUnified !== false;
-  const perChat = c.personaByChat || {};
-  const allowIds = [
-    ...(c.allow?.groups || []).map((g) => `group:${g}`),
-    ...(c.allow?.private || []).map((p) => `private:${p}`)
-  ].map(String);
-  const extraIds = Object.keys(perChat).filter((id) => !allowIds.includes(id));
-  const chatIds = [...allowIds, ...extraIds];
-
-  const unifiedEditor = `
-    ${renderPersonaPicker(c, { standalone: true })}
-    <div class="field-row">
-      <div class="field"><label>机器人名字</label><input type="text" id="cfg-botname" value="${esc(c.persona.botName)}" /></div>
-      <div class="field"><label>群内展示名（可选）</label><input type="text" id="cfg-selfnick" value="${esc(c.persona.selfNickname || '')}" /></div>
-      <div class="field"><label>参与度</label>
-        <select id="cfg-participation">
-          <option value="low" ${c.persona.participation === 'low' ? 'selected' : ''}>安静型</option>
-          <option value="medium" ${c.persona.participation === 'medium' ? 'selected' : ''}>普通群友</option>
-          <option value="high" ${c.persona.participation === 'high' ? 'selected' : ''}>活跃型</option>
-        </select></div>
-    </div>
-    <div class="field"><label>角色设定</label>
-      <textarea id="cfg-roletext" class="persona-role-text" placeholder="例如：你是运维群里的老油条……">${esc(c.persona.roleText || '')}</textarea></div>
-    <div class="field"><label>管理员附加规则（可选，追加到系统提示）</label>
-      <textarea id="cfg-customrules" class="persona-role-text" style="min-height:100px">${esc(c.persona.customRules || '')}</textarea></div>
-    <div class="field">
-      <label>系统提示词覆盖（高级 · 可选）</label>
-      <textarea id="cfg-sysprompt" class="persona-role-text" style="min-height:120px" placeholder="留空 = 使用内置默认系统提示词（含安全规则/工具协议/反AI味等）。填写后将整体替换默认行为准则。">${esc(c.persona.systemPromptOverride || '')}</textarea>
-      <div class="hint">
-        ⚠️ 高级功能：填写后会<b>整体替换</b>内置系统提示词，默认的安全规则、工具协议、反 AI 味等约束全部失效（需自行在覆盖文本里写明）。
-        可用占位符：<code>{botName}</code> <code>{roleText}</code> <code>{participation}</code>。留空则完全不影响现有行为。
-      </div>
-    </div>`;
-
-  // 分会话模式：每个会话一行（会话名 · 人设状态 · 该会话用的模型）
-  const byChatModel = (chatKey) => {
-    const kind = String(chatKey).split(':')[0];
-    const map = c.api?.apiByChat || {};
-    const exact = map.byChat?.[chatKey];
-    const hit = (exact && String(exact.model || '').trim()) ? exact : map[kind];
-    const model = String(hit?.model || '').trim();
-    if (!model) return '';
-    const p = (state.providers || []).find((x) => x.id === hit.provider);
-    const name = (p?.modelNames || {})[model] || model;
-    const exactHit = Boolean(exact && String(exact.model || '').trim());
-    return `${exactHit ? '' : '默认 · '}${name}`;
-  };
-  const chatRows = chatIds.map((chatKey) => {
-    const conf = perChat[chatKey] || {};
-    const hasCustom = Boolean(conf.roleText || conf.participation || conf.customRules || conf.systemPromptOverride);
-    const title = formatChatTitle(chatKey, extraIds.includes(chatKey) ? '' : chatNameOf(chatKey));
-    const model = byChatModel(chatKey);
-    return `
-      <div class="persona-chat-item">
-        <button class="btn persona-chat-btn ${hasCustom ? 'has-custom' : ''}" data-chat="${esc(chatKey)}" title="${esc(title)}的人设与模型">
-          ${esc(title)}${hasCustom ? ' ●' : ''}
-        </button>
-        <div class="hint persona-chat-model">${model ? `模型：${esc(model)}` : '模型：跟随默认'}</div>
-      </div>`;
-  }).join('');
-
+  const target = state.personaTarget || 'global';
+  const global = target === 'global';
+  const per = global ? c.persona : (c.personaByChat?.[target] || {});
+  const title = global ? '全局人设' : formatChatTitle(target, chatNameOf(target));
+  const ids = [...new Set([...(c.allow?.groups || []).map(id => 'group:' + id), ...(c.allow?.private || []).map(id => 'private:' + id), ...Object.keys(c.personaByChat || {}), ...Object.keys(c.api?.apiByChat?.byChat || {})])];
   const templates = Object.entries(state.personaTemplates || {});
-  const templateRows = templates.map(([id, p]) => `<button type="button" class="persona-template" data-persona-id="${esc(id)}" aria-pressed="${p.text === c.persona.roleText}">
-    <span class="persona-template-name">${esc(p.name)}</span><span class="uc-tag">${p.builtin ? '内置' : '自定义'}</span>
-    <span class="persona-template-desc">${esc(String(p.text || '').replace(/\s+/g, ' ').slice(0, 100))}</span>
-  </button>`).join('');
-  return `<div class="usage-wrap persona-page">
-    <div class="usage-head"><h2>人设</h2>
-      <button type="button" class="btn btn-small" id="new-persona-btn" ${unified ? '' : 'disabled'}>＋ 添加人设</button>
-      <span class="uc-tag">${templates.length} 套人设</span>
-      <span class="hint persona-save-note">编辑自动保存</span>
-    </div>
-    <p class="hint">选择一套人设作为起点，在编辑区调整角色设定与规则；也可以为不同会话配置独立人设。</p>
-    <div class="checkbox-row"><input type="checkbox" id="cfg-persona-unified" ${unified ? 'checked' : ''} />
-      <label for="cfg-persona-unified">为所有的群聊/私聊使用同一个人设</label></div>
-    <div class="hint" style="margin-bottom:12px">${unified
-      ? '所有会话共用下方这一套人设。'
-      : '每个会话独立人设 + 独立模型：点按对应按钮弹窗编辑（● = 已配置独立人设）。机器人名字/群内展示名是账号身份，只能全局设置。'}</div>
-    <div id="persona-unified-box" style="${unified ? '' : 'display:none'}">
-      <div class="persona-workspace">
-        <aside class="persona-library" aria-label="人设库">
-          <h3>人设库</h3>
-          <input type="search" id="persona-search" data-persona-filter placeholder="搜索人设名称 / 内容…" aria-label="搜索人设" value="${esc(state.personaSearch || '')}" autocomplete="off" />
-          <div class="persona-template-list">${templateRows || '<p class="hint">暂无人设，可以添加自己的角色设定。</p>'}</div>
-          <p class="hint hidden" id="persona-search-empty">没有匹配的人设</p>
-        </aside>
-        <section class="persona-editor" aria-label="当前人设编辑器"><h3>当前人设</h3>${unifiedEditor}</section>
-      </div>
-    </div>
-    <div id="persona-perchat-box" style="${unified ? 'display:none' : ''}">
-      <div class="field" style="margin-bottom:10px">
-        <button class="btn" id="open-global-persona-btn">⚙ 全局人设设置（未单独配置的会话用这套）</button>
-      </div>
-      <h3>默认模型（群聊 / 私聊）</h3>
-      <p class="hint">未单独指定模型的会话使用这里的配置，留空跟随主模型。</p>
-      <div id="apibychat-rows"></div>
-      <div class="hint" style="margin-top:6px">在会话弹窗里可以给单个群 / 单个私聊指定模型（优先级高于这里）。图片 / 视频消息仍按「模型配置」里的专用模型走。</div>
-      <h3>会话人设</h3>
-      <div class="persona-chat-grid">${chatRows || '<div class="hint">（白名单为空——先在「聊天白名单」里添加群聊/私聊）</div>'}</div>
-    </div></div>`;
+  const panel = state.personaPanel || 'role';
+  const nav = (id, name, sub) => '<button type="button" class="persona-target' + (id === target ? ' active' : '') + '" data-persona-target="' + esc(id) + '" aria-pressed="' + (id === target) + '"><span>' + esc(name) + '</span><small>' + esc(sub) + '</small></button>';
+  const chats = kind => ids.filter(id => id.startsWith(kind + ':')).map(id => nav(id, formatChatTitle(id, chatNameOf(id)), c.personaByChat?.[id]?.roleText ? '独立人设' : '跟随全局')).join('') || '<p class="hint">暂无' + (kind === 'group' ? '群聊' : '私聊') + '</p>';
+  const currentModel = c.api?.apiByChat?.byChat?.[target];
+  const missingModel = currentModel?.model && !(state.providers || []).some(p => p.id === currentModel.provider && (p.models || []).includes(currentModel.model));
+  const retainedModel = missingModel ? '<option selected value="' + esc(JSON.stringify([currentModel.provider || '', currentModel.model])) + '">' + esc(currentModel.model) + '（目录未加载）</option>' : '';
+  const modelOptions = '<option value="">跟随默认模型</option>' + retainedModel + (state.providers || []).map(p => '<optgroup label="' + esc(p.displayName || p.id) + '">' + (p.models || []).map(m => '<option value="' + esc(JSON.stringify([p.id, m])) + '"' + (c.api?.apiByChat?.byChat?.[target]?.model === m && c.api?.apiByChat?.byChat?.[target]?.provider === p.id ? ' selected' : '') + '>' + esc(p.modelNames?.[m] || m) + '</option>').join('') + '</optgroup>').join('');
+  return '<div class="persona-studio">' +
+    '<aside class="persona-selector" aria-label="会话与人设选择">' +
+      '<div class="persona-selector-head"><h2>人设</h2><button type="button" class="btn btn-small" id="new-persona-btn">＋ 添加</button></div>' +
+      '<input type="search" id="persona-search" data-persona-filter placeholder="搜索会话 / 人设…" aria-label="搜索会话或人设" value="' + esc(state.personaSearch || '') + '" autocomplete="off" />' +
+      '<nav class="persona-left-tabs" aria-label="选择类别"><button type="button" data-persona-left="chats" class="active">会话</button><button type="button" data-persona-left="templates">人设库 · ' + templates.length + '</button></nav>' +
+      '<div data-persona-list="chats">' + nav('global', '全局人设', '账号身份与默认角色') + '<h3>群聊</h3>' + chats('group') + '<h3>私聊</h3>' + chats('private') + '</div>' +
+      '<div data-persona-list="templates" hidden>' + templates.map(([id, p]) => '<button type="button" class="persona-template" data-persona-id="' + esc(id) + '" aria-pressed="' + (p.text === per.roleText) + '"><span class="persona-template-name">' + esc(p.name) + '</span><span class="uc-tag">' + (p.builtin ? '内置' : '自定义') + '</span><span class="persona-template-desc">' + esc(String(p.text || '').replace(/\s+/g, ' ').slice(0,100)) + '</span></button>').join('') + '</div>' +
+      '<p class="hint hidden" id="persona-search-empty">没有匹配的结果</p>' +
+    '</aside>' +
+    '<section class="persona-editor" aria-label="人设编辑器">' +
+      '<header class="persona-editor-head"><div><h2>' + esc(title) + '</h2><p class="hint">' + (global ? '未单独配置的会话使用这套人设' : '留空的字段跟随全局；账号名字在全局人设中设置') + '</p></div><span class="hint" id="persona-save-status">编辑自动保存</span></header>' +
+      '<div class="checkbox-row"><input type="checkbox" id="cfg-persona-unified" ' + (c.personaUnified !== false ? 'checked' : '') + ' /><label for="cfg-persona-unified">所有会话使用全局人设</label></div>' +
+      (!global ? '<p class="hint" id="persona-unified-note"' + (c.personaUnified !== false ? '' : ' hidden') + '>当前统一模式已开启；本会话的独立配置会保留，关闭上方开关后生效。</p>' : '') +
+      '<nav class="persona-editor-tabs" aria-label="人设编辑子菜单">' + [['role','角色设定'],['rules','附加规则'],['model','模型配置']].map(([id,name]) => '<button type="button" data-persona-panel="' + id + '" class="' + (panel === id ? 'active' : '') + '" aria-pressed="' + (panel === id) + '">' + name + '</button>').join('') + '</nav>' +
+      '<div data-persona-pane="role"' + (panel === 'role' ? '' : ' hidden') + '>' + renderPersonaPicker({persona:per}, {standalone:true}) +
+        '<div class="field-row">' + (global ? '<div class="field"><label for="cfg-botname">机器人名字</label><input id="cfg-botname" value="' + esc(per.botName || '') + '" /></div><div class="field"><label for="cfg-selfnick">群内展示名</label><input id="cfg-selfnick" value="' + esc(per.selfNickname || '') + '" /></div>' : '') +
+        '<div class="field"><label for="cfg-participation">参与度</label><select id="cfg-participation">' + (global ? '' : '<option value="">跟随全局</option>') + [['low','安静型'],['medium','普通群友'],['high','活跃型']].map(([id,name])=>'<option value="'+id+'"'+(per.participation===id?' selected':'')+'>'+name+'</option>').join('') + '</select></div></div>' +
+        '<div class="field"><label for="cfg-roletext">角色设定' + (global ? '' : '（留空跟随全局）') + '</label><textarea id="cfg-roletext" class="persona-role-text" placeholder="' + (global ? '描述角色的性格、身份与表达方式…' : '留空使用全局角色设定') + '">' + esc(per.roleText || '') + '</textarea></div></div>' +
+      '<div data-persona-pane="rules"' + (panel === 'rules' ? '' : ' hidden') + '><div class="field"><label for="cfg-customrules">管理员附加规则</label><textarea id="cfg-customrules" class="persona-role-text" placeholder="' + (global ? '可选：追加到系统提示' : '留空跟随全局') + '">' + esc(per.customRules || '') + '</textarea></div><div class="field"><label for="cfg-sysprompt">系统提示词覆盖（高级）</label><textarea id="cfg-sysprompt" class="persona-role-text" placeholder="留空使用默认提示词">' + esc(per.systemPromptOverride || '') + '</textarea><p class="hint">填写后整体替换默认系统提示词。可用占位符：{botName}、{roleText}、{participation}。</p></div></div>' +
+      '<div data-persona-pane="model"' + (panel === 'model' ? '' : ' hidden') + '>' + (global ? '<h3>默认模型（群聊 / 私聊）</h3><p class="hint">未单独指定模型的会话使用这里的配置，留空跟随主模型。</p><div id="apibychat-rows"></div>' : '<div class="field"><label for="cfg-persona-chat-model">本会话模型</label><select id="cfg-persona-chat-model">' + modelOptions + '</select><p class="hint">跟随默认模型时，使用群聊或私聊默认配置。图片与视频仍使用模型API中的专用模型。</p></div>') + '</div></section></div>';
 }
 
 /**

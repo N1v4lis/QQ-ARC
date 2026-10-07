@@ -1,95 +1,62 @@
-// 独立人设页定点检查；保存请求仅在测试浏览器中模拟，不写用户配置。
+// 人设左右工作区定点检查；配置POST仅在测试浏览器模拟。
 import assert from 'node:assert/strict';
 import {withPage} from './cdp.mjs';
 const url=process.argv[2]||'http://127.0.0.1:3210/';
 const before=await(await fetch(new URL('/api/config',url))).json();
 await withPage({url,width:1360,height:900},async page=>{
-  await page.waitFor('!!window.qqaSkin && !!document.querySelector("#tabs .tab.active")',{timeout:15000});
-  await page.eval('window.qqaSkin.set("minecraft");document.querySelector(\'.tab[data-tab="persona"]\').click()');
-  await page.waitFor('!!document.querySelector("#view-persona #cfg-roletext")',{timeout:15000});
-  const initial=await page.eval(`(()=>({
-    active:document.querySelector('.tab.active').dataset.tab,
-    order:document.querySelector('.tab[data-tab="persona"]').nextElementSibling?.dataset.tab,
-    forms:document.querySelectorAll('#settings-form').length,
-    foldCards:document.querySelectorAll('#view-persona .setcard').length,
-    templateRows:document.querySelectorAll('#view-persona .persona-template').length,
-    roleCharacters:document.querySelector('#cfg-roletext').value.length,
-    questionMarks:(document.querySelector('#cfg-roletext').value.match(/\\?/g)||[]).length,
-    icon:document.querySelector('.tab[data-tab="persona"] svg').dataset.mcIcon,
-    sidebarSize:getComputedStyle(document.querySelector('.tab-tx')).fontSize,
-    removedFromSettings:!document.querySelector('.settings-menu-item[data-section="persona"]')
-  }))()`);
-  assert.equal(initial.active,'persona');assert.equal(initial.order,'skills');assert.equal(initial.forms,1);
-  assert.equal(initial.foldCards,0);assert(initial.templateRows>0);
-  assert.equal(initial.roleCharacters,before.persona.roleText.length);assert.equal(initial.questionMarks,0);
-  assert.equal(initial.icon,'persona');assert.equal(initial.sidebarSize,'14px');assert.equal(initial.removedFromSettings,true);
-  await page.eval(`(()=>{
-    window.__personaTestOriginalFetch=window.fetch;window.__personaTestPosts=[];
-    window.fetch=async function(input,init){
-      const requestUrl=typeof input==='string'?input:input.url;
-      if(requestUrl.includes('/api/config')&&init?.method==='POST'){
-        const patch=JSON.parse(init.body);window.__personaTestPosts.push(patch);
-        const config=structuredClone(state.config);Object.assign(config.persona,patch.persona||{});
-        return new Response(JSON.stringify({ok:true,config}),{status:200,headers:{'Content-Type':'application/json'}});
-      }
-      return window.__personaTestOriginalFetch.call(this,input,init);
-    };
-    window.__personaTestRole=document.querySelector('#cfg-roletext').value;
-    const role=document.querySelector('#cfg-roletext');role.value+='\\n中文保存验证';role.dispatchEvent(new Event('input',{bubbles:true}));
-    window.__personaTestUndoAbsent=!document.querySelector('#view-persona .settings-undo-btn');
-    document.querySelector('.tab[data-tab="settings"]').click();
-  })()`);
-  await page.waitFor('window.__personaTestPosts.length>0 && !!document.querySelector("#view-settings #settings-form")',{timeout:10000});
-  const saved=await page.eval('({unicode:window.__personaTestPosts[0].persona?.roleText.endsWith("中文保存验证"), keys:Object.keys(window.__personaTestPosts[0]),formCount:document.querySelectorAll("#settings-form").length})');
-  assert.equal(saved.unicode,true);assert.equal(saved.formCount,1);assert(saved.keys.includes('persona'));
-  assert.equal(await page.eval('window.__personaTestUndoAbsent'),true,'人设编辑不产生设置撤销入口');
-  await page.eval('window.fetch=window.__personaTestOriginalFetch;document.querySelector("#model-label").click()');
-  await page.waitFor('!!document.querySelector("#view-persona #cfg-roletext")',{timeout:15000});
-  await page.waitFor('document.querySelector("#cfg-roletext").value===window.__personaTestRole',{timeout:10000});
-  await page.eval('document.querySelector("#cfg-persona-pick").click()');
-  await page.waitFor('!!document.querySelector("#persona-list .mm-model")',{timeout:10000});
-  const names=await page.eval('[...document.querySelectorAll("#persona-list .mm-model")].map(node=>node.textContent)');
-  assert(names.length>0);assert(names.every(name=>!name.includes('???')));
-  await page.eval('document.querySelector("#persona-cancel").click()');
-  await page.eval(`(()=>{
-    window.__personaTestPosts=[];
-    window.fetch=async function(input,init){
-      const requestUrl=typeof input==='string'?input:input.url;
-      if(requestUrl.includes('/api/config')&&init?.method==='POST'){
-        const patch=JSON.parse(init.body);window.__personaTestPosts.push(patch);
-        const config=structuredClone(state.config);
-        if(patch.persona)Object.assign(config.persona,patch.persona);
-        if('personaUnified' in patch)config.personaUnified=patch.personaUnified;
-        return new Response(JSON.stringify({ok:true,config}),{status:200,headers:{'Content-Type':'application/json'}});
-      }
-      return window.__personaTestOriginalFetch.call(this,input,init);
-    };
-    const search=document.querySelector('#persona-search');search.value='__no_matching_persona__';search.dispatchEvent(new Event('input',{bubbles:true}));
-  })()`);
-  assert.equal(await page.eval('document.querySelectorAll(".persona-template:not([hidden])").length'),0);
-  await page.eval('document.querySelector("#persona-search").value="";document.querySelector("#persona-search").dispatchEvent(new Event("input",{bubbles:true}))');
-  assert.equal(await page.eval('window.__personaTestPosts.length'),0,'搜索不写配置');
-  await page.eval('document.querySelector(".persona-template").click()');
-  await page.waitFor('window.__personaTestPosts.length>0',{timeout:5000});
-  assert.equal(await page.eval('document.querySelector(".persona-template.active")?.getAttribute("aria-pressed")'),'true');
-  assert.equal(await page.eval('window.__personaTestPosts.at(-1).persona.roleText===document.querySelector("#cfg-roletext").value'),true);
-  await page.eval('document.querySelector("#cfg-persona-unified").click()');
-  await page.waitFor('window.__personaTestPosts.some(p=>p.personaUnified===false)');
-  await page.waitFor('getComputedStyle(document.querySelector("#persona-perchat-box")).display!=="none"');
-  assert.equal(await page.eval('document.querySelectorAll("#view-persona .setcard").length'),0);
-  assert.equal(await page.eval('document.querySelector("#new-persona-btn").disabled'),true);
-  await page.eval('window.fetch=window.__personaTestOriginalFetch;window.qqaSkin.set("default");document.querySelector("#model-label").click()');
-  await page.waitFor('document.querySelector("#cfg-roletext").value===window.__personaTestRole && document.querySelector("#cfg-persona-unified").checked');
-  await page.screenshot('shots/final/persona-page-default.png');
-  await page.eval('window.qqaSkin.set("minecraft")');
-  await page.waitFor('!document.querySelector("#loading-overlay")',{timeout:15000});
-  await page.screenshot('shots/final/persona-page.png');
-  await page.send('Emulation.setDeviceMetricsOverride',{width:800,height:900,deviceScaleFactor:1,mobile:false});
-  await page.eval('document.documentElement.dataset.nav="collapsed"');
-  assert.equal(await page.eval('document.documentElement.scrollWidth>innerWidth'),false,'窄窗口无横向溢出');
-  await page.screenshot('shots/final/persona-page-narrow.png');
-  console.log(JSON.stringify({initial,saved,templates:names.length},null,2));
+ await page.waitFor('!!window.qqaSkin && !!document.querySelector(".tab.active")',{timeout:15000});
+ await page.eval('window.qqaSkin.set("minecraft");state.personaTarget="global";document.querySelector(".tab[data-tab=persona]").click()');
+ await page.waitFor('!!document.querySelector(".persona-studio #cfg-roletext")',{timeout:15000});
+ const initial=await page.eval(`({forms:document.querySelectorAll('#settings-form').length,cards:document.querySelectorAll('#view-persona .setcard').length,order:document.querySelector('.tab[data-tab=persona]').nextElementSibling.dataset.tab,templates:document.querySelectorAll('.persona-template').length,role:document.querySelector('#cfg-roletext').value})`);
+ assert.equal(initial.forms,1);assert.equal(initial.cards,0);assert.equal(initial.order,'skills');assert(initial.templates>0);assert.equal(initial.role,before.persona.roleText);
+ await page.eval(`(()=>{
+  window.__personaPosts=[];window.__personaFetch=window.fetch;
+  const merge=(base,patch)=>{for(const [k,v] of Object.entries(patch)){if(v&&typeof v==='object'&&!Array.isArray(v)){if('__replace__' in v)base[k]=structuredClone(v.__replace__);else {if(!base[k]||typeof base[k]!=='object')base[k]={};merge(base[k],v);}}else base[k]=v;}return base;};
+  window.fetch=async function(input,init){const u=typeof input==='string'?input:input.url;if(u.includes('/api/config')&&init?.method==='POST'){const patch=JSON.parse(init.body);window.__personaPosts.push(patch);const config=merge(structuredClone(state.config),patch);return new Response(JSON.stringify({ok:true,config}),{status:200,headers:{'Content-Type':'application/json'}});}return window.__personaFetch.call(this,input,init);};
+  const search=document.querySelector('#persona-search');search.value='__no_match__';search.dispatchEvent(new Event('input',{bubbles:true}));
+ })()`);
+ assert.equal(await page.eval('document.querySelectorAll(".persona-target:not([hidden])").length'),0);
+ await page.eval('document.querySelector("#persona-search").value="";document.querySelector("#persona-search").dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("[data-persona-panel=rules]").click()');
+ assert.equal(await page.eval('document.querySelector("[data-persona-pane=role]").hidden'),true);
+ assert.equal(await page.eval('document.querySelector("[data-persona-pane=rules]").hidden'),false);
+ assert.equal(await page.eval('window.__personaPosts.length'),0,'浏览子菜单和搜索不保存');
+ await page.eval('(()=>{document.querySelector("[data-persona-panel=role]").click();const r=document.querySelector("#cfg-roletext");r.value+="\\n中文保存验证";r.dispatchEvent(new Event("input",{bubbles:true}));})()');
+ assert.equal(await page.eval('!!document.querySelector("#view-persona .settings-undo-btn")'),false);
+ const target=await page.eval('document.querySelector(".persona-target[data-persona-target^=\\"group:\\"]")?.dataset.personaTarget || document.querySelector(".persona-target[data-persona-target^=\\"private:\\"]")?.dataset.personaTarget');
+ assert(target,'需要会话用于定点验证');
+ await page.eval(`document.querySelector('[data-persona-target="${target}"]').click()`);
+ await page.waitFor(`state.personaTarget===${JSON.stringify(target)} && !document.querySelector('.persona-studio').dataset.switching`);
+ assert.equal(await page.eval('window.__personaPosts.some(p=>p.persona?.roleText.endsWith("中文保存验证"))'),true,'切会话前保存全局');
+ assert.equal(await page.eval('!!document.querySelector(".model-modal-overlay")'),false);
+ await page.eval('document.querySelector("[data-persona-left=templates]").click();document.querySelector(".persona-template").click()');
+ await page.waitFor(`window.__personaPosts.some(p=>p.personaByChat?.__replace__?.[${JSON.stringify(target)}])`);
+ const selection=await page.eval(`({text:document.querySelector('#cfg-roletext').value,patch:window.__personaPosts.filter(p=>p.personaByChat).at(-1),rules:document.querySelector('#cfg-customrules').value})`);
+ assert.equal(selection.patch.personaByChat.__replace__[target].roleText,selection.text);assert.equal(selection.patch.personaByChat.__replace__[target].customRules,selection.rules);assert.equal('persona' in selection.patch,false,'会话编辑不写全局');
+ await page.eval('document.querySelector("[data-persona-panel=model]").click()');
+ assert.equal(await page.eval('!!document.querySelector("#cfg-persona-chat-model")'),true);
+ const hasModels=await page.eval('document.querySelector("#cfg-persona-chat-model").options.length>1');
+ if(hasModels){
+  await page.eval('state.config.api.apiByChat.byChat={...(state.config.api.apiByChat.byChat||{}),"private:test-preserved":{model:"preserved-model",provider:"preserved-provider"}};const m=document.querySelector("#cfg-persona-chat-model");m.selectedIndex=1;m.dispatchEvent(new Event("change",{bubbles:true}))');
+  await page.waitFor(`window.__personaPosts.some(p=>p.api?.apiByChat?.byChat?.__replace__?.[${JSON.stringify(target)}]?.model)`);
+  assert.equal(await page.eval('state.config.api.apiByChat.byChat["private:test-preserved"].model'),'preserved-model');
+  await page.eval('const clearModel=document.querySelector("#cfg-persona-chat-model");clearModel.value="";clearModel.dispatchEvent(new Event("change",{bubbles:true}))');
+  await page.waitFor(`!state.config.api.apiByChat.byChat[${JSON.stringify(target)}]`);
+  assert.equal(await page.eval('state.config.api.apiByChat.byChat["private:test-preserved"].model'),'preserved-model');
+ }
+ await page.eval('document.querySelector("[data-persona-left=chats]").click();document.querySelector("[data-persona-target=global]").click()');
+ await page.waitFor('state.personaTarget==="global" && !!document.querySelector("#apibychat-rows")');
+ await page.eval('(()=>{document.querySelector("[data-persona-panel=role]").click();const r=document.querySelector("#cfg-roletext");r.value+="\\n离页保存";r.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector(".tab[data-tab=settings]").click();})()');
+ await page.waitFor('window.__personaPosts.some(p=>p.persona?.roleText.endsWith("离页保存"))');
+ await page.eval('document.querySelector("#model-label").click()');
+ await page.waitFor('!!document.querySelector(".persona-studio")');
+ await page.waitFor('!document.querySelector("#loading-overlay")',{timeout:15000});
+ await page.eval('document.documentElement.dataset.motion="off";window.qqaSkin.set("default")');await page.screenshot('shots/final/persona-page-default.png');
+ await page.eval('window.qqaSkin.set("minecraft")');await page.screenshot('shots/final/persona-page.png');
+ await page.send('Emulation.setDeviceMetricsOverride',{width:800,height:900,deviceScaleFactor:1,mobile:false});
+ await page.eval('document.documentElement.dataset.nav="collapsed"');
+ assert.equal(await page.eval('document.documentElement.scrollWidth>innerWidth'),false);
+ await page.screenshot('shots/final/persona-page-narrow.png');
+ console.log(JSON.stringify({forms:initial.forms,cards:initial.cards,templates:initial.templates,chatTarget:target,postCount:await page.eval('window.__personaPosts.length')},null,2));
 });
-const after=await(await fetch(new URL('/api/config',url))).json();
-assert.deepEqual(after,before,'检查不应写入用户真实配置');
-console.log('✔ 独立人设路由/技能上方位置/14px导航/模板/切页中文保存/单表单/顶栏入口通过，真实配置未改');
+assert.deepEqual(await(await fetch(new URL('/api/config',url))).json(),before,'不修改真实配置');
+console.log('✔ 左右工作区/会话选择/子菜单/模板/搜索不保存/切目标和离页保存/无撤销/窄窗通过，真实配置未改');

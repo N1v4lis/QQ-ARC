@@ -25,9 +25,9 @@ let settingsFlushHandlers = [];
 
 /** 切走设置页前调用：把防抖窗口内还没落盘的改动立即保存。 */
 function flushSettingsSaves() {
-  for (const fn of settingsFlushHandlers) {
-    try { fn(); } catch (e) { console.error('离开设置页前保存失败:', e); }
-  }
+  return Promise.all(settingsFlushHandlers.map(fn => {
+    try { return fn(); } catch (e) { console.error('离开设置页前保存失败:', e); return false; }
+  }));
 }
 
 function bindSettingsEvents(c) {
@@ -140,8 +140,10 @@ function bindSettingsEvents(c) {
       startListPoller();
       // 刷新间隔可能刚被改过：重建状态轮询，让新间隔立刻生效
       startStatusPoller();
+      return true;
     } catch (e) {
       console.error('自动保存失败:', e);
+      return false;
     } finally {
       saving = false;
       endSettingsGuard();
@@ -159,7 +161,7 @@ function bindSettingsEvents(c) {
   // 旧引用不清掉会让"已取消的定时器"看起来还活着。
   function flushSave() {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
-    doSave();
+    return doSave();
   }
 
   // 表单变动监听（设置页所有输入都会经过这里）。
@@ -1006,7 +1008,10 @@ function bindSettingsEvents(c) {
     });
   }
   if (personaPick) {
-    personaPick.addEventListener('click', () => openPersonaPicker());
+    personaPick.addEventListener('click', () => {
+      const templatesTab = $('[data-persona-left="templates"]');
+      if (templatesTab) templatesTab.click(); else openPersonaPicker();
+    });
   }
   const newPersonaBtn = $('#new-persona-btn');
   if (newPersonaBtn) newPersonaBtn.addEventListener('click', () => openPersonaCreateModal());
@@ -1034,7 +1039,7 @@ function bindSettingsEvents(c) {
   $('#cfg-roletext')?.addEventListener('input', () => syncPersonaButtons(false));
   $$('.persona-template').forEach(button => button.addEventListener('click', () => {
     const tpl = state.personaTemplates[button.dataset.personaId];
-    if (!tpl || !$('#cfg-persona-unified')?.checked) return;
+    if (!tpl) return;
     $('#cfg-roletext').value = tpl.text;
     $('#cfg-customrules').value = tpl.customRules || '';
     $('#cfg-roletext').dispatchEvent(new Event('input', { bubbles: true }));
@@ -1049,11 +1054,56 @@ function bindSettingsEvents(c) {
       const tpl = state.personaTemplates[button.dataset.personaId];
       const match = !term || `${tpl?.name || ''} ${tpl?.text || ''}`.toLowerCase().includes(term);
       button.hidden = !match;
-      if (match) count++;
+      if (match && state.personaLeft === 'templates') count++;
+    });
+    $$('.persona-target').forEach(button => {
+      const match = !term || button.textContent.toLowerCase().includes(term) || button.dataset.personaTarget.toLowerCase().includes(term);
+      button.hidden = !match;
+      if (match && state.personaLeft !== 'templates') count++;
     });
     $('#persona-search-empty')?.classList.toggle('hidden', count > 0);
   };
   if (personaSearch) { personaSearch.addEventListener('input', filterPersonas); filterPersonas(); }
+  const setPersonaLeft = name => {
+    state.personaLeft = name;
+    $$('[data-persona-list]').forEach(node => { node.hidden = node.dataset.personaList !== name; });
+    $$('[data-persona-left]').forEach(button => {
+      button.classList.toggle('active', button.dataset.personaLeft === name);
+      button.setAttribute('aria-pressed', String(button.dataset.personaLeft === name));
+    });
+    filterPersonas();
+  };
+  $$('[data-persona-left]').forEach(button => button.addEventListener('click', () => setPersonaLeft(button.dataset.personaLeft)));
+  if ($('.persona-studio')) setPersonaLeft(state.personaLeft || 'chats');
+  $$('[data-persona-panel]').forEach(button => button.addEventListener('click', () => {
+    state.personaPanel = button.dataset.personaPanel;
+    $$('[data-persona-pane]').forEach(node => { node.hidden = node.dataset.personaPane !== state.personaPanel; });
+    $$('[data-persona-panel]').forEach(tab => {
+      tab.classList.toggle('active', tab === button);
+      tab.setAttribute('aria-pressed', String(tab === button));
+    });
+  }));
+  $$('[data-persona-target]').forEach(button => button.addEventListener('click', async () => {
+    const studio = $('.persona-studio');
+    if (!studio || studio.dataset.switching || button.dataset.personaTarget === (state.personaTarget || 'global')) return;
+    studio.dataset.switching = 'true';
+    try {
+      // 先等在途保存，再读取当前编辑器保存；切目标后才重绘，避免串到另一会话。
+      const deadline = Date.now() + 15000;
+      while (settingsGuard.pending > 0) {
+        if (Date.now() > deadline) throw new Error('保存仍在进行，请稍后重试');
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+      const results = await flushSettingsSaves();
+      if (results.some(result => result === false)) throw new Error('保存失败，已保留当前编辑内容');
+      if (state.tab !== 'persona') return;
+      state.personaTarget = button.dataset.personaTarget;
+      renderSettings();
+    } catch (error) {
+      const status = $('#persona-save-status');
+      if (status) status.textContent = error.message;
+    } finally { delete studio.dataset.switching; }
+  }));
 
   // ── 白名单区块事件 ──
   const pickGroupsBtn = $('#pick-groups-btn');
@@ -1067,6 +1117,11 @@ function bindSettingsEvents(c) {
   // 统一开关：切显隐（不触发保存——display 切换不是配置变化，真正的值在 checkbox 上）。
   const personaUnifiedChk = $('#cfg-persona-unified');
   if (personaUnifiedChk) personaUnifiedChk.addEventListener('change', () => {
+    if ($('.persona-studio')) {
+      const note = $('#persona-unified-note');
+      if (note) note.hidden = !personaUnifiedChk.checked;
+      return;
+    }
     if (newPersonaBtn) newPersonaBtn.disabled = !personaUnifiedChk.checked;
     const ub = $('#persona-unified-box');
     const pb = $('#persona-perchat-box');

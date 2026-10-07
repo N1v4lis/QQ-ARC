@@ -245,6 +245,9 @@ function openPersonaCreateModal() {
       // 同 openPersonaPicker：程序化赋值不触发 input 事件，自动保存不会启动 ——
       // 主动派发一次，否则"添加完人设切走页签"就丢（保存从未发起）。
       $('#cfg-roletext')?.dispatchEvent(new Event('input', { bubbles: true }));
+      // 添加模板后先保存当前右侧编辑对象，再重新拉取列表。
+      beginSettingsGuard();
+      try { await saveConfig({ quiet: true }); } finally { endSettingsGuard(); }
       await loadSettings();
       // loadSettings 会重渲染整个表单；重渲染用的是 state.config（含刚派发
       // 事件触发的自动保存最终值）。自动保存在途时渲染守卫会拦下并补绘，不会丢。
@@ -1383,6 +1386,34 @@ async function saveConfig({ quiet = false } = {}) {
   }
 
   if (sec === 'persona') {
+    if (document.querySelector('.persona-studio')) {
+      const target = state.personaTarget || 'global';
+      const entry = {
+        participation: val('#cfg-participation', ''),
+        roleText: val('#cfg-roletext', ''),
+        customRules: val('#cfg-customrules', ''),
+        systemPromptOverride: val('#cfg-sysprompt', '')
+      };
+      if (target === 'global') {
+        patch.persona = { ...c.persona, ...entry,
+          botName: val('#cfg-botname', c.persona.botName).trim() || '小鲸鱼',
+          selfNickname: val('#cfg-selfnick', c.persona.selfNickname || '').trim() };
+        const defaults = collectApiByChat();
+        if (defaults) patch.api = { apiByChat: defaults };
+      } else {
+        const next = { ...(c.personaByChat || {}) };
+        if (Object.values(entry).some(Boolean)) next[target] = { ...(next[target] || {}), ...entry }; else delete next[target];
+        patch.personaByChat = { __replace__: next };
+        const byChat = { ...(c.api?.apiByChat?.byChat || {}) };
+        const selected = val('#cfg-persona-chat-model', '');
+        if (selected) {
+          const [provider, model] = JSON.parse(selected);
+          byChat[target] = { provider, model };
+        } else delete byChat[target];
+        patch.api = { apiByChat: { byChat: { __replace__: byChat } } };
+      }
+      patch.personaUnified = chk('#cfg-persona-unified', c.personaUnified !== false);
+    } else {
     // ⚠️ 只在"统一人设编辑器真的显示着"时才收 persona：
     //    分会话模式下那个编辑器虽然还在 DOM 里，但是 display:none 的**旧值**，
     //    收它等于用旧值把用户在弹窗里刚保存的人设覆盖回去（"改完又变回去"的根源）。
@@ -1408,6 +1439,7 @@ async function saveConfig({ quiet = false } = {}) {
     // 隐藏 JSON 值 POST 一遍，会把 modal 刚存的条目用旧值覆盖回去。
     // ⚠️ 统一开关运行语义（与 personaForChat 一致）：开启 = 一律用全局人设，
     //    personaByChat 条目不参与合并（数据保留，关掉开关后恢复生效）。
+    }
   }
 
   if (sec === 'advanced') {
