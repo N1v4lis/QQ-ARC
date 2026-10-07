@@ -36,7 +36,7 @@
     try{
       const {createWineFox}=await import('/shell/wine-fox-runtime.mjs');
       if(ticket!==epoch||signal.aborted)return;
-      created=await createWineFox(prefs,{signal,onPosition:(x,y)=>{prefs={...prefs,x,y};save();},onDisable:()=>set({enabled:false}),onError:(message)=>{error=message;notify();}});
+      created=await createWineFox(prefs,{signal,onPosition:(x,y)=>{prefs={...prefs,x,y};save();},onAnimation:animation=>{prefs={...prefs,animation};save();notify();},onDisable:()=>set({enabled:false}),onError:(message)=>{error=message;notify();}});
       if(ticket!==epoch||signal.aborted){created.dispose();return;}
       instance=created;instance.configure(prefs);loading=false;notify();
     }catch(e){created?.dispose();if(ticket!==epoch)return;loading=false;if(!signal.aborted){error='酒狐暂时无法显示，请重试开启。';console.warn('[wine-fox]',e.message);}notify();}

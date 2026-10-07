@@ -1,5 +1,7 @@
 # 架构
 
+> 0.4.2增量：shell/fox-thought-canvas.mjs用单Canvas、缓存字条与静止层绘制最多512个屏幕气泡；shell/fox-throw.mjs负责拖拽速度、惯性衰减、撞边判定和5次点击/15秒恢复规则，生命周期由wine-fox-runtime.mjs统一控制。头顶气泡仍是CSS。
+
 > 启动动画增量：shell/05-startup.js 在11-motion之后、app/11-init之前加载，按需导入startup-animation.mjs；styles/05-startup.css覆盖既有loading遮罩。hideLoading由控制器等待动画完成与应用就绪，bootLoop不提前移除遮罩。见 [STARTUP-ANIMATION.md](STARTUP-ANIMATION.md)。
 
 > 0.4.01 增量：shell/04-wine-fox.js 管本地偏好与按需导入，shell/wine-fox-runtime.mjs 管 WebGL2、动画、输入及释放；styles/33-wine-fox.css 管局部宠物与设置卡；assets/wine-fox 为运行必需资产。完整 Wine_Fox 来源包位于项目根，不整体部署。

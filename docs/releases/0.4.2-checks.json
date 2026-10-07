@@ -1,0 +1,366 @@
+{
+  "results": [
+    {
+      "name": "默认主题无宠物",
+      "pass": true
+    },
+    {
+      "name": "启用开关隐藏",
+      "pass": true
+    },
+    {
+      "name": "MC自动加载，无关闭按钮",
+      "pass": true
+    },
+    {
+      "name": "自然在首位，GUI和jump隐藏",
+      "pass": true
+    },
+    {
+      "name": "轻点开心语音，jump不在候选",
+      "pass": true
+    },
+    {
+      "name": "拖动Fly，声音保持且朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "松开恢复idle并保存位置",
+      "pass": true
+    },
+    {
+      "name": "过量点击生气10秒、指定语音、20秒动作周期",
+      "pass": true
+    },
+    {
+      "name": "多点恢复开心",
+      "pass": true
+    },
+    {
+      "name": "睡觉持续循环且手动模式不切换",
+      "pass": true
+    },
+    {
+      "name": "手动walk超过两轮仍保持",
+      "pass": true
+    },
+    {
+      "name": "death单次",
+      "pass": true
+    },
+    {
+      "name": "手动单次动作结束不随机换动作",
+      "pass": true
+    },
+    {
+      "name": "Extra2单次结束恢复默认idle",
+      "pass": true
+    },
+    {
+      "name": "旧jump选择迁移自然且不播放jump",
+      "pass": true
+    },
+    {
+      "name": "长按展开8个Extra圆形菜单",
+      "pass": true
+    },
+    {
+      "name": "菜单选择Extra2单次播放并关闭菜单",
+      "pass": true
+    },
+    {
+      "name": "菜单Extra2结束恢复原手动idle",
+      "pass": true
+    },
+    {
+      "name": "Extra0–Extra7均可通过圆形菜单触发单次动作",
+      "pass": true
+    },
+    {
+      "name": "Esc关闭菜单并恢复手动动作",
+      "pass": true
+    },
+    {
+      "name": "自然walk移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "walk到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "自然run移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "run到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "自然elytra_fly移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "elytra_fly到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "自然fly移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "fly到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "呆住picnic连续滚动气泡，20秒周期",
+      "pass": true
+    },
+    {
+      "name": "呆住sneaking连续滚动气泡，20秒周期",
+      "pass": true
+    },
+    {
+      "name": "呆住keyboard连续滚动气泡，20秒周期",
+      "pass": true
+    },
+    {
+      "name": "呆住动作随机播放death语音",
+      "pass": true
+    },
+    {
+      "name": "无人互动10秒增加2个屏幕气泡",
+      "pass": true
+    },
+    {
+      "name": "再过5秒增加4个气泡",
+      "pass": true
+    },
+    {
+      "name": "随后每3秒增加8个气泡",
+      "pass": true
+    },
+    {
+      "name": "512气泡使用单Canvas且节点数量受控",
+      "pass": true
+    },
+    {
+      "name": "全角度气泡混合纯文字，单Canvas正常绘制",
+      "pass": true
+    },
+    {
+      "name": "关闭动效停止Canvas持续绘制",
+      "pass": true
+    },
+    {
+      "name": "拖动保留所有呆住气泡和头顶文字",
+      "pass": true
+    },
+    {
+      "name": "呆住拖动不Fly",
+      "pass": true
+    },
+    {
+      "name": "情绪下run朝向原位返回",
+      "pass": true
+    },
+    {
+      "name": "回到原位并恢复情绪动作",
+      "pass": true
+    },
+    {
+      "name": "点击清空气泡",
+      "pass": true
+    },
+    {
+      "name": "闲置情绪点击恢复",
+      "pass": true
+    },
+    {
+      "name": "松手产生惯性",
+      "pass": true
+    },
+    {
+      "name": "惯性继续移动且未受伤",
+      "pass": true
+    },
+    {
+      "name": "高速撞边death单次，停止自主动作",
+      "pass": true
+    },
+    {
+      "name": "death播完仍等待互动",
+      "pass": true
+    },
+    {
+      "name": "death结束姿势可用真实鼠标点击",
+      "pass": true
+    },
+    {
+      "name": "取消输入不会绕过受伤恢复规则",
+      "pass": true
+    },
+    {
+      "name": "四次点击不足恢复",
+      "pass": true
+    },
+    {
+      "name": "第五次互动恢复自然并保存偏好",
+      "pass": true
+    },
+    {
+      "name": "15秒未点击自动呆住且显示头顶气泡",
+      "pass": true
+    },
+    {
+      "name": "离开MC销毁宠物和菜单",
+      "pass": true
+    },
+    {
+      "name": "取消加载无迟到实例",
+      "pass": true
+    },
+    {
+      "name": "无运行异常和CSP错误",
+      "pass": true
+    }
+  ],
+  "canvasMetrics": {
+    "count": 512,
+    "capacity": 512,
+    "plain": 181,
+    "angleMin": 0.14930761454281516,
+    "angleMax": 357.9287727945238,
+    "frames": 50,
+    "meanDrawMs": 1.9180000000447035,
+    "lastDrawMs": 2.2000000029802322,
+    "paused": false
+  },
+  "version": "0.4.2",
+  "date": "2026-10-08",
+  "staticChecks": [
+    {
+      "id": 1,
+      "name": "样式表结构",
+      "pass": true
+    },
+    {
+      "id": 2,
+      "name": "文档引用",
+      "pass": true
+    },
+    {
+      "id": 3,
+      "name": "宿主插件注入",
+      "pass": true
+    },
+    {
+      "id": 5,
+      "name": "外壳静态结构",
+      "pass": true
+    }
+  ],
+  "scope": "仅原编号1、2、3、5、30，另含短时行为/物理虚拟时间边界验证；未执行停用套件。Canvas数据为浏览器绘制调用耗时，不是整机CPU/GPU或显存测量。",
+  "deathVoices": [
+    {
+      "name": "death1.ogg",
+      "bytes": 32723,
+      "sha256": "27d54914b33e652195770844219f90b91e86af61339dd11b77ac3740ed49d55c"
+    },
+    {
+      "name": "death2.ogg",
+      "bytes": 39480,
+      "sha256": "7c0205a7b9a48688e4024f21281d35c9725caf3576fc91393a937ada473f9b42"
+    },
+    {
+      "name": "death3.ogg",
+      "bytes": 32488,
+      "sha256": "5f04d2c425f55d3862af8f3c6f5dbfe75691b7fe6b5de83d2daafecb6b4b5a77"
+    },
+    {
+      "name": "death4.ogg",
+      "bytes": 51230,
+      "sha256": "5c577cb4b4e1b274570970a6a7e90854b89908027de84285b0aeea15d0930c2b"
+    },
+    {
+      "name": "death5.ogg",
+      "bytes": 46565,
+      "sha256": "2057e55973b9efa2bb6291d604986c571df2f773d643013efcc1ee9c6f6be66a"
+    },
+    {
+      "name": "death6.ogg",
+      "bytes": 35452,
+      "sha256": "64c5be2249ff07bfdf53d9566c1d9f616e270f023c6b150cf1dc822bfee8ee5b"
+    },
+    {
+      "name": "death7.ogg",
+      "bytes": 24153,
+      "sha256": "6891f0129f91ed14a19dff3ffd45a19f394e604fb9ac7bf0d8b4889499094f42"
+    },
+    {
+      "name": "death8.ogg",
+      "bytes": 35531,
+      "sha256": "df326883aca1980074d861a7c803486e1489167c584fedf085e6939fd1dec53f"
+    },
+    {
+      "name": "death9.ogg",
+      "bytes": 33013,
+      "sha256": "9ab16f14109f88d9d4cc9e3de7070907da1069c05c52b6dff1cfc1a49c9363ca"
+    },
+    {
+      "name": "death10.ogg",
+      "bytes": 37027,
+      "sha256": "4ce6e8ff860d2dcec50329f2d2fd6df660dcf758e63c34b73c811910a0c758f5"
+    },
+    {
+      "name": "death11.ogg",
+      "bytes": 31364,
+      "sha256": "f4ccd641d2e4347d32246fc4fc28e4cc2eacabcf80a137266075e0c7db734a9b"
+    },
+    {
+      "name": "death21.ogg",
+      "bytes": 25879,
+      "sha256": "e405e9486ce4e60665538c6f3dfa4b188644e07f56e34b35c5487c6a5cef4a56"
+    },
+    {
+      "name": "death22.ogg",
+      "bytes": 35067,
+      "sha256": "be2a8b408a4acf54de2cf8b84eb93ed9ca30a06d249999758c933fb9ac217c16"
+    },
+    {
+      "name": "death23.ogg",
+      "bytes": 25939,
+      "sha256": "aa0b4df6ed79d78eed0ea7aae369b20fbad6004c0cd5162349a7afa69f20b64c"
+    },
+    {
+      "name": "death24.ogg",
+      "bytes": 41966,
+      "sha256": "d7f381d26aa5ea4e8c677e1a0f3d8a6c392084a58f4acac8fb836a7e3c40da95"
+    },
+    {
+      "name": "death25.ogg",
+      "bytes": 31188,
+      "sha256": "5554d9fe7d5118b2929785e4d97be9f0550ae0a8323bb2081bf502684aca56c1"
+    },
+    {
+      "name": "death26.ogg",
+      "bytes": 27796,
+      "sha256": "7b42819997ccc15974e201b2cfb1337ddcd9c6ff9e876db57ed6840298f2433a"
+    },
+    {
+      "name": "death27.ogg",
+      "bytes": 21201,
+      "sha256": "956976e3d3185a9a64c909afe910a330c1966577606fdc405fd32455499d350b"
+    },
+    {
+      "name": "death29.ogg",
+      "bytes": 20095,
+      "sha256": "1ea1e24f943d89e49517b96d6be028621335c6b4906c9a5dd3be6e8550d6bebe"
+    },
+    {
+      "name": "death30.ogg",
+      "bytes": 22823,
+      "sha256": "7701c2c499717de4c5ac60e7c654a5d53c0ed828d868fa89c7fa37811ae5ecea"
+    }
+  ]
+}
