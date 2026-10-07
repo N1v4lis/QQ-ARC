@@ -1,7 +1,7 @@
 # QQ Agent ARCFOX - A modern, beautifully designed QQ Agent.
 
 > 当前工作区：`E:\CodeX-YSM\QQ Agent Dev\qq-agent-ui-next`。
-> 当前 UI 版本：**0.4.2**；目标 GitHub 仓库：**QQARCFOX（私有）**。
+> 当前 UI 版本：**0.4.3**；目标 GitHub 仓库：**QQARCFOX（私有）**。
 > 本次接手结果与版本流程见 [`docs/CODEX-MIGRATION.md`](docs/CODEX-MIGRATION.md)。
 
 ARCFØX 六阶段启动动画已接入，亮暗轨迹同步；[实现与预览](docs/STARTUP-ANIMATION.md)。
