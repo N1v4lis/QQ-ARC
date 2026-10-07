@@ -1,0 +1,152 @@
+{
+  "frames": [
+    {
+      "theme": "light",
+      "base": 150,
+      "phase": 1,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    },
+    {
+      "theme": "light",
+      "base": 650,
+      "phase": 2,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    },
+    {
+      "theme": "light",
+      "base": 1100,
+      "phase": 3,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    },
+    {
+      "theme": "light",
+      "base": 1550,
+      "phase": 4,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    },
+    {
+      "theme": "light",
+      "base": 1900,
+      "phase": 5,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 120
+    },
+    {
+      "theme": "light",
+      "base": 2600,
+      "phase": 6,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    },
+    {
+      "theme": "dark",
+      "base": 150,
+      "phase": 1,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    },
+    {
+      "theme": "dark",
+      "base": 650,
+      "phase": 2,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    },
+    {
+      "theme": "dark",
+      "base": 1100,
+      "phase": 3,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    },
+    {
+      "theme": "dark",
+      "base": 1550,
+      "phase": 4,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    },
+    {
+      "theme": "dark",
+      "base": 1900,
+      "phase": 5,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 120
+    },
+    {
+      "theme": "dark",
+      "base": 2600,
+      "phase": 6,
+      "duration": 5500,
+      "count": 320,
+      "visibleWord": 0
+    }
+  ],
+  "gaps": {
+    "ranges": [
+      [
+        13,
+        52
+      ],
+      [
+        67,
+        106
+      ],
+      [
+        121,
+        160
+      ],
+      [
+        175,
+        214
+      ],
+      [
+        229,
+        268
+      ],
+      [
+        283,
+        322
+      ]
+    ],
+    "gaps": [
+      14,
+      14,
+      14,
+      14,
+      14
+    ]
+  },
+  "still": {
+    "identical": true,
+    "raf": 0,
+    "wordVisible": 0
+  },
+  "shared": {
+    "sameSystem": true,
+    "sameGeometry": true
+  },
+  "cold": {
+    "mode": "cold",
+    "duration": 5500
+  },
+  "reload": {
+    "mode": "reload",
+    "duration": 2600
+  }
+}

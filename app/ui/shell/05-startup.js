@@ -6,6 +6,9 @@
   let assetTimer;
   const done=new Promise(resolve=>{resolveDone=resolve;});
   const media=matchMedia('(prefers-reduced-motion: reduce)');
+  let mode=performance.getEntriesByType('navigation')[0]?.type==='reload'?'reload':'cold';
+  try{if(sessionStorage.getItem('arcfox-window-started')==='1')mode='reload';sessionStorage.setItem('arcfox-window-started','1');}catch{/* navigation type remains available */}
+  const duration=mode==='cold'?5500:2600;
   const reduced=()=>media.matches||document.documentElement.dataset.motion==='off';
   function cleanup(){if(disposed)return;disposed=true;clearTimeout(assetTimer);animation?.dispose();observer.disconnect();media.removeEventListener('change',motionChange);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',cleanup);overlay.remove();resolveDone();}
   function maybeFinish(){if(ready&&complete)cleanup();}
@@ -15,10 +18,10 @@
   const observer=new MutationObserver(records=>{if(records.some(r=>r.attributeName==='data-motion'))motionChange();if(records.some(r=>r.attributeName==='data-theme'))animation?.render(animation.time);});
   observer.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','data-motion']});
   media.addEventListener('change',motionChange);document.addEventListener('visibilitychange',visibility);window.addEventListener('pagehide',cleanup,{once:true});
-  window.qqaStartup={finish,done,state:()=>({ready,complete,disposed,...(animation&&!disposed?animation.diagnostics():{})})};
+  window.qqaStartup={finish,done,state:()=>({ready,complete,disposed,mode,duration,...(animation&&!disposed?animation.diagnostics():{})})};
   function fallback(){clearTimeout(assetTimer);timedOut=true;overlay.dataset.animation='fallback';complete=true;maybeFinish();}
   assetTimer=setTimeout(fallback,2500);
-  import('/shell/startup-animation.mjs').then(({StartupAnimation})=>StartupAnimation.create(canvas,{reduced:reduced(),onComplete:()=>{complete=true;overlay.dataset.phase='final';maybeFinish();}})).then(created=>{
+  import('/shell/startup-animation.mjs').then(({StartupAnimation})=>StartupAnimation.create(canvas,{duration,reduced:reduced(),onComplete:()=>{complete=true;overlay.dataset.phase='final';maybeFinish();}})).then(created=>{
     if(disposed||timedOut){created.dispose();return;}clearTimeout(assetTimer);animation=created;overlay.dataset.animation='ready';animation.start();
   }).catch(error=>{
     // Static SVG remains available when Canvas/modules/assets fail. Readiness still owns dismissal.

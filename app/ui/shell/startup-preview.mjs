@@ -8,7 +8,7 @@ function play(){animation.start();stopClock();clockTimer=setInterval(updateClock
 function theme(value){root.dataset.theme=value==='dark'?'dark':'light';for(const t of ['light','dark'])document.getElementById('preview-'+t).setAttribute('aria-pressed',String(root.dataset.theme===t));if(animation)animation.render(animation.time);}
 function seek(time){animation.stop();stopClock();animation.render(Math.max(0,Math.min(animation.duration,Number(time)||0)));updateClock();}
 try{
-  animation=await StartupAnimation.create(document.getElementById('preview-canvas'),{reduced:media.matches,onComplete:()=>{stopClock();updateClock();}});
+  animation=await StartupAnimation.create(document.getElementById('preview-canvas'),{duration:new URLSearchParams(location.search).get('mode')==='reload'?2600:5500,reduced:media.matches,onComplete:()=>{stopClock();updateClock();}});
   slider.max=animation.duration;
   window.arcfoxPreview={play,seek,setTheme:theme,state:time=>animation.diagnostics(time),instance:animation};
   for(const t of ['light','dark'])document.getElementById('preview-'+t).addEventListener('click',()=>theme(t));

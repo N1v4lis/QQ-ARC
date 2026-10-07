@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 336 54" role="img" aria-label="ARCFØX">
   <g fill="none" stroke="#416FC5" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M8 45 25 9 42 45M15 31H35"/>
-    <path d="M64 45V9H83C104 9 104 30 83 30H64M83 30 102 45"/>
-    <path d="M151 12C143 6 121 5 119 26S143 50 151 42"/>
-    <path d="M172 45V9H203M172 27H199"/>
-    <path d="M240 8C215 8 215 46 240 46S265 8 240 8Z"/>
-    <path d="M289 9 326 45M326 9 289 45"/>
+    <g data-letter="A" data-origin="13" transform="translate(13)"><path d="M3.25 41.75 20 8 36.75 41.75M10 28H30"/></g>
+    <g data-letter="R" data-origin="67" transform="translate(67)"><path d="M3.25 41.75V8H23.25C41.25 8 41.25 28 23.25 28H3.25M23.25 28 36.75 41.75"/></g>
+    <g data-letter="C" data-origin="121" transform="translate(121)"><path d="M36.75 10C29 3 3.25 4 3.25 25S29 47 36.75 40"/></g>
+    <g data-letter="F" data-origin="175" transform="translate(175)"><path d="M3.25 41.75V8H36.75M3.25 25H32"/></g>
+    <g data-letter="Ø" data-origin="229" transform="translate(229)"><path d="M20 5C-2.333333 5-2.333333 45 20 45S42.333333 5 20 5Z"/></g>
+    <g data-letter="X" data-origin="283" transform="translate(283)"><path d="M3.25 8 36.75 41.75M36.75 8 3.25 41.75"/></g>
   </g>
-  <path d="M222 47 258 7" fill="none" stroke="#669EFF" stroke-width="5" stroke-linecap="round" data-accent="slash"/>
+  <path d="M232 47 266 3" fill="none" stroke="#669EFF" stroke-width="5" stroke-linecap="round" data-accent="slash"/>
 </svg>
