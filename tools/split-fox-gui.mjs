@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {Quaternion} from '../app/ui/assets/wine-fox/three/three.core.js';
+import {LOOP_ACTIONS} from '../app/ui/shell/fox-behavior.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export function splitGui(bytes){
   if(bytes.readUInt32LE(0)!==0x46546c67||bytes.readUInt32LE(4)!==2)throw Error('Expected GLB2');
@@ -9,6 +10,7 @@ export function splitGui(bytes){
   const bin=bytes.subarray(28+size,28+size+bytes.readUInt32LE(20+size));
   const index=doc.animations.findIndex(a=>a.name==='gui');if(index<0||doc.animations.some(a=>a.name==='gui2'))throw Error('Expected unsplit gui');
   const original=doc.animations[index],chunks=[bin];let length=bin.length;
+  const idle=doc.animations.find(a=>a.name==='idle');
   function append(values,type,count,min,max){
     const padding=(4-length%4)%4;if(padding){chunks.push(Buffer.alloc(padding));length+=padding;}
     const buffer=Buffer.alloc(values.length*4);values.forEach((v,i)=>buffer.writeFloatLE(v,i*4));
@@ -38,11 +40,20 @@ export function splitGui(bytes){
         else out.push(...a.map((v,k)=>v+(b[k]-v)*ratio));
       }
       const a=doc.accessors[s.output],components={SCALAR:1,VEC2:2,VEC3:3,VEC4:4}[a.type];
+      const channel=original.channels.find(c=>c.sampler===i),node=doc.nodes[channel.target.node];
+      if(['GuiRoot','MRoot'].includes(node.name)){
+        const rest=idle.channels.find(c=>c.target.node===channel.target.node&&c.target.path===channel.target.path);
+        const base=read(idle.samplers[rest.sampler].output).slice(0,width);
+        for(let k=0;k<out.length;k++)out[k]=base[k%width];
+      }else if(node.name==='Root'&&channel.target.path==='scale'){
+        for(let k=0;k<out.length;k++)out[k]/=2;
+      }
       result.samplers.push({...s,input:append(keys.map(t=>t-start),'SCALAR',keys.length,[0],[end-start]),output:append(out,a.type,out.length/components)});
     });return result;
   }
   const duration=Math.max(...original.samplers.map(s=>read(s.input).at(-1)));if(Math.abs(duration-18)>1e-4)throw Error('GUI duration changed');
   const first=clip('gui',0,4),second=clip('gui2',4,duration);doc.animations.splice(index,1,first,second);
+  for(const animation of doc.animations)animation.extras={...animation.extras,arcfoxPlayback:animation.name==='death'?'once':LOOP_ACTIONS.has(animation.name)?'repeat':'once'};
   doc.buffers[0].byteLength=length;
   let json=Buffer.from(JSON.stringify(doc));json=Buffer.concat([json,Buffer.alloc((4-json.length%4)%4,0x20)]);
   let body=Buffer.concat(chunks);body=Buffer.concat([body,Buffer.alloc((4-body.length%4)%4)]);

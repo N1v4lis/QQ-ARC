@@ -1,0 +1,92 @@
+{
+  "results": [
+    {
+      "name": "默认主题不出现宠物，偏好默认开启",
+      "pass": true
+    },
+    {
+      "name": "设置隐藏启用开关",
+      "pass": true
+    },
+    {
+      "name": "MC自动加载且无关闭按钮",
+      "pass": true
+    },
+    {
+      "name": "两套GUI保留但菜单隐藏",
+      "pass": true
+    },
+    {
+      "name": "轻点开心并播放语音",
+      "pass": true
+    },
+    {
+      "name": "正常拖动Fly且语音不中断",
+      "pass": true
+    },
+    {
+      "name": "松开恢复idle并保存位置",
+      "pass": true
+    },
+    {
+      "name": "连续3次点击生气并使用指定语音",
+      "pass": true
+    },
+    {
+      "name": "情绪下再点3次恢复开心",
+      "pass": true
+    },
+    {
+      "name": "walk循环",
+      "pass": true
+    },
+    {
+      "name": "run循环",
+      "pass": true
+    },
+    {
+      "name": "death单次",
+      "pass": true
+    },
+    {
+      "name": "动作结束恢复idle，等待1–5秒",
+      "pass": true
+    },
+    {
+      "name": "等待后自动播放其他动作",
+      "pass": true
+    },
+    {
+      "name": "呆住keyboard气泡与模型同一容器",
+      "pass": true
+    },
+    {
+      "name": "情绪下拖动不切换Fly",
+      "pass": true
+    },
+    {
+      "name": "松开使用run返回",
+      "pass": true
+    },
+    {
+      "name": "回到原位",
+      "pass": true
+    },
+    {
+      "name": "闲置情绪点击恢复",
+      "pass": true
+    },
+    {
+      "name": "离开MC销毁宠物",
+      "pass": true
+    },
+    {
+      "name": "取消加载无迟到实例",
+      "pass": true
+    },
+    {
+      "name": "无运行异常和CSP错误",
+      "pass": true
+    }
+  ]
+}

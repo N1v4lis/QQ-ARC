@@ -7,14 +7,15 @@
       "source": "../GLB/winefox-large-lever.glb",
       "sourceSha256": "3edf99e64eec801ee0e924a03eff8f98e358d24db9c74851ee462cd47f62f053",
       "output": "winefox-large-lever.glb",
-      "sha256": "6b1f0c336292f6801bfd768e4656a1e21e2c069be014d7daad7adc4dc5af6b86"
+      "sha256": "915eb774e2f3f4fa7185abbf43d5083036d24c26cad81a762b53f95ede9aea38"
     },
     {
       "name": "snowfox",
       "source": "../GLB/snowfox-large-lever.glb",
       "sourceSha256": "8bdb33630d40a3d6dc557d8db7f94f31d591a72b79c5986b197e6ce21cce2723",
       "output": "snowfox-large-lever.glb",
-      "sha256": "e42ec603be523bba0145fda11fbbcef328de96b221ff172f4a5c2e642e464fc0"
+      "sha256": "53cbb39c914f6b2449d57a2347517ef08a2617da80efca82533cf267553e6af6"
     }
-  ]
+  ],
+  "presentation": "GUI/gui2 GuiRoot and MRoot use idle placement; Root scale halved; gestures preserved"
 }

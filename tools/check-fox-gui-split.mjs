@@ -7,7 +7,10 @@ for(const name of ['winefox','snowfox']){
   assert.equal(derived.doc.animations.length,47);
   assert(derived.bin.subarray(0,source.bin.length).equals(source.bin),'Original binary data must remain intact');
   for(const key of ['meshes','nodes','materials','images','textures','skins'])assert.deepEqual(derived.doc[key],source.doc[key]);
-  assert.deepEqual(derived.doc.animations.filter(a=>!/^gui2?$/.test(a.name)),source.doc.animations.filter(a=>a.name!=='gui'));
+  const withoutPolicy=a=>{const copy=structuredClone(a);if(copy.extras){delete copy.extras.arcfoxPlayback;if(!Object.keys(copy.extras).length)delete copy.extras;}return copy;};
+  assert.deepEqual(derived.doc.animations.filter(a=>!/^gui2?$/.test(a.name)).map(withoutPolicy),source.doc.animations.filter(a=>a.name!=='gui'));
+  assert.equal(derived.doc.animations.find(a=>a.name==='death').extras.arcfoxPlayback,'once');
+  for(const name of ['run','walk'])assert.equal(derived.doc.animations.find(a=>a.name===name).extras.arcfoxPlayback,'repeat');
   const original=source.doc.animations.find(a=>a.name==='gui'),first=derived.doc.animations.find(a=>a.name==='gui'),second=derived.doc.animations.find(a=>a.name==='gui2');
   assert.deepEqual(first.channels,original.channels);assert.deepEqual(second.channels,original.channels);
   first.samplers.forEach((sampler,i)=>{
@@ -15,7 +18,13 @@ for(const name of ['winefox','snowfox']){
     assert.equal(a[0],0);assert.equal(a.at(-1),4);assert.equal(b[0],0);assert.equal(b.at(-1),14);
     const left=values(derived,sampler.output),right=values(derived,next.output),width=left.length/a.length;
     assert.deepEqual(left.slice(-width),right.slice(0,width),'Frame 120 shared boundary must match');
-    const originalValues=values(source,old.output);
+    let originalValues=values(source,old.output);
+    const channel=original.channels.find(c=>c.sampler===i),node=source.doc.nodes[channel.target.node];
+    if(['GuiRoot','MRoot'].includes(node.name)){
+      const idle=source.doc.animations.find(a=>a.name==='idle'),rest=idle.channels.find(c=>c.target.node===channel.target.node&&c.target.path===channel.target.path);
+      const base=values(source,idle.samplers[rest.sampler].output).slice(0,width);
+      originalValues=originalValues.map((_,k)=>base[k%width]);
+    }else if(node.name==='Root'&&channel.target.path==='scale')originalValues=originalValues.map(v=>v/2);
     for(let k=0;k<oldTimes.length;k++){
       const time=oldTimes[k],times=time<4?a:b,local=time<4?time:time-4,output=time<4?left:right;
       const at=times.findIndex(t=>Math.abs(t-local)<2e-5);assert(at>=0,'Every source keyframe must survive');
@@ -23,5 +32,5 @@ for(const name of ['winefox','snowfox']){
     }
   });
   assert(fs.readFileSync(`app/ui/assets/wine-fox/${name}.glb`).equals(derived.bytes));
-  console.log(`${name}: 47 clips, gui=4s / gui2=14s, all keyframes and frame-120 boundary preserved; geometry/materials/other clips unchanged.`);
+  console.log(`${name}: 47 clips, gui=4s / gui2=14s, gesture keyframes and frame-120 boundary preserved; GUI presentation roots normalized; geometry/materials/other clips unchanged.`);
 }

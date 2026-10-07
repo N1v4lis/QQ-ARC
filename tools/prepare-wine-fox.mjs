@@ -22,4 +22,6 @@ const voiceSource=path.join(root,'Wine_Fox_PECO'),voiceDest=path.join(dest,'voic
 fs.mkdirSync(voiceDest,{recursive:true});
 const voices=fs.readdirSync(voiceSource).filter(n=>/^eatSugar\d+\.ogg$/.test(n)).sort();
 for(const name of voices)fs.copyFileSync(path.join(voiceSource,name),path.join(voiceDest,name));
-fs.writeFileSync(path.join(voiceDest,'manifest.json'),JSON.stringify({happy:voices},null,2));
+const angry=['JaNai.ogg','Sato.ogg','Mo-Ya-Da.ogg'];
+for(const name of angry)fs.copyFileSync(path.join(voiceSource,name),path.join(voiceDest,name));
+fs.writeFileSync(path.join(voiceDest,'manifest.json'),JSON.stringify({happy:voices,angry},null,2));

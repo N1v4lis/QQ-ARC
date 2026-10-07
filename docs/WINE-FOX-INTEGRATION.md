@@ -2,7 +2,7 @@
 
 日期：2026-10-07。用户最新方向：后续酒狐进入 QQ Agent 主题，作为互动宠物。
 
-最新2026-10-07互动迭代：GUI/gui2拆分、随机开心动作与语音、拖拽Fly已部署；菜单隐藏两段GUI，旧三击生气规则已被用户最新要求替代。见 [WINE-FOX-INTERACTION.md](WINE-FOX-INTERACTION.md)。
+最新2026-10-07三阶段迭代：仅MC自动显示、双角色GUI全身展示、循环/单次播放、连续点击生气、闲置60–120秒情绪、拖动语音保持及run回原位。见 [WINE-FOX-INTERACTION.md](WINE-FOX-INTERACTION.md)，以下初版为历史记录。
 
 ## 0.4.01移植实现（历史）
 
