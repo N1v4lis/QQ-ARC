@@ -580,7 +580,11 @@ function renderMemorySettingsSection(c) {
 function renderPersonaDirectoryItems(c) {
   const contacts = state.personaContacts || {};
   const target = state.personaTarget || 'global';
-  const row = (key, name, note) => `<button type="button" class="persona-target${key === target ? ' active' : ''}" data-persona-target="${esc(key)}" aria-pressed="${key === target}"><span>${esc(name)}</span><small>${esc(note)}</small></button>`;
+  const row = (key, name, note, allowed) => {
+    const status = allowed === undefined ? '' : allowed ? '已加入聊天白名单' : '未加入聊天白名单';
+    const dot = status ? `<i class="persona-whitelist-dot" data-whitelisted="${allowed}" title="${status}" aria-hidden="true"></i>` : '';
+    return `<button type="button" class="persona-target${key === target ? ' active' : ''}" data-persona-target="${esc(key)}" aria-pressed="${key === target}" aria-label="${esc(name + '，' + note + (status ? '，' + status : ''))}"><span>${esc(name)}</span><small>${esc(note)}</small>${dot}</button>`;
+  };
   const rows = (kind, list) => {
     const byId = new Map((list || []).map(item => [String(item.id), item]));
     const configured = kind === 'group' ? c.allow?.groups : c.allow?.private;
@@ -591,7 +595,7 @@ function renderPersonaDirectoryItems(c) {
       const item = byId.get(id);
       const name = item?.remark || item?.name || item?.nickname || (kind === 'group' ? '群 ' : '好友 ') + id;
       const allowed = whitelist.has(id);
-      return row(kind + ':' + id, name, `${id} · ${allowed ? '白名单' : '未加入白名单'}${item ? '' : ' · 未同步'}`);
+      return row(kind + ':' + id, name, `${id}${item ? '' : ' · 未同步'}`, allowed);
     }).join('') || '<p class="hint">' + (contacts.loading ? '正在加载…' : kind === 'group' ? '暂无群聊' : '暂无好友') + '</p>';
   };
   return row('global', '默认人设', '所有会话的起点') + '<h3>群聊</h3>' + rows('group', contacts.groups) + '<h3>好友</h3>' + rows('private', contacts.friends);

@@ -20,7 +20,8 @@ await withPage({url,width:1360,height:900},async page=>{
  })()`);
  await page.waitFor('!!document.querySelector("[data-persona-target=\\"group:991000001\\"]") && !state.personaContacts.loading');
  assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"private:992000001\\"]").textContent.includes("好友备注甲")'),true);
- assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"]").textContent.includes("未加入白名单")'),true);
+ assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"] .persona-whitelist-dot").dataset.whitelisted'),'false');
+ assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"]").textContent.includes("白名单")'),false);
  assert.equal(await page.eval('getComputedStyle(document.querySelector("#cfg-roletext")).borderTopWidth'),'1px');
  await page.eval('window.__draft=document.querySelector("#cfg-roletext").value;document.querySelector("#cfg-roletext").value="刷新不会丢失的草稿";document.querySelector("#persona-contacts-refresh").click()');
  await page.waitFor('!state.personaContacts.loading');
@@ -31,6 +32,7 @@ await withPage({url,width:1360,height:900},async page=>{
  assert.equal(await page.eval('(()=>{const r=document.querySelector(".persona-context-menu").getBoundingClientRect();return r.right<=innerWidth && r.bottom<=innerHeight})()'),true);
  await page.eval('document.querySelector("[data-persona-whitelist]").click()');
  await page.waitFor('state.config.allow.groups.map(String).includes("991000001") && !personaWhitelistBusy');
+ assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"] .persona-whitelist-dot").dataset.whitelisted'),'true');
  assert.deepEqual(await page.eval('state.config.allow.private'),before.allow.private);
  const whitelistPatch=await page.eval('window.__contactPosts.filter(p=>p.allow).at(-1)');
  assert.deepEqual(Object.keys(whitelistPatch),['allow']);
@@ -43,7 +45,7 @@ await withPage({url,width:1360,height:900},async page=>{
  await page.waitFor('!state.config.allow.groups.map(String).includes("991000001")');
  await page.eval('document.querySelector(".tab[data-tab=persona]").click()');
  await page.waitFor('!!document.querySelector("[data-persona-target=\\"group:991000001\\"]")');
- assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"]").textContent.includes("未加入白名单")'),true);
+ assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"] .persona-whitelist-dot").dataset.whitelisted'),'false');
  await context('private:992000001');
  await page.eval('document.querySelector("[data-persona-whitelist]").click()');
  await page.waitFor('state.config.allow.private.map(String).includes("992000001") && !personaWhitelistBusy');

@@ -417,6 +417,9 @@
 #view-persona .persona-object-list h3 { margin: 24px 8px 8px; color: var(--q-fg-3); font-size: 12px; font-weight: 400; }
 #view-persona .persona-target { display: flex; flex-direction: column; gap: 7px; padding: 13px 12px; margin: 3px 0; border: 0; width: 100%; text-align: left; font: inherit; cursor: pointer; background: transparent; color: var(--q-fg); }
 #view-persona .persona-target small { font-size: 12px; color: var(--q-fg-2); }
+#view-persona .persona-target { position: relative; padding-right: 28px; }
+#view-persona .persona-whitelist-dot { position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: #dc4444; }
+#view-persona .persona-whitelist-dot[data-whitelisted='true'] { background: #2b9c49; }
 #view-persona .persona-target.active { background: var(--q-accent-soft); box-shadow: inset 2px 0 var(--q-accent); }
 #view-persona .persona-target:hover { background: var(--q-bg-hover); }
 #view-persona .persona-desk { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 26px 34px 16px; background: var(--q-bg-1); }
