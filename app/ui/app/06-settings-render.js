@@ -648,10 +648,10 @@ function renderPersonaSection(c) {
   const title = global ? '全局人设' : formatChatTitle(target, contact?.remark || contact?.name || contact?.nickname || chatNameOf(target));
   const templates = Object.entries(state.personaTemplates || {});
   const panel = state.personaPanel || 'role';
-  const currentModel = c.api?.apiByChat?.byChat?.[target];
+  const currentModel = per.modelChoice !== undefined ? (per.modelChoice ? {provider:JSON.parse(per.modelChoice)[0],model:JSON.parse(per.modelChoice)[1]} : null) : c.api?.apiByChat?.byChat?.[target];
   const missingModel = currentModel?.model && !(state.providers || []).some(p => p.id === currentModel.provider && (p.models || []).includes(currentModel.model));
   const retainedModel = missingModel ? '<option selected value="' + esc(JSON.stringify([currentModel.provider || '', currentModel.model])) + '">' + esc(currentModel.model) + '（目录未加载）</option>' : '';
-  const modelOptions = '<option value="">跟随默认模型</option>' + retainedModel + (state.providers || []).map(p => '<optgroup label="' + esc(p.displayName || p.id) + '">' + (p.models || []).map(m => '<option value="' + esc(JSON.stringify([p.id, m])) + '"' + (c.api?.apiByChat?.byChat?.[target]?.model === m && c.api?.apiByChat?.byChat?.[target]?.provider === p.id ? ' selected' : '') + '>' + esc(p.modelNames?.[m] || m) + '</option>').join('') + '</optgroup>').join('');
+  const modelOptions = '<option value="">跟随默认模型</option>' + retainedModel + (state.providers || []).map(p => '<optgroup label="' + esc(p.displayName || p.id) + '">' + (p.models || []).map(m => '<option value="' + esc(JSON.stringify([p.id, m])) + '"' + (currentModel?.model === m && currentModel?.provider === p.id ? ' selected' : '') + '>' + esc(p.modelNames?.[m] || m) + '</option>').join('') + '</optgroup>').join('');
   const templateName = templates.find(([, p]) => p.text === per.roleText)?.[1]?.name || '自定义正文';
   return `<div class="persona-studio persona-canvas">
     <aside class="persona-directory" aria-label="选择编辑对象">
@@ -675,7 +675,7 @@ function renderPersonaSection(c) {
         <p class="persona-rail-note">${global?'这套人设作为所有会话的默认。':'为左侧选中的对象编辑；空白字段沿用默认人设。'}</p>
       </nav>
       <div class="persona-edit-surface">
-      <div class="persona-manual-tools" ${panel==='model'?'hidden':''}><span id="persona-save-status" role="status">${state.personaDrafts?.[personaRevisionKey(c,target)]?'有未保存修改':'已保存'}</span><select id="persona-revisions" data-persona-filter aria-label="最近五次保存的人设"><option value="">最近保存记录</option>${readPersonaRevisions(c,target).map((revision,index)=>`<option value="${index}">${esc(new Date(revision.time).toLocaleString('zh-CN',{hour12:false}))}</option>`).join('')}</select><div class="persona-save-actions"><button type="button" class="btn btn-primary" id="persona-manual-save">保存</button><button type="button" class="btn" id="persona-new-blank">新建</button></div></div>
+      <div class="persona-manual-tools" ><span id="persona-save-status" role="status">${state.personaDrafts?.[personaRevisionKey(c,target)]?'有未保存修改':'已保存'}</span><select id="persona-revisions" data-persona-filter aria-label="最近保存的人设"><option value="">最近保存记录</option>${readPersonaRevisions(c,target).map((revision,index)=>`<option value="${index}">${esc(personaRevisionLabel(revision))}</option>`).join('')}</select><div class="persona-save-actions"><button type="button" class="btn btn-primary" id="persona-save-all">全部保存</button><button type="button" class="btn btn-primary" id="persona-manual-save">保存</button><button type="button" class="btn" id="persona-new-blank">新建</button></div></div>
       <div class="persona-document" data-persona-pane="role" ${panel==='role'?'':'hidden'}><header class="persona-page-heading"><input id="cfg-persona-name" type="text" maxlength="100" aria-label="人设名称" placeholder="人设名称" value="${esc(per.name ?? (templateName === '自定义正文' ? '' : templateName))}" /><p>身份、性格、说话方式，都写在这里。</p></header><textarea id="cfg-roletext" class="persona-role-text" aria-label="角色正文" placeholder="${global?'从一句角色描述开始…':'留空，沿用默认人设'}">${esc(per.roleText || '')}</textarea><footer><span>修改后点击保存 · 快捷键：Ctrl+S 快速保存，Ctrl+Z 撤销，Ctrl+Y 重做</span><span id="persona-character-count">${(per.roleText || '').length} 字</span></footer></div>
       <div class="persona-options" data-persona-pane="rules" ${panel==='rules'?'':'hidden'}>
         <header class="persona-page-heading"><h3>回应规则</h3><p>在角色正文之外，补充需要遵守的约定。</p></header>
@@ -2140,6 +2140,7 @@ function renderAdvancedSection(c) {
   return `
     <h3>进阶</h3>
     <div class="hint" style="margin-bottom:12px">偏底层/少用的开关放这里。改动即时生效（与其它设置一样自动保存）。</div>
+    ${sc({id:'card-advanced-persona-history',icon:'📜',title:'人设',sub:'保存记录的保留时间与数量',body:`<div class="field-row"><div class="field"><label for="cfg-persona-history-days">保存多少天后自动删除记录</label><input type="number" id="cfg-persona-history-days" min="1" max="7" value="${personaHistoryPolicy(c).days}" /></div><div class="field"><label for="cfg-persona-history-limit">最高保存多少条记录</label><input type="number" id="cfg-persona-history-limit" min="1" max="20" value="${personaHistoryPolicy(c).limit}" /></div></div><p class="hint">默认保留1天、最多5条；最长7天、最多20条。程序启动时检查并清理过期记录。</p>`})}
     ${sc({
       id: 'card-advanced-autolaunch',
       icon: '🚀',

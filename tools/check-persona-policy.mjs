@@ -14,6 +14,8 @@ const before=await(await fetch(url+'api/config')).json();
 const templates=await(await fetch(url+'api/persona-templates')).json();
 const usageResponse=await fetch(url+'api/persona-usage',{method:'POST',headers:{'Content-Type':'application/json','x-console-token':'qq-agent-console'},body:JSON.stringify(templates.templates[0])});
 assert.equal(usageResponse.status,200);assert(Array.isArray((await usageResponse.json()).usage),'真实只读使用情况接口正常');
+const bulkResponse=await fetch(url+'api/persona-usage',{method:'POST',headers:{'Content-Type':'application/json','x-console-token':'qq-agent-console'},body:JSON.stringify({templates:[templates.templates[0]]})});
+assert.equal(bulkResponse.status,200);assert(Array.isArray((await bulkResponse.json()).usageByTemplate[templates.templates[0].id]),'真实批量使用状态接口正常');
 await withPage({url,width:1360,height:900},async page=>{
  await page.waitFor('!!state.config && !!document.querySelector(".tab.active")',{timeout:15000});
  await page.eval(`(()=>{const original=fetch;window.fetch=async(input,init)=>{const u=typeof input==='string'?input:input.url;if(u.includes('/api/config')&&init?.method==='POST')return new Response(JSON.stringify({ok:true,config:state.config}));if(u.includes('/api/persona-usage'))return new Response(JSON.stringify({usage:[{account:state.config.account,target:'group:100',inherited:true},{account:'other-account',target:'private:200'}]}));return original(input,init);};document.querySelector('.tab[data-tab=persona]').click();})()`);

@@ -37,6 +37,7 @@ let normalized=source.replaceAll('\r\n','\n');
 const helperStart=normalized.indexOf('function personaUsage('), helperEnd=normalized.indexOf('        const accounts=listQqAccounts()',helperStart);
 if(helperStart<0 || helperEnd<0)throw Error('Usage helper anchor changed');
 normalized=normalized.slice(0,helperStart)+fs.readFileSync(new URL('./host/arcfox-persona-usage.mjs',import.meta.url),'utf8').replace('export function','function')+'\n'+normalized.slice(helperEnd);
+normalized=normalized.replace('return json(res,200,{usage:personaUsage(template,accounts)});',"return json(res,200,Array.isArray(template.templates)?{usageByTemplate:Object.fromEntries(template.templates.slice(0,500).map(t=>[t.id,personaUsage(t,accounts)]))}:{usage:personaUsage(template,accounts)});");
 const updated=source.includes('\r\n')?normalized.replaceAll('\n','\r\n'):normalized;
 if(updated!==source){fs.writeFileSync(file+'.bak-persona-usage-'+Date.now(),source);fs.writeFileSync(file,updated);}
 console.log('Persona usage and builtin save protection installed.');

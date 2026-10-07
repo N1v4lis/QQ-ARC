@@ -36,11 +36,29 @@ function personaRevisionKey(config = state.config, target = state.personaTarget 
 function readPersonaRevisions(config = state.config, target = state.personaTarget || 'global') {
   try {
     const entries = JSON.parse(localStorage.getItem(personaRevisionKey(config, target)) || '[]');
-    return Array.isArray(entries) ? entries.filter(item => Number.isFinite(item.time) && typeof item.roleText === 'string' && typeof item.customRules === 'string' && typeof item.systemPromptOverride === 'string').slice(0,5) : [];
+    const policy = personaHistoryPolicy(config);
+    const kept = Array.isArray(entries) ? entries.filter(item => Number.isFinite(item.time) && item.time > Date.now()-policy.days*86400000 && typeof item.roleText === 'string' && typeof item.customRules === 'string' && typeof item.systemPromptOverride === 'string').slice(0,policy.limit) : [];
+    if(JSON.stringify(kept)!==JSON.stringify(entries))localStorage.setItem(personaRevisionKey(config,target),JSON.stringify(kept));
+    return kept;
   } catch { return []; }
 }
+function personaHistoryPolicy(config = state.config) {
+  return {days:Math.max(1,Math.min(7,Number(config?.personaHistory?.days)||1)),limit:Math.max(1,Math.min(20,Math.trunc(Number(config?.personaHistory?.limit)||5)))};
+}
+let personaHistoryTimer;
+function prunePersonaHistory(config = state.config) {
+  clearTimeout(personaHistoryTimer);
+  try {
+    for(const key of Object.keys(localStorage))if(key.startsWith('qqa-persona-revisions:')){
+      const [account,target]=JSON.parse(key.slice('qqa-persona-revisions:'.length));
+      if(account===String(config?.account || 'default'))readPersonaRevisions(config,target);
+    }
+  }catch{}
+  personaHistoryTimer=setTimeout(()=>prunePersonaHistory(state.config?.account ? state.config : config),60000);
+}
+function personaRevisionLabel(item) { return (item.name || '未命名人设') + ' · ' + new Date(item.time).toLocaleString('zh-CN',{hour12:false}); }
 function personaEditorText() {
-  return Object.fromEntries([['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([field,selector])=>[field,document.querySelector(selector)?.value || '']));
+  return Object.fromEntries([['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt'],['botName','#cfg-botname'],['selfNickname','#cfg-selfnick'],['participation','#cfg-participation'],['modelChoice','#cfg-persona-chat-model']].map(([field,selector])=>[field,document.querySelector(selector)?.value || '']));
 }
 function personaTextChanged(values = personaEditorText(), key = personaRevisionKey()) {
   const baseline = state.personaEditBaselines?.[key];
@@ -49,8 +67,7 @@ function personaTextChanged(values = personaEditorText(), key = personaRevisionK
 let personaManualBusy = false;
 let personaSaveShortcutBound = false;
 let personaTemplateOutsideBound = false;
-function showPersonaSaveFeedback(success) {
-  const button = document.getElementById('persona-manual-save');
+function showPersonaSaveFeedback(success, button = document.getElementById('persona-manual-save'), label = '保存') {
   if (!button) return;
   clearTimeout(button.__feedbackTimer);
   button.classList.remove('persona-save-success');
@@ -60,7 +77,7 @@ function showPersonaSaveFeedback(success) {
     button.classList.add('persona-save-success');
   }
   button.__feedbackTimer = setTimeout(() => {
-    button.textContent = '保存'; button.classList.remove('persona-save-success');
+    button.textContent = label; button.classList.remove('persona-save-success');
   }, success ? 1000 : 1600);
 }
 let closePersonaWhitelistMenu = null;
@@ -116,7 +133,7 @@ function openPersonaWhitelistMenu(target, x, y) {
       const next = allowed ? items.filter(value => value !== id) : [...new Set([...items, id])];
       const allow = { ...(latest.allow || {}), [key]: next };
       const response = await api('/api/config', { method: 'POST', body: JSON.stringify({ allow }) });
-      state.config = response.config || { ...latest, allow };
+      state.config = response.config ? {...response.config,account:latest.account || state.config.account} : { ...latest, allow };
       const list = document.querySelector('#view-persona .persona-object-list');
       if (list) list.innerHTML = renderPersonaDirectoryItems(state.config);
       document.querySelector('.persona-studio')?.__personaFilter?.();
@@ -151,14 +168,14 @@ function bindSettingsEvents(c) {
 
   function markDirty(el) {
     if (el?.matches?.('[data-persona-filter]')) return;
-    if (state.tab === 'persona' && el?.matches?.('#cfg-persona-name,#cfg-roletext,#cfg-customrules,#cfg-sysprompt')) {
+    if (state.tab === 'persona' && el?.matches?.('#cfg-persona-name,#cfg-roletext,#cfg-customrules,#cfg-sysprompt,#cfg-botname,#cfg-selfnick,#cfg-participation,#cfg-persona-chat-model')) {
       const target = state.personaTarget || 'global';
       const saved = target === 'global' ? state.config.persona : (state.config.personaByChat?.[target] || {});
-      const draft = Object.fromEntries([['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([key,selector])=>[key,$(selector)?.value || '']));
+      const draft = personaEditorText();
       state.personaDrafts ||= {};
       const key = personaRevisionKey();
       const dirty = personaTextChanged(draft,key);
-      if (Object.entries(draft).some(([field,value])=>value !== (saved[field] || ''))) state.personaDrafts[key] = draft; else delete state.personaDrafts[key];
+      state.personaDrafts[key] = draft;
       const status = $('#persona-save-status');
       if (status) status.textContent = dirty ? '有未保存修改' : '已保存';
       return;
@@ -1102,79 +1119,64 @@ function bindSettingsEvents(c) {
   }
   $('#persona-manual-save')?.setAttribute('title', '保存人设（Ctrl+S）');
   $('#persona-manual-save')?.setAttribute('aria-keyshortcuts', 'Control+s');
-  const savePersonaDraft = async () => {
-    const button = $('#persona-manual-save');
+  const savePersonaDraft = async (scope = state.personaPanel || 'role') => {
+    const button = $(scope === 'all' ? '#persona-save-all' : '#persona-manual-save');
     if (!button || button.disabled || personaManualBusy) return false;
-    const studio = $('.persona-studio');
-    const target = state.personaTarget || 'global';
-    const key = personaRevisionKey();
-    const revision = Object.fromEntries([['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([field,selector])=>[field,$(selector)?.value || '']));
-    const selectedTemplate = state.personaEditingTemplates[key];
-    if (selectedTemplate?.builtin) Object.assign(revision,{name:selectedTemplate.name,roleText:selectedTemplate.text,customRules:'',systemPromptOverride:''});
-    const templateRef = selectedTemplate ? {id:selectedTemplate.id,owner:selectedTemplate.owner || '',name:revision.name,builtin:!!selectedTemplate.builtin} : null;
-    button.disabled = true;
-    clearTimeout(button.__feedbackTimer);
-    button.classList.remove('persona-save-success');
-    button.textContent = '保存中…';
-    if (studio) studio.inert = true;
-    let guarded = false;
-    let success = false;
+    const target=state.personaTarget || 'global', key=personaRevisionKey(), studio=$('.persona-studio');
+    const editor=personaEditorText();
+    const fieldGroups={role:['name','roleText'],rules:['customRules','systemPromptOverride'],model:target==='global'?['botName','selfNickname','participation']:['participation','modelChoice']};
+    const fields=scope==='all'?Object.values(fieldGroups).flat():fieldGroups[scope];
+    const selectedTemplate=state.personaEditingTemplates[key];
+    if(selectedTemplate?.builtin)Object.assign(editor,{name:selectedTemplate.name,roleText:selectedTemplate.text,customRules:'',systemPromptOverride:''});
+    const revision=Object.fromEntries(fields.filter(field=>field!=='modelChoice').map(field=>[field,editor[field]]));
+    const buttons=[$('#persona-manual-save'),$('#persona-save-all')].filter(Boolean);
+    buttons.forEach(b=>b.disabled=true);clearTimeout(button.__feedbackTimer);button.classList.remove('persona-save-success');button.textContent='保存中…';
+    if(studio)studio.inert=true;
+    let guarded=false,success=false;
     try {
-      const deadline = Date.now() + 15000;
-      while (settingsGuard.pending > 0) {
-        if (Date.now() > deadline) throw new Error('其他设置仍在保存，请稍后重试');
-        await new Promise(resolve => setTimeout(resolve,25));
+      const deadline=Date.now()+15000;
+      while(settingsGuard.pending>0){if(Date.now()>deadline)throw Error('其他设置仍在保存，请稍后重试');await new Promise(resolve=>setTimeout(resolve,25));}
+      const results=await flushSettingsSaves();if(results.some(r=>r===false))throw Error('设置保存失败，请重试');
+      personaManualBusy=true;beginSettingsGuard();guarded=true;
+      const latest=await api('/api/config');
+      if(selectedTemplate?.editable && scope!=='model'){
+        const updated={...selectedTemplate,...(fields.includes('name')?{name:editor.name,text:editor.roleText}:{}),...(fields.includes('customRules')?{customRules:editor.customRules}:{})};
+        await api('/api/persona-library',{method:'POST',body:JSON.stringify({action:'update',owner:selectedTemplate.owner,index:selectedTemplate.index,expectedName:selectedTemplate.name,expectedText:selectedTemplate.text,name:updated.name,text:updated.text,customRules:updated.customRules})});
+        state.personaEditingTemplates[key]=updated;state.personaTemplates[selectedTemplate.id]=updated;
+        const item=document.querySelector('[data-persona-id="'+selectedTemplate.id+'"] .persona-template-name');if(item)item.textContent=updated.name;
       }
-      const results = await flushSettingsSaves();
-      if (results.some(result=>result === false)) throw new Error('设置保存失败，请重试');
-      personaManualBusy = true; beginSettingsGuard(); guarded = true;
-      const template = state.personaEditingTemplates[key];
-      if (template?.editable) {
-        await api('/api/persona-library',{method:'POST',body:JSON.stringify({action:'update',owner:template.owner,index:template.index,expectedName:template.name,expectedText:template.text,name:revision.name,text:revision.roleText,customRules:revision.customRules})});
-        const updated = {...template,name:revision.name,text:revision.roleText,customRules:revision.customRules};
-        state.personaEditingTemplates[key] = updated;
-        state.personaTemplates[template.id] = updated;
-        const item = document.querySelector(`[data-persona-id="${template.id}"] .persona-template-name`);
-        if (item) item.textContent = revision.name;
+      if(fields.includes('roleText'))revision.templateRef=selectedTemplate?{id:selectedTemplate.id,owner:selectedTemplate.owner || '',name:editor.name,builtin:!!selectedTemplate.builtin}:null;
+      const previous=target==='global'?latest.persona:(latest.personaByChat?.[target] || {});
+      const patch=target==='global'?{persona:{...previous,...revision}}:{personaByChat:{__replace__:{...(latest.personaByChat || {}),[target]:{...previous,...revision}}}};
+      if(fields.includes('modelChoice')){
+        const byChat={...(latest.api?.apiByChat?.byChat || {})};
+        if(editor.modelChoice){const [provider,model]=JSON.parse(editor.modelChoice);byChat[target]={provider,model};}else delete byChat[target];
+        patch.api={apiByChat:{byChat:{__replace__:byChat}}};
       }
-      const latest = await api('/api/config');
-      const patch = target === 'global' ? {persona:{...latest.persona,...revision,templateRef}} : {personaByChat:{__replace__:{...(latest.personaByChat || {}),[target]:{...(latest.personaByChat?.[target] || {}),...revision,templateRef}}}};
-      const response = await api('/api/config',{method:'POST',body:JSON.stringify(patch)});
-      state.config = response.config;
-      syncPersonaButtons(false);
-      if (state.personaDrafts) delete state.personaDrafts[key];
-      state.personaEditBaselines[key] = {...revision};
-      const history = readPersonaRevisions(state.config,target);
-      let historySaved = true;
-      if (!history[0] || ['name','roleText','customRules','systemPromptOverride'].some(field=>history[0][field] !== revision[field])) {
-        history.unshift({...revision,time:Date.now()});
-        try { localStorage.setItem(key,JSON.stringify(history.slice(0,5))); } catch { historySaved = false; }
-      }
-      const select = $('#persona-revisions');
-      if (select) select.innerHTML = '<option value="">最近保存记录</option>' + history.slice(0,5).map((item,index)=>`<option value="${index}">${esc(new Date(item.time).toLocaleString('zh-CN',{hour12:false}))}</option>`).join('');
-      const status = $('#persona-save-status');
-      if (status) status.textContent = historySaved ? '已保存' : '已保存，历史记录存储失败';
-      success = true;
-    } catch (error) {
-      const status = $('#persona-save-status');
-      if (status) status.textContent = '保存失败：' + error.message;
-    } finally {
-      personaManualBusy = false;
-      if (studio) studio.inert = false;
-      button.disabled = false;
-      if (guarded) endSettingsGuard();
-      if (state.tab === 'persona' && (state.personaTarget || 'global') === target) showPersonaSaveFeedback(success);
-    }
+      const response=await api('/api/config',{method:'POST',body:JSON.stringify(patch)});state.config={...response.config,account:latest.account || state.config.account};
+      state.personaEditBaselines[key]={...state.personaEditBaselines[key],...Object.fromEntries(fields.map(f=>[f,editor[f]]))};
+      const remaining=personaTextChanged(editor,key);
+      state.personaDrafts ||= {};if(remaining)state.personaDrafts[key]=editor;else delete state.personaDrafts[key];
+      const applied=target==='global'?state.config.persona:state.config.personaByChat[target];
+      const entry={...applied,name:applied.name || selectedTemplate?.name || '未命名人设',roleText:applied.roleText || '',customRules:applied.customRules || '',systemPromptOverride:applied.systemPromptOverride || '',modelChoice:fields.includes('modelChoice')?editor.modelChoice:(latest.api?.apiByChat?.byChat?.[target]?.model?JSON.stringify([latest.api.apiByChat.byChat[target].provider || '',latest.api.apiByChat.byChat[target].model]):''),time:Date.now()};
+      const history=readPersonaRevisions();history.unshift(entry);
+      let historySaved=true;try{localStorage.setItem(key,JSON.stringify(history.slice(0,personaHistoryPolicy().limit)));}catch{historySaved=false;}
+      const select=$('#persona-revisions');if(select)select.innerHTML='<option value="">最近保存记录</option>'+history.slice(0,personaHistoryPolicy().limit).map((item,index)=>'<option value="'+index+'">'+esc(personaRevisionLabel(item))+'</option>').join('');
+      const status=$('#persona-save-status');if(status)status.textContent=!historySaved?'已保存，历史记录存储失败':remaining?'当前栏已保存 · 其他栏有未保存修改':'已保存';
+      syncPersonaButtons(false);if(state.personaLeft==='templates')form.__refreshPersonaUsage?.();success=true;
+    }catch(error){const status=$('#persona-save-status');if(status)status.textContent='保存失败：'+error.message;}
+    finally{personaManualBusy=false;if(studio)studio.inert=false;buttons.forEach(b=>b.disabled=false);if(guarded)endSettingsGuard();if(state.tab==='persona' && (state.personaTarget || 'global')===target)showPersonaSaveFeedback(success,button,scope==='all'?'全部保存':'保存');}
     return success;
   };
-  if (form) form.__savePersonaDraft = savePersonaDraft;
-  $('#persona-manual-save')?.addEventListener('click', () => void savePersonaDraft());
+  if(form)form.__savePersonaDraft=savePersonaDraft;
+  $('#persona-manual-save')?.addEventListener('click',()=>void savePersonaDraft());
+  $('#persona-save-all')?.addEventListener('click',()=>void savePersonaDraft('all'));
   $('#persona-revisions')?.addEventListener('change', event => {
     if (event.currentTarget.value === '') return;
     const revision = readPersonaRevisions()[Number(event.currentTarget.value)];
     if (!revision) return;
-    for (const [field,selector] of [['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']]) {
-      const input = $(selector); if (input) input.value = revision[field] || '';
+    for (const [field,selector] of [['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt'],['botName','#cfg-botname'],['selfNickname','#cfg-selfnick'],['participation','#cfg-participation'],['modelChoice','#cfg-persona-chat-model']]) {
+      const input = $(selector); if (input && field in revision) input.value = revision[field] || '';
     }
     $('#cfg-roletext')?.dispatchEvent(new Event('input',{bubbles:true}));
     state.personaEditingTemplates[personaRevisionKey()] = null;
@@ -1184,7 +1186,7 @@ function bindSettingsEvents(c) {
     if (!personaTextChanged()) return true;
     const name = $('#cfg-persona-name')?.value || '未命名人设';
     const yes = await uiConfirm(`是否要将更改保存至：${name}`,{title:'保存人设更改',okText:'是',cancelText:'否',immediateClose:true});
-    if (yes && !(await $('#settings-form').__savePersonaDraft())) return false;
+    if (yes && !(await $('#settings-form').__savePersonaDraft('all'))) return false;
     return true;
   };
   const usePersonaTemplate = (id,tpl) => {
@@ -1282,6 +1284,15 @@ function bindSettingsEvents(c) {
       });
     });
   });
+  if(form)form.__refreshPersonaUsage = async () => {
+    try{
+      const data=await api('/api/persona-usage',{method:'POST',body:JSON.stringify({templates:Object.entries(state.personaTemplates || {}).map(([id,t])=>({id,...t}))})});
+      for(const button of $$('[data-persona-usage]')){
+        const used=!!data.usageByTemplate?.[button.dataset.personaUsage]?.length;
+        button.classList.toggle('used',used);button.title=used?'有人使用 · 查看使用情况':'暂无使用 · 查看使用情况';
+      }
+    }catch{}
+  };
   $$('[data-persona-usage]').forEach(button => button.addEventListener('click',async event=>{
     event.stopPropagation();
     const id=button.dataset.personaUsage, tpl=state.personaTemplates[id];
@@ -1327,6 +1338,7 @@ function bindSettingsEvents(c) {
     filterPersonas();
     const opener = $('[data-persona-left="templates"]');
     if (opener) { opener.setAttribute('aria-expanded',String(name === 'templates')); opener.setAttribute('aria-controls','persona-template-library'); }
+    if(name === 'templates')form?.__refreshPersonaUsage?.();
   };
   if (form) form.__closePersonaTemplates = () => {
     window.qqaMcTheme?.playToggle(false);
@@ -1351,7 +1363,7 @@ function bindSettingsEvents(c) {
   $$('[data-persona-panel]').forEach(button => button.addEventListener('click', () => {
     state.personaPanel = button.dataset.personaPanel;
     const manualTools = $('.persona-manual-tools');
-    if (manualTools) manualTools.hidden = state.personaPanel === 'model';
+    if (manualTools) manualTools.hidden = false;
     $$('[data-persona-pane]').forEach(node => { node.hidden = node.dataset.personaPane !== state.personaPanel; });
     $$('[data-persona-panel]').forEach(tab => {
       tab.classList.toggle('active', tab === button);

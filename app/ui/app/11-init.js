@@ -98,6 +98,7 @@ bindToolbarChip('#usage-chip', () => switchTab('usage'));
     // 首启引导：关键配置（模型/白名单）没填就直接带去设置页
     try {
       const cfg = await api('/api/config');
+      prunePersonaHistory(cfg);
       const ready = !!cfg.api.model && ((cfg.allow.groups?.length || cfg.allow.private?.length) || cfg.allowAllWhenEmpty);
       if (!ready) {
         switchTab('settings');

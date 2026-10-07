@@ -25,7 +25,7 @@ await withPage({url,width:1360,height:900},async page=>{
  await page.eval(`(()=>{
   window.__personaPosts=[];window.__personaFetch=window.fetch;
   const merge=(base,patch)=>{for(const [k,v] of Object.entries(patch)){if(v&&typeof v==='object'&&!Array.isArray(v)){if('__replace__' in v)base[k]=structuredClone(v.__replace__);else {if(!base[k]||typeof base[k]!=='object')base[k]={};merge(base[k],v);}}else base[k]=v;}return base;};
-  window.fetch=async function(input,init){const u=typeof input==='string'?input:input.url;if(u.includes('/api/persona-library'))return new Response(JSON.stringify({ok:true}),{headers:{'Content-Type':'application/json'}});if(u.includes('/api/config')&&init?.method==='POST'){const patch=JSON.parse(init.body);window.__personaPosts.push(patch);const config=merge(structuredClone(state.config),patch);return new Response(JSON.stringify({ok:true,config}),{status:200,headers:{'Content-Type':'application/json'}});}return window.__personaFetch.call(this,input,init);};
+  window.fetch=async function(input,init){const u=typeof input==='string'?input:input.url;if(u.includes('/api/persona-library'))return new Response(JSON.stringify({ok:true}),{headers:{'Content-Type':'application/json'}});if(u.includes('/api/config')){if(init?.method==='POST'){const patch=JSON.parse(init.body);window.__personaPosts.push(patch);const config=merge(structuredClone(state.config),patch);return new Response(JSON.stringify({ok:true,config}),{status:200,headers:{'Content-Type':'application/json'}});}return new Response(JSON.stringify(state.config),{headers:{'Content-Type':'application/json'}});}return window.__personaFetch.call(this,input,init);};
   const search=document.querySelector('#persona-search');search.value='__no_match__';search.dispatchEvent(new Event('input',{bubbles:true}));
  })()`);
  assert.equal(await page.eval('document.querySelectorAll(".persona-target:not([hidden])").length'),0);
@@ -44,7 +44,7 @@ await withPage({url,width:1360,height:900},async page=>{
  assert.equal(await page.eval('window.__personaPosts.some(p=>p.persona?.roleText.endsWith("中文保存验证"))'),true,'切会话前保存全局');
  assert.equal(await page.eval('!!document.querySelector(".model-modal-overlay")'),false);
  await page.eval('document.querySelector("[data-persona-left=templates]").click();document.querySelector(".persona-template").click()');
- await page.eval('document.querySelector("#persona-manual-save").click()');
+ await page.eval('document.querySelector("#persona-save-all").click()');
  await page.waitFor(`window.__personaPosts.some(p=>p.personaByChat?.__replace__?.[${JSON.stringify(target)}])`);
  assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),true,'选用后收起模板');
  const selection=await page.eval(`({text:document.querySelector('#cfg-roletext').value,patch:window.__personaPosts.filter(p=>p.personaByChat).at(-1),rules:document.querySelector('#cfg-customrules').value})`);
@@ -54,9 +54,11 @@ await withPage({url,width:1360,height:900},async page=>{
  const hasModels=await page.eval('document.querySelector("#cfg-persona-chat-model").options.length>1');
  if(hasModels){
   await page.eval('state.config.api.apiByChat.byChat={...(state.config.api.apiByChat.byChat||{}),"private:test-preserved":{model:"preserved-model",provider:"preserved-provider"}};const m=document.querySelector("#cfg-persona-chat-model");m.selectedIndex=1;m.dispatchEvent(new Event("change",{bubbles:true}))');
+  await page.eval('document.querySelector("#persona-manual-save").click()');
   await page.waitFor(`window.__personaPosts.some(p=>p.api?.apiByChat?.byChat?.__replace__?.[${JSON.stringify(target)}]?.model)`);
   assert.equal(await page.eval('state.config.api.apiByChat.byChat["private:test-preserved"].model'),'preserved-model');
   await page.eval('const clearModel=document.querySelector("#cfg-persona-chat-model");clearModel.value="";clearModel.dispatchEvent(new Event("change",{bubbles:true}))');
+  await page.eval('document.querySelector("#persona-manual-save").click()');
   await page.waitFor(`!state.config.api.apiByChat.byChat[${JSON.stringify(target)}]`);
   assert.equal(await page.eval('state.config.api.apiByChat.byChat["private:test-preserved"].model'),'preserved-model');
  }
