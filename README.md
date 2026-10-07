@@ -1,4 +1,4 @@
-# qq-agent-ui-next —— QQ Agent 新控制台（移交文档入口）
+# QQ Agent ARCFOX - A modern, beautifully designed QQ Agent.
 
 > 当前工作区：`E:\CodeX-YSM\QQ Agent Dev\qq-agent-ui-next`。
 > 本地 UI 基线：**0.4.01**；目标 GitHub 仓库：**QQARCFOX（私有）**。
