@@ -407,45 +407,62 @@
 .field > select { width: 100%; }
 .field > textarea { width: 100%; }
 
-/* 人设工作区：左侧会话/模板选择，右侧子菜单与编辑器独立滚动。 */
+/* 原创人设页：对象目录 + 正文桌面。正文为默认视觉中心。 */
 #view-persona #settings-form { padding: 0; width: 100%; max-width: none; overflow: hidden; }
-#view-persona .persona-studio { display: grid; grid-template-columns: 290px minmax(0,1fr); height: 100%; min-height: 0; max-width: none; }
-#view-persona .persona-selector { overflow-y: auto; min-width: 0; padding: 18px 14px; border-right: 1px solid var(--q-line-1); }
-#view-persona .persona-selector-head, #view-persona .persona-editor-head { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
-#view-persona h2 { font-size: 20px; margin: 0; }
-#view-persona .persona-selector h3 { font-size: 14px; margin: 18px 8px 8px; color: var(--q-fg-2); }
-#view-persona #persona-search { width: 100%; margin: 16px 0 12px; }
-#view-persona :is(.persona-left-tabs,.persona-editor-tabs) { display: flex; gap: 4px; border-bottom: 1px solid var(--q-line-1); padding-bottom: 8px; margin-bottom: 14px; }
-#view-persona :is(.persona-left-tabs,.persona-editor-tabs) button { font: inherit; border: 0; background: transparent; color: var(--q-fg-2); padding: 8px 12px; cursor: pointer; }
-#view-persona :is(.persona-left-tabs,.persona-editor-tabs) button.active { color: var(--q-accent); background: var(--q-accent-soft); }
-#view-persona .persona-target { display: flex; flex-direction: column; gap: 5px; text-align: left; width: 100%; font: inherit; color: var(--q-fg); border: 0; background: transparent; padding: 12px; cursor: pointer; }
-#view-persona .persona-target small { color: var(--q-fg-2); font-size: 12px; }
-#view-persona :is(.persona-template,.persona-target).active { background: var(--q-accent-soft); box-shadow: inset 3px 0 var(--q-accent); }
-#view-persona :is(.persona-template,.persona-target):hover { background: var(--q-bg-hover); }
-#view-persona :is(.persona-target,.persona-template,[data-persona-list],[data-persona-pane])[hidden] { display: none; }
-#view-persona .persona-template { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 8px; width: 100%; text-align: left; font: inherit; color: var(--q-fg); border: 0; border-bottom: 1px solid var(--q-line-1); background: transparent; padding: 12px; cursor: pointer; }
-#view-persona .persona-template-name { font-weight: 600; overflow-wrap: anywhere; }
-#view-persona .persona-template-desc { grid-column: 1 / -1; color: var(--q-fg-2); font-size: 13px; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-#view-persona button:focus-visible { outline: 2px solid var(--q-accent); outline-offset: -2px; }
-#view-persona .persona-editor { overflow-y: auto; min-width: 0; padding: 20px 24px 36px; }
-#view-persona .persona-editor-head { align-items: flex-start; }
-#view-persona .persona-editor-head .hint { margin: 8px 0; }
-#view-persona #persona-save-status { flex: 0 0 auto; }
-#view-persona .persona-editor-tabs { margin-top: 16px; }
-#view-persona .persona-editor .field-row { flex-wrap: wrap; }
-#view-persona .persona-editor .field-row .field { min-width: 140px; }
-#view-persona #cfg-roletext { min-height: 380px; resize: vertical; line-height: 1.7; }
-#view-persona :is(#cfg-customrules,#cfg-sysprompt) { min-height: 200px; resize: vertical; line-height: 1.7; }
-html[data-skin='minecraft'] #view-persona :is(.persona-template-desc,.persona-target small) { font-size: 14px; }
+#view-persona .persona-canvas { display: grid; grid-template-columns: 252px minmax(0,1fr); height: 100%; min-height: 0; max-width: none; }
+#view-persona .persona-directory { min-height: 0; overflow-y: auto; padding: 28px 18px; border-right: 1px solid var(--q-line-1); }
+#view-persona .persona-directory header h2 { margin: 0; font-size: 22px; }
+#view-persona .persona-directory header p { font-size: 13px; color: var(--q-fg-2); margin: 8px 0 22px; }
+#view-persona #persona-search { width: 100%; margin-bottom: 22px; }
+#view-persona .persona-object-list h3 { margin: 24px 8px 8px; color: var(--q-fg-3); font-size: 12px; font-weight: 400; }
+#view-persona .persona-target { display: flex; flex-direction: column; gap: 7px; padding: 13px 12px; margin: 3px 0; border: 0; width: 100%; text-align: left; font: inherit; cursor: pointer; background: transparent; color: var(--q-fg); }
+#view-persona .persona-target small { font-size: 12px; color: var(--q-fg-2); }
+#view-persona .persona-target.active { background: var(--q-accent-soft); box-shadow: inset 2px 0 var(--q-accent); }
+#view-persona .persona-target:hover { background: var(--q-bg-hover); }
+#view-persona .persona-desk { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 26px 34px 16px; background: var(--q-bg-1); }
+#view-persona .persona-desk-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex: 0 0 auto; }
+#view-persona .persona-eyebrow { color: var(--q-fg-3); font-size: 12px; }
+#view-persona .persona-desk-head h2 { margin: 8px 0 0; font-size: 22px; font-weight: 500; }
+#view-persona #persona-save-status { color: var(--q-fg-2); font-size: 12px; }
+#view-persona .persona-desk-tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 28px; border-bottom: 1px solid var(--q-line-1); flex: 0 0 auto; }
+#view-persona .persona-desk-tools nav { display: flex; gap: 22px; }
+#view-persona [data-persona-panel] { padding: 12px 0; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--q-fg-2); font: inherit; cursor: pointer; }
+#view-persona [data-persona-panel].active { color: var(--q-fg); border-bottom-color: var(--q-accent); }
+#view-persona .persona-template-open { border: 0; padding: 10px 0; background: transparent; color: var(--q-fg-2); font: inherit; font-size: 12px; text-align: right; cursor: pointer; }
+#view-persona .persona-template-open span { display: block; color: var(--q-fg); margin-top: 4px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#view-persona .persona-template-drawer { flex: 0 0 auto; padding: 18px 0; border-bottom: 1px solid var(--q-line-1); }
+#view-persona .persona-template-drawer header, #view-persona .persona-template-drawer footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+#view-persona .persona-template-drawer h3 { margin: 0; font-size: 16px; }
+#view-persona .persona-template-drawer p { margin: 6px 0; color: var(--q-fg-2); font-size: 12px; }
+#view-persona .persona-template-choices { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 8px; max-height: 200px; overflow-y: auto; margin: 12px 0; }
+#view-persona .persona-template { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px; border: 0; background: var(--q-bg-base); color: var(--q-fg); font: inherit; cursor: pointer; }
+#view-persona .persona-template small { color: var(--q-fg-3); font-size: 11px; flex: 0 0 auto; }
+#view-persona .persona-template.active { background: var(--q-accent-soft); }
+#view-persona .persona-document { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; padding-top: 18px; }
+#view-persona #cfg-roletext { flex: 1 1 auto; min-height: 160px; width: 100%; resize: none; border: 0; background: transparent; color: var(--q-fg); padding: 8px 0; font: inherit; font-size: 15px; line-height: 1.9; box-shadow: none; }
+#view-persona #cfg-roletext:focus { outline: none; box-shadow: none; }
+#view-persona .persona-document footer { display: flex; justify-content: space-between; gap: 12px; padding: 14px 0 0; color: var(--q-fg-3); font-size: 12px; }
+#view-persona .persona-options { min-height: 0; flex: 1 1 auto; overflow-y: auto; padding: 24px 0; }
+#view-persona .persona-options h3 { font-size: 14px; margin: 26px 0 16px; }
+#view-persona .persona-options h3:first-child { margin-top: 0; }
+#view-persona .persona-options .field-row { flex-wrap: wrap; }
+#view-persona .persona-options .field-row .field { min-width: 150px; }
+#view-persona :is(#cfg-customrules,#cfg-sysprompt) { min-height: 180px; font: inherit; font-size: 14px; line-height: 1.8; }
+#view-persona .persona-scope-note { font-size: 12px; color: var(--q-fg-2); margin: 12px 0 0; }
+#view-persona :is(.persona-target,.persona-template,[data-persona-list],[data-persona-pane],.persona-scope-note)[hidden] { display: none; }
+#view-persona button:focus-visible { outline: 2px solid var(--q-accent); outline-offset: 2px; }
+html[data-skin='minecraft'] #view-persona #cfg-roletext { font-size: 16px; }
+html[data-skin='minecraft'] #view-persona :is(.persona-target small,.persona-directory header p) { font-size: 14px; }
 @media (max-width: 980px) {
-  #view-persona .persona-studio { grid-template-columns: 230px minmax(0,1fr); }
-  #view-persona .persona-selector { padding: 14px 10px; }
-  #view-persona .persona-editor { padding: 14px; }
-  #view-persona .persona-editor-head { flex-direction: column; gap: 0; }
+ #view-persona .persona-canvas { grid-template-columns: 200px minmax(0,1fr); }
+ #view-persona .persona-directory { padding: 22px 12px; }
+ #view-persona .persona-desk { padding: 22px 20px 14px; }
+ #view-persona .persona-template-open span { max-width: 160px; }
 }
 @media (max-width: 620px) {
-  #view-persona #settings-form { overflow-y: auto; }
-  #view-persona .persona-studio { grid-template-columns: 1fr; height: auto; }
-  #view-persona .persona-selector { max-height: 280px; border-right: 0; border-bottom: 1px solid var(--q-line-1); }
-  #view-persona .persona-editor { overflow: visible; }
+ #view-persona #settings-form { overflow-y: auto; }
+ #view-persona .persona-canvas { grid-template-columns: 1fr; height: auto; }
+ #view-persona .persona-directory { max-height: 250px; border-right: 0; border-bottom: 1px solid var(--q-line-1); }
+ #view-persona .persona-desk { min-height: 600px; }
+ #view-persona .persona-document { min-height: 350px; }
 }

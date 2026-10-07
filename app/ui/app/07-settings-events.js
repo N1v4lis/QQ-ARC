@@ -1001,6 +1001,10 @@ function bindSettingsEvents(c) {
     if (hint) hint.textContent = tpl ? (tpl.builtin ? '内置人设' : '自定义人设') : '';
     const input = $('#cfg-persona-pick');
     if (input) input.value = tpl?.name || '自定义编辑';
+    const templateName = $('#persona-current-template');
+    if (templateName) templateName.textContent = tpl?.name || '自定义正文';
+    const characters = $('#persona-character-count');
+    if (characters) characters.textContent = `${$('#cfg-roletext')?.value.length || 0} 字`;
     $$('.persona-template').forEach(button => {
       const active = button.dataset.personaId === id;
       button.classList.toggle('active', active);
@@ -1044,6 +1048,10 @@ function bindSettingsEvents(c) {
     $('#cfg-customrules').value = tpl.customRules || '';
     $('#cfg-roletext').dispatchEvent(new Event('input', { bubbles: true }));
     syncPersonaButtons(false);
+    if ($('.persona-canvas')) {
+      $('[data-persona-panel="role"]')?.click();
+      $('[data-persona-left="chats"]')?.click();
+    }
   }));
   const personaSearch = $('#persona-search');
   const filterPersonas = () => {
@@ -1052,14 +1060,14 @@ function bindSettingsEvents(c) {
     let count = 0;
     $$('.persona-template').forEach(button => {
       const tpl = state.personaTemplates[button.dataset.personaId];
-      const match = !term || `${tpl?.name || ''} ${tpl?.text || ''}`.toLowerCase().includes(term);
+      const match = !!$('.persona-canvas') || !term || `${tpl?.name || ''} ${tpl?.text || ''}`.toLowerCase().includes(term);
       button.hidden = !match;
-      if (match && state.personaLeft === 'templates') count++;
+      if (match && state.personaLeft === 'templates' && !$('.persona-canvas')) count++;
     });
     $$('.persona-target').forEach(button => {
       const match = !term || button.textContent.toLowerCase().includes(term) || button.dataset.personaTarget.toLowerCase().includes(term);
       button.hidden = !match;
-      if (match && state.personaLeft !== 'templates') count++;
+      if (match && (state.personaLeft !== 'templates' || $('.persona-canvas'))) count++;
     });
     $('#persona-search-empty')?.classList.toggle('hidden', count > 0);
   };

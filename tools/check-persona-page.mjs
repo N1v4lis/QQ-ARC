@@ -9,6 +9,9 @@ await withPage({url,width:1360,height:900},async page=>{
  await page.waitFor('!!document.querySelector(".persona-studio #cfg-roletext")',{timeout:15000});
  const initial=await page.eval(`({forms:document.querySelectorAll('#settings-form').length,cards:document.querySelectorAll('#view-persona .setcard').length,order:document.querySelector('.tab[data-tab=persona]').nextElementSibling.dataset.tab,templates:document.querySelectorAll('.persona-template').length,role:document.querySelector('#cfg-roletext').value})`);
  assert.equal(initial.forms,1);assert.equal(initial.cards,0);assert.equal(initial.order,'skills');assert(initial.templates>0);assert.equal(initial.role,before.persona.roleText);
+ assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),true,'模板按需展开');
+ assert.equal(await page.eval('document.querySelector("#cfg-persona-unified").getClientRects().length'),0,'统一开关不占用正文页面');
+ assert.equal(await page.eval('document.querySelector("#cfg-botname").getClientRects().length'),0,'身份信息不占用正文页面');
  await page.eval(`(()=>{
   window.__personaPosts=[];window.__personaFetch=window.fetch;
   const merge=(base,patch)=>{for(const [k,v] of Object.entries(patch)){if(v&&typeof v==='object'&&!Array.isArray(v)){if('__replace__' in v)base[k]=structuredClone(v.__replace__);else {if(!base[k]||typeof base[k]!=='object')base[k]={};merge(base[k],v);}}else base[k]=v;}return base;};
@@ -30,6 +33,7 @@ await withPage({url,width:1360,height:900},async page=>{
  assert.equal(await page.eval('!!document.querySelector(".model-modal-overlay")'),false);
  await page.eval('document.querySelector("[data-persona-left=templates]").click();document.querySelector(".persona-template").click()');
  await page.waitFor(`window.__personaPosts.some(p=>p.personaByChat?.__replace__?.[${JSON.stringify(target)}])`);
+ assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),true,'选用后收起模板');
  const selection=await page.eval(`({text:document.querySelector('#cfg-roletext').value,patch:window.__personaPosts.filter(p=>p.personaByChat).at(-1),rules:document.querySelector('#cfg-customrules').value})`);
  assert.equal(selection.patch.personaByChat.__replace__[target].roleText,selection.text);assert.equal(selection.patch.personaByChat.__replace__[target].customRules,selection.rules);assert.equal('persona' in selection.patch,false,'会话编辑不写全局');
  await page.eval('document.querySelector("[data-persona-panel=model]").click()');
