@@ -53,6 +53,8 @@ function bindSettingsEvents(c) {
   }
 
   function showUndoBtn() {
+    // 独立人设页只保留自动保存，不提供整份设置快照撤销及其确认弹窗。
+    if (state.tab === 'persona') return;
     /**
      * ⚠️ 这里原来只判 `if (undoBtn) return` —— 有个隐性 bug：
      *    `renderSettings()` 会**整体重建 `#settings-form` 的 innerHTML**，

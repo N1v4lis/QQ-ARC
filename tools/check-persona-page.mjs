@@ -36,11 +36,13 @@ await withPage({url,width:1360,height:900},async page=>{
     };
     window.__personaTestRole=document.querySelector('#cfg-roletext').value;
     const role=document.querySelector('#cfg-roletext');role.value+='\\n中文保存验证';role.dispatchEvent(new Event('input',{bubbles:true}));
+    window.__personaTestUndoAbsent=!document.querySelector('#view-persona .settings-undo-btn');
     document.querySelector('.tab[data-tab="settings"]').click();
   })()`);
   await page.waitFor('window.__personaTestPosts.length>0 && !!document.querySelector("#view-settings #settings-form")',{timeout:10000});
   const saved=await page.eval('({unicode:window.__personaTestPosts[0].persona?.roleText.endsWith("中文保存验证"), keys:Object.keys(window.__personaTestPosts[0]),formCount:document.querySelectorAll("#settings-form").length})');
   assert.equal(saved.unicode,true);assert.equal(saved.formCount,1);assert(saved.keys.includes('persona'));
+  assert.equal(await page.eval('window.__personaTestUndoAbsent'),true,'人设编辑不产生设置撤销入口');
   await page.eval('window.fetch=window.__personaTestOriginalFetch;document.querySelector("#model-label").click()');
   await page.waitFor('!!document.querySelector("#view-persona #cfg-roletext")',{timeout:15000});
   await page.waitFor('document.querySelector("#cfg-roletext").value===window.__personaTestRole',{timeout:10000});
