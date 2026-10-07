@@ -125,6 +125,22 @@
       "pass": true
     },
     {
+      "name": "无人互动10秒增加首个屏幕气泡",
+      "pass": true
+    },
+    {
+      "name": "气泡随等待逐步增多",
+      "pass": true
+    },
+    {
+      "name": "最终气泡铺满视口且节点数量受控",
+      "pass": true
+    },
+    {
+      "name": "互动立即清空所有呆住气泡",
+      "pass": true
+    },
+    {
       "name": "呆住拖动不Fly",
       "pass": true
     },
@@ -153,6 +169,6 @@
       "pass": true
     }
   ],
-  "date": "2026-10-07",
-  "scope": "Original core suite 30 only; virtual-time behavior checks separately; no disabled suites"
+  "version": "0.4.1",
+  "scope": "Original core suite 30 only; elapsed-time fixtures for thought growth; no disabled suites"
 }

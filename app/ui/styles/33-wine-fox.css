@@ -10,13 +10,18 @@
 #card-wine-fox select{max-width:220px;}
 html[data-skin='minecraft'] #wine-fox-pet .wine-fox-bubble{border-radius:0;}
 #wine-fox-pet .wine-fox-thought{width:152px;min-width:0;max-width:152px;overflow:hidden;white-space:nowrap;text-align:left;}
-#wine-fox-pet .wine-fox-thought-track{display:flex;width:max-content;animation:wine-fox-thought-scroll 5s linear infinite;}
-#wine-fox-pet .wine-fox-thought-track span{display:block;flex:none;white-space:nowrap;}
+.wine-fox-thought-track{display:flex;width:max-content;animation:wine-fox-thought-scroll 5s linear infinite;}
+.wine-fox-thought-track span{display:block;flex:none;white-space:nowrap;}
 @keyframes wine-fox-thought-scroll{from{transform:translateX(-50%);}to{transform:translateX(0);}}
 .wine-fox-menu{position:fixed;width:280px;height:280px;z-index:86;border-radius:50%;background:radial-gradient(circle,var(--q-bg-1) 0 23%,transparent 24% 27%,var(--q-bg-1) 28% 67%,transparent 68%);filter:drop-shadow(0 5px 15px #0004);pointer-events:auto;}
 .wine-fox-menu[hidden]{display:none;}
 .wine-fox-menu button{position:absolute;width:60px;height:60px;border-radius:50%;border:1px solid var(--q-line-2);background:var(--q-bg-1);color:var(--q-fg);font:12px/1.3 var(--q-font);cursor:pointer;transition:background .15s,transform .15s;}
 .wine-fox-menu button:hover,.wine-fox-menu button:focus-visible{background:var(--q-accent);color:var(--q-bg-1);outline:2px solid var(--q-accent);outline-offset:3px;transform:scale(1.08);}
 .wine-fox-menu .wine-fox-menu-back{left:108px;top:108px;width:64px;height:64px;}
-@media (prefers-reduced-motion:reduce){#wine-fox-pet .wine-fox-thought-track{animation:none;}}
-html[data-motion='off'] #wine-fox-pet .wine-fox-thought-track{animation:none;}
+@media (prefers-reduced-motion:reduce){.wine-fox-thought-track{animation:none;}}
+html[data-motion='off'] .wine-fox-thought-track{animation:none;}
+
+.wine-fox-thought-cloud{position:fixed;inset:0;z-index:84;display:grid;gap:6px;padding:8px;pointer-events:none;overflow:hidden;contain:strict;}
+.wine-fox-thought-cloud[hidden]{display:none;}
+.wine-fox-cloud-bubble{display:flex;align-items:center;min-width:0;min-height:0;padding:4px 8px;overflow:hidden;border:1px solid var(--q-line-2);border-radius:10px;background:var(--q-bg-1);color:var(--q-fg);font:13px/1.5 var(--q-font);pointer-events:none;}
+html[data-skin='minecraft'] .wine-fox-cloud-bubble{border-radius:0;}

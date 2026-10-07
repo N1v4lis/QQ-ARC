@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {FoxBehavior,MOOD_ACTIONS,LOOP_ACTIONS,MOOD_HOLD_MS,visibleActions,chooseTravel,destination} from '../app/ui/shell/fox-behavior.mjs';
+import {FoxBehavior,MOOD_ACTIONS,LOOP_ACTIONS,MOOD_HOLD_MS,visibleActions,chooseTravel,destination,TURN_RATE,THOUGHT_STEP_MS,thoughtCount,thoughtGrid} from '../app/ui/shell/fox-behavior.mjs';
 for(const random of [()=>0,()=>.5,()=>.999999]){
   const fox=new FoxBehavior({now:0,random});assert(fox.idleAt>=60000&&fox.idleAt<=120000);
   assert(fox.delay()>=1000&&fox.delay()<=5000);
@@ -21,3 +21,5 @@ for(const [random,expected] of [[()=>0,'walk'],[()=>.4,'run'],[()=>.7,'fly'],[()
 let draws=[.8,.2,.2];assert.equal(chooseTravel(()=>draws.shift()),'elytra_fly');
 const angryIdle=new FoxBehavior({now:0,random:()=>0});assert.equal(angryIdle.advance(60000),'angry');assert.equal(angryIdle.until,70000);assert.equal(angryIdle.advance(70000),'normal');
 for(const name of ['walk','run','fly','elytra_fly']){const d=destination([500,400],200,280,1400,900,name,()=>.8);assert(d[0]>=0&&d[0]<=1200&&d[1]>=52&&d[1]<=620);if(['walk','run'].includes(name))assert.equal(d[1],400);}
+
+assert.equal(TURN_RATE,12);assert.equal(THOUGHT_STEP_MS,10000);assert.deepEqual([0,10000,20000,30000].map(t=>thoughtCount(t,192)),[0,1,4,9]);assert.equal(thoughtCount(3600000,192),192);for(const [w,h] of [[390,844],[1400,900],[3840,2160]]){const grid=thoughtGrid(w,h);assert(grid.capacity<=192);assert.equal(grid.capacity,grid.columns*grid.rows);}

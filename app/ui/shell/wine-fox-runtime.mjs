@@ -1,5 +1,5 @@
 import * as THREE from '../assets/wine-fox/three/three.module.js';
-import {FoxBehavior,MOOD_ACTIONS,LOOP_ACTIONS,MOOD_HOLD_MS,visibleActions,chooseTravel,destination} from './fox-behavior.mjs';
+import {FoxBehavior,MOOD_ACTIONS,LOOP_ACTIONS,MOOD_HOLD_MS,visibleActions,chooseTravel,destination,TURN_RATE,THOUGHT_STEP_MS,thoughtCount,thoughtGrid} from './fox-behavior.mjs';
 import {GLTFLoader} from '../assets/wine-fox/three/addons/loaders/GLTFLoader.js';
 
 export async function createWineFox(initial,{signal,onPosition,onDisable,onError}){
@@ -16,13 +16,36 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
   let travel=null,motionKind='base',pressTimer=0,menuOpen=false,faceYaw=0,facePitch=0,faceUntil=0;
   const menu=document.createElement('div');menu.className='wine-fox-menu';menu.hidden=true;menu.setAttribute('role','menu');menu.setAttribute('aria-label','酒狐互动动作');document.body.append(menu);
   const natural=()=>prefs.animation==='natural';
+  const thoughtCloud=document.createElement('div');thoughtCloud.className='wine-fox-thought-cloud';thoughtCloud.setAttribute('aria-hidden','true');thoughtCloud.hidden=true;document.body.append(thoughtCloud);
+  let dazedSince=null,thoughtResumeAt=0,thoughtNextAt=Infinity,cloudGrid=null,cloudCells=[];
+  function clearThoughts(){thoughtCloud.replaceChildren();thoughtCloud.hidden=true;dazedSince=null;thoughtNextAt=Infinity;cloudGrid=null;cloudCells=[];}
+  function acknowledge(){
+    const now=performance.now();clearThoughts();brain.touch(now);thoughtResumeAt=brain.mood==='dazed'?brain.idleAt:0;
+    if(brain.mood==='dazed'){bubble.hidden=true;bubble.classList.remove('wine-fox-thought');bubble.replaceChildren();}
+    armBehavior();
+  }
+  function syncThoughtCloud(now=performance.now()){
+    if(brain.mood!=='dazed'){clearThoughts();thoughtResumeAt=0;return;}
+    if(now<thoughtResumeAt){thoughtNextAt=thoughtResumeAt;return;}
+    if(dazedSince===null)dazedSince=now;
+    const grid=thoughtGrid(innerWidth,innerHeight);
+    if(!cloudGrid||grid.columns!==cloudGrid.columns||grid.rows!==cloudGrid.rows){
+      thoughtCloud.replaceChildren();cloudGrid=grid;thoughtCloud.style.gridTemplateColumns='repeat('+grid.columns+',1fr)';thoughtCloud.style.gridTemplateRows='repeat('+grid.rows+',1fr)';
+      const r=host.getBoundingClientRect(),cx=(r.left+r.width/2)/innerWidth*grid.columns,cy=(r.top+r.height*.15)/innerHeight*grid.rows;cloudCells=[];
+      for(let row=0;row<grid.rows;row++)for(let column=0;column<grid.columns;column++)cloudCells.push({row,column,distance:(column+.5-cx)**2+(row+.5-cy)**2});cloudCells.sort((a,b)=>a.distance-b.distance);
+    }
+    const count=Math.max(thoughtCloud.childElementCount,thoughtCount(now-dazedSince,grid.capacity)),fragment=document.createDocumentFragment();
+    while(thoughtCloud.childElementCount+fragment.childElementCount<count){const index=thoughtCloud.childElementCount+fragment.childElementCount,cell=cloudCells[index],node=document.createElement('div');node.className='wine-fox-cloud-bubble';node.style.gridColumn=String(cell.column+1);node.style.gridRow=String(cell.row+1);const track=document.createElement('div');track.className='wine-fox-thought-track';const phrase='ご主人様…　'.repeat(Math.ceil(innerWidth/grid.columns/100)+1);for(let i=0;i<2;i++){const span=document.createElement('span');span.textContent=phrase;track.append(span);}node.append(track);fragment.append(node);}
+    if(fragment.childElementCount)thoughtCloud.append(fragment);thoughtCloud.hidden=count===0;
+    thoughtNextAt=count>=grid.capacity?Infinity:dazedSince+(Math.floor((now-dazedSince)/THOUGHT_STEP_MS)+1)*THOUGHT_STEP_MS;
+  }
   function faceDestination(dx,dy,flight=false){faceYaw=Math.abs(dx)>.5?Math.sign(dx)*Math.PI/2:0;facePitch=flight?THREE.MathUtils.clamp(Math.atan2(-dy,Math.abs(dx))*.4,-.35,.35):0;faceUntil=Infinity;}
   function faceOwner(){faceYaw=0;facePitch=0;faceUntil=0;}
   function persistPosition(){const r=host.getBoundingClientRect();prefs={...prefs,x:r.left,y:r.top};homePoint=[r.left,r.top];onPosition(r.left,r.top);}
   function stopTravel(){if(travel){travel=null;persistPosition();}faceOwner();}
-  function closeMenu(restore=true){if(!menuOpen)return;menuOpen=false;menu.hidden=true;if(restore)restoreBase();canvas.focus({preventScroll:true});}
+  function closeMenu(restore=true){if(!menuOpen)return;menuOpen=false;menu.hidden=true;if(restore){acknowledge();restoreBase();}canvas.focus({preventScroll:true});}
   function openMenu(fromKeyboard=false){
-    if(disposed||suspended||(!fromKeyboard&&(!drag||drag.moved)))return;if(drag)drag.menu=true;menuOpen=true;stopTravel();returning=null;interaction='';motionKind='base';nextAutoAt=actionEndAt=Infinity;play('idle');faceOwner();
+    if(disposed||suspended||(!fromKeyboard&&(!drag||drag.moved)))return;acknowledge();if(drag)drag.menu=true;menuOpen=true;stopTravel();returning=null;interaction='';motionKind='base';nextAutoAt=actionEndAt=Infinity;play('idle');faceOwner();
     const names=clips.map(c=>c.name).filter(n=>/^extra\d+$/i.test(n)).sort((a,b)=>Number(a.slice(5))-Number(b.slice(5)));
     menu.replaceChildren(...names.map((name,i)=>{const b=document.createElement('button');b.type='button';b.setAttribute('role','menuitem');b.dataset.extra=name;b.textContent='Extra '+name.slice(5);const angle=-Math.PI/2+i/names.length*Math.PI*2;b.style.left=(140+Math.cos(angle)*100-30)+'px';b.style.top=(140+Math.sin(angle)*100-30)+'px';return b;}));
     const back=document.createElement('button');back.type='button';back.className='wine-fox-menu-back';back.dataset.menuClose='';back.textContent='返回';back.setAttribute('aria-label','关闭互动菜单');menu.append(back);
@@ -47,7 +70,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.skeleton)skeletons.add(o.skeleton);for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[]){materials.add(m);for(const v of Object.values(m))if(v?.isTexture)textures.add(v);}});
     for(const t of textures){t.dispose();t.source?.data?.close?.();}for(const g of geometries)g.dispose();for(const m of materials)m.dispose();for(const s of skeletons)s.dispose();}
   function cancelFrame(){clearTimeout(frameTimer);cancelAnimationFrame(raf);frameTimer=0;raf=0;}
-  function dispose(){if(disposed)return;disposed=true;stopVoice();cancelFrame();clearTimeout(behaviorTimer);clearTimeout(pressTimer);menu.remove();for(const remove of listeners)remove();
+  function dispose(){if(disposed)return;disposed=true;stopVoice();cancelFrame();clearTimeout(behaviorTimer);clearTimeout(pressTimer);thoughtCloud.remove();menu.remove();for(const remove of listeners)remove();
     if(drag&&canvas.hasPointerCapture(drag.id))canvas.releasePointerCapture(drag.id);drag=null;
     mixer?.stopAllAction();if(model)mixer?.uncacheRoot(model);freeModel(model);renderer?.dispose();renderer?.forceContextLoss();host.remove();}
   function activeMode(now=performance.now()){return interaction==='happy'?1:brain.mood==='angry'?2:brain.mood==='dazed'?6:prefs.expression;}
@@ -63,7 +86,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     if(!menuOpen&&(!prefs.paused||interaction))mixer.update(dt);
     if(returning||travel){const journey=returning||travel;const progress=Math.min(1,(now-journey.at)/journey.duration);place(THREE.MathUtils.lerp(journey.from[0],journey.to[0],progress),THREE.MathUtils.lerp(journey.from[1],journey.to[1],progress));if(progress>=1){const wasReturn=!!returning;returning=null;travel=null;persistPosition();if(wasReturn&&natural()&&brain.mood!=='normal')startMoodMotion();else restoreBase();}}
     if(!drag&&!returning&&!travel&&now>=faceUntil)faceOwner();
-    const delta=Math.atan2(Math.sin(faceYaw-model.rotation.y),Math.cos(faceYaw-model.rotation.y)),blend=1-Math.exp(-dt*6);
+    const delta=Math.atan2(Math.sin(faceYaw-model.rotation.y),Math.cos(faceYaw-model.rotation.y)),blend=1-Math.exp(-dt*TURN_RATE);
     model.rotation.y+=delta*blend;model.rotation.x+=(facePitch-model.rotation.x)*blend;
     const turning=Math.abs(delta)>.002||Math.abs(facePitch-model.rotation.x)>.002;
     pose(now);renderer.render(scene,camera);frames++;
@@ -85,7 +108,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     host.style.width=width+'px';host.style.height=height+'px';camera.left=-1.95*width/height;camera.right=1.95*width/height;camera.updateProjectionMatrix();
     renderer.setSize(width,height,false);if(current)place(current.left,current.top);else place();schedule(true);}
   function updateBubble(){
-    const thought=brain.mood==='dazed'&&MOOD_ACTIONS.dazed.includes(currentName);
+    syncThoughtCloud();const thought=brain.mood==='dazed'&&performance.now()>=thoughtResumeAt&&MOOD_ACTIONS.dazed.includes(currentName);
     if(thought){if(!bubble.classList.contains('wine-fox-thought')){bubble.classList.add('wine-fox-thought');const track=document.createElement('div');track.className='wine-fox-thought-track';track.setAttribute('aria-hidden','true');for(let i=0;i<2;i++){const text=document.createElement('span');text.textContent='ご主人様…　ご主人様…　';if(i)text.setAttribute('aria-hidden','true');track.append(text);}bubble.replaceChildren(track);bubble.setAttribute('aria-label','ご主人様…');}bubble.hidden=false;}
     else{bubble.classList.remove('wine-fox-thought');bubble.removeAttribute('aria-label');const text=brain.mood==='angry'?'💢':interaction==='happy'?'♪':'';if(bubble.textContent!==text)bubble.textContent=text;bubble.hidden=!text;}
   }
@@ -94,7 +117,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     const brainAt=natural()||brain.mood!=='normal'?brain.nextAt():Infinity;
     const motionAt=!menuOpen&&!drag&&!returning&&(!prefs.paused||interaction)?actionEndAt:Infinity;
     const autoAt=natural()&&!prefs.paused&&!menuOpen&&!drag&&!returning&&!travel?nextAutoAt:Infinity;
-    const at=Math.min(brainAt,motionAt,autoAt);
+    const at=Math.min(brainAt,motionAt,autoAt,!drag&&!menuOpen?thoughtNextAt:Infinity);
     if(Number.isFinite(at))behaviorTimer=setTimeout(advanceBehavior,Math.max(10,at-performance.now()));
   }
   function returnIdle(){
@@ -141,7 +164,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     updateBubble();schedule(true);armBehavior();
   }
   function greet(){
-    const result=brain.click(performance.now());
+    const result=brain.click(performance.now());acknowledge();
     if(result==='attention'){if(brain.mood==='angry')speak(true);updateBubble();schedule(true);armBehavior();return;}
     returning=null;stopTravel();nextAutoAt=Infinity;
     if(result==='angry'){
@@ -161,7 +184,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     if(renderer)resize();if(old.x!==prefs.x||old.y!==prefs.y)homePoint=place();lastAt=performance.now();armBehavior();schedule(true);
   }
   function setSuspended(value){suspended=!!value;host.hidden=suspended;cancelFrame();clearTimeout(behaviorTimer);lastAt=performance.now();
-    if(suspended){clearTimeout(pressTimer);closeMenu(false);stopTravel();stopVoice();const pending=drag;drag=null;if(pending&&canvas.hasPointerCapture(pending.id))canvas.releasePointerCapture(pending.id);if(returning){const pos=place(...returning.to);prefs={...prefs,x:pos[0],y:pos[1]};onPosition(...pos);}returning=null;interaction='';}
+    if(suspended){clearThoughts();clearTimeout(pressTimer);closeMenu(false);stopTravel();stopVoice();const pending=drag;drag=null;if(pending&&canvas.hasPointerCapture(pending.id))canvas.releasePointerCapture(pending.id);if(returning){const pos=place(...returning.to);prefs={...prefs,x:pos[0],y:pos[1]};onPosition(...pos);}returning=null;interaction='';}
     else{advanceBehavior();schedule(true);}
   }
   function rayHit(e){const rect=canvas.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)return false;
@@ -171,12 +194,12 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     hitTests++;hitMs+=performance.now()-t;return result;}
   function blocked(e){return [...document.querySelectorAll('dialog[open],[role="dialog"],.modal,#loading-overlay,.qrcode-egg-overlay')].some(el=>el.getBoundingClientRect().width>0&&getComputedStyle(el).visibility!=='hidden');}
   function down(e){if(menuOpen){if(menu.contains(e.target))return;closeMenu();}if(disposed||suspended||contextLost||e.button!==0||!e.isPrimary||blocked(e)||!rayHit(e))return;
-    stopTravel();const rect=host.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:rect.left,top:rect.top,moved:false,moody:brain.mood!=='normal'};returning=null;if(!drag.moody)brain.touch(performance.now());else homePoint||=[rect.left,rect.top];
+    acknowledge();stopTravel();const rect=host.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:rect.left,top:rect.top,moved:false,moody:brain.mood!=='normal'};returning=null;if(!drag.moody)brain.touch(performance.now());else homePoint||=[rect.left,rect.top];
     suppressClick=null;clearTimeout(pressTimer);pressTimer=setTimeout(openMenu,550);canvas.setPointerCapture(e.pointerId);e.preventDefault();e.stopImmediatePropagation();}
   function move(e){if(!drag||drag.id!==e.pointerId||drag.menu)return;e.preventDefault();e.stopImmediatePropagation();
     if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>6){clearTimeout(pressTimer);drag.moved=true;nextAutoAt=Infinity;actionEndAt=Infinity;if(!drag.moody){interaction='drag';play('fly');}armBehavior();}
     if(drag.moved){if(!drag.moody)faceDestination(e.clientX-(drag.lastX??drag.x),e.clientY-(drag.lastY??drag.y),true);drag.lastX=e.clientX;drag.lastY=e.clientY;place(drag.left+e.clientX-drag.x,drag.top+e.clientY-drag.y);}}
-  function finish(e,cancelled=false){if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;clearTimeout(pressTimer);
+  function finish(e,cancelled=false){if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;clearTimeout(pressTimer);acknowledge();
     if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);
     if(d.menu){suppressClick={until:performance.now()+500,x:e.clientX,y:e.clientY};e.preventDefault();e.stopImmediatePropagation();return;}
     if(d.moved){
@@ -208,7 +231,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
       return node?.name==='FaceMode_1'&&parsed.propertyName==='scale'&&Array.from(track.values).every(value=>value>.5);
     })).map(clip=>clip.name);
     mixer=new THREE.AnimationMixer(model);mixer.addEventListener('finished',finishMotion);
-    listen(menu,'click',e=>{const button=e.target.closest('button');if(!button)return;e.preventDefault();e.stopPropagation();if(button.hasAttribute('data-menu-close')){closeMenu();return;}const name=button.dataset.extra;if(!name)return;closeMenu(false);brain.mood='normal';brain.reason='';brain.until=0;brain.clicks=[];brain.recovery=[];brain.touch(performance.now());startMotion(name,'menu');});
+    listen(menu,'click',e=>{const button=e.target.closest('button');if(!button)return;acknowledge();e.preventDefault();e.stopPropagation();if(button.hasAttribute('data-menu-close')){closeMenu();return;}const name=button.dataset.extra;if(!name)return;closeMenu(false);brain.mood='normal';brain.reason='';brain.until=0;brain.clicks=[];brain.recovery=[];brain.touch(performance.now());startMotion(name,'menu');});
     listen(menu,'keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeMenu();}else if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();const buttons=[...menu.querySelectorAll('button')],i=buttons.indexOf(document.activeElement),step=['ArrowRight','ArrowDown'].includes(e.key)?1:-1;buttons[(i+step+buttons.length)%buttons.length].focus();}});
     listen(voice,'ended',()=>{voicePlaying=false;});
     play('idle');
@@ -219,7 +242,7 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
       for(let i=0;i<index.count;i+=3){o.getVertexPosition(index.getX(i),a).applyMatrix4(o.matrixWorld);o.getVertexPosition(index.getX(i+1),b).applyMatrix4(o.matrixWorld);o.getVertexPosition(index.getX(i+2),c).applyMatrix4(o.matrixWorld);
         if(ab.subVectors(b,a).cross(ac.subVectors(c,a)).lengthSq()<1e-12)continue;box.expandByPoint(a);box.expandByPoint(b);box.expandByPoint(c);}});
     if(box.isEmpty())throw new Error('Model has no visible body');const scale=3.2/(box.max.y-box.min.y);model.scale.setScalar(scale);model.position.set(-(box.max.x+box.min.x)/2*scale,-box.min.y*scale,0);
-    listen(window,'resize',resize);
+    listen(window,'resize',()=>{resize();updateBubble();armBehavior();});
     listen(document,'pointerdown',down,{capture:true,passive:false});listen(document,'pointermove',move,{capture:true,passive:false});
     listen(document,'pointerup',e=>finish(e),{capture:true,passive:false});listen(document,'pointercancel',e=>finish(e,true),true);
     // The transparent canvas is not the original touch target. Prevent native
@@ -228,9 +251,9 @@ export async function createWineFox(initial,{signal,onPosition,onDisable,onError
     listen(document,'touchmove',e=>{if(drag)e.preventDefault();},{capture:true,passive:false});
     listen(canvas,'lostpointercapture',e=>finish(e,true));
     listen(document,'click',e=>{if(suppressClick&&performance.now()<suppressClick.until&&Math.hypot(e.clientX-suppressClick.x,e.clientY-suppressClick.y)<4){suppressClick=null;e.preventDefault();e.stopImmediatePropagation();}},true);
-    listen(canvas,'keydown',e=>{if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();openMenu(true);}else if(['Enter',' '].includes(e.key)){e.preventDefault();greet();}else if(e.key.startsWith('Arrow')){e.preventDefault();const rect=host.getBoundingClientRect();const pos=place(rect.left+(e.key==='ArrowRight'?10:e.key==='ArrowLeft'?-10:0),rect.top+(e.key==='ArrowDown'?10:e.key==='ArrowUp'?-10:0));onPosition(...pos);prefs={...prefs,x:pos[0],y:pos[1]};}});
+    listen(canvas,'keydown',e=>{if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();openMenu(true);}else if(['Enter',' '].includes(e.key)){e.preventDefault();greet();}else if(e.key.startsWith('Arrow')){acknowledge();e.preventDefault();const rect=host.getBoundingClientRect();const pos=place(rect.left+(e.key==='ArrowRight'?10:e.key==='ArrowLeft'?-10:0),rect.top+(e.key==='ArrowDown'?10:e.key==='ArrowUp'?-10:0));onPosition(...pos);prefs={...prefs,x:pos[0],y:pos[1]};}});
     listen(canvas,'webglcontextlost',e=>{e.preventDefault();contextLost=true;stopVoice();cancelFrame();bubble.hidden=false;bubble.textContent='请重新开启酒狐';onError('显示暂时中断，请重新开启酒狐。');});
     resize();homePoint=place();if(natural())returnIdle();else startMotion(prefs.animation,'manual');setSuspended(document.hidden);
-    return {configure,setSuspended,dispose,state:()=>({animations:clips.map(c=>c.name),visibleAnimations:visibleActions(clips.map(c=>c.name)),extraAnimations:clips.map(c=>c.name).filter(name=>/^extra\d+$/i.test(name)),menuOpen,natural:natural(),travel:travel?{animation:currentName,from:[...travel.from],to:[...travel.to]}:null,facingAngle:model.rotation.y,facingTarget:faceYaw,motionKind,happyAnimations:[...happyNames],interaction,voicePlaying,voiceName,voiceError,animation:currentName,expression:activeMode(),effectiveExpression:activeMode()<0?Number(faceBones.find(b=>b.scale.x>.5)?.name.slice(-1)):activeMode(),angry:brain.mood==='angry',mood:brain.mood,moodReason:brain.reason,idleAt:brain.idleAt,moodUntil:brain.until,nextAutoAt,actionEndAt,returning:!!returning,loop:action.loop,actionTime:action.time,homePoint:homePoint?[...homePoint]:null,bubble:!bubble.hidden?bubble.textContent:'',frames,hitTests,meanHitMs:hitTests?hitMs/hitTests:0,paused:prefs.paused,suspended,contextLost,position:[host.getBoundingClientRect().left,host.getBoundingClientRect().top],size:[canvas.width,canvas.height],drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,faceScales:faceBones.map(b=>({name:b.name,scale:b.scale.x})),leverVisible:leverMeshes.some(m=>m.visible)})};
+    return {configure,setSuspended,dispose,state:()=>({animations:clips.map(c=>c.name),visibleAnimations:visibleActions(clips.map(c=>c.name)),extraAnimations:clips.map(c=>c.name).filter(name=>/^extra\d+$/i.test(name)),menuOpen,natural:natural(),travel:travel?{animation:currentName,from:[...travel.from],to:[...travel.to]}:null,facingAngle:model.rotation.y,facingTarget:faceYaw,motionKind,happyAnimations:[...happyNames],interaction,voicePlaying,voiceName,voiceError,animation:currentName,expression:activeMode(),effectiveExpression:activeMode()<0?Number(faceBones.find(b=>b.scale.x>.5)?.name.slice(-1)):activeMode(),angry:brain.mood==='angry',mood:brain.mood,moodReason:brain.reason,idleAt:brain.idleAt,moodUntil:brain.until,thoughtCount:thoughtCloud.childElementCount,thoughtCapacity:cloudGrid?.capacity||thoughtGrid(innerWidth,innerHeight).capacity,thoughtNextAt,thoughtResumeAt,turnRate:TURN_RATE,nextAutoAt,actionEndAt,returning:!!returning,loop:action.loop,actionTime:action.time,homePoint:homePoint?[...homePoint]:null,bubble:!bubble.hidden?bubble.textContent:'',frames,hitTests,meanHitMs:hitTests?hitMs/hitTests:0,paused:prefs.paused,suspended,contextLost,position:[host.getBoundingClientRect().left,host.getBoundingClientRect().top],size:[canvas.width,canvas.height],drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,faceScales:faceBones.map(b=>({name:b.name,scale:b.scale.x})),leverVisible:leverMeshes.some(m=>m.visible)})};
   }catch(e){dispose();throw e;}
 }

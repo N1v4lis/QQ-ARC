@@ -34,3 +34,8 @@ export function destination(from,width,height,viewWidth,viewHeight,animation,ran
  const y=flight?Math.max(minY,Math.min(maxY,from[1]+(random()<.5?-1:1)*(60+random()*180))):Math.max(minY,Math.min(maxY,from[1]));
  return [Math.abs(x-from[0])<40?(from[0]>maxX/2?Math.max(0,from[0]-150):Math.min(maxX,from[0]+150)):x,y];
 }
+
+export const TURN_RATE=12;
+export const THOUGHT_STEP_MS=10000;
+export function thoughtCount(elapsed,capacity){return Math.min(capacity,Math.floor(Math.max(0,elapsed)/THOUGHT_STEP_MS)**2);}
+export function thoughtGrid(width,height){const columns=Math.max(2,Math.min(16,Math.ceil(width/190))),rows=Math.max(2,Math.min(Math.floor(192/columns),Math.ceil(height/48)));return {columns,rows,capacity:columns*rows};}

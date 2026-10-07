@@ -1,0 +1,174 @@
+{
+  "results": [
+    {
+      "name": "默认主题无宠物",
+      "pass": true
+    },
+    {
+      "name": "启用开关隐藏",
+      "pass": true
+    },
+    {
+      "name": "MC自动加载，无关闭按钮",
+      "pass": true
+    },
+    {
+      "name": "自然在首位，GUI和jump隐藏",
+      "pass": true
+    },
+    {
+      "name": "轻点开心语音，jump不在候选",
+      "pass": true
+    },
+    {
+      "name": "拖动Fly，声音保持且朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "松开恢复idle并保存位置",
+      "pass": true
+    },
+    {
+      "name": "过量点击生气10秒、指定语音、20秒动作周期",
+      "pass": true
+    },
+    {
+      "name": "多点恢复开心",
+      "pass": true
+    },
+    {
+      "name": "睡觉持续循环且手动模式不切换",
+      "pass": true
+    },
+    {
+      "name": "手动walk超过两轮仍保持",
+      "pass": true
+    },
+    {
+      "name": "death单次",
+      "pass": true
+    },
+    {
+      "name": "手动单次动作结束不随机换动作",
+      "pass": true
+    },
+    {
+      "name": "Extra2单次结束恢复默认idle",
+      "pass": true
+    },
+    {
+      "name": "旧jump选择迁移自然且不播放jump",
+      "pass": true
+    },
+    {
+      "name": "长按展开8个Extra圆形菜单",
+      "pass": true
+    },
+    {
+      "name": "菜单选择Extra2单次播放并关闭菜单",
+      "pass": true
+    },
+    {
+      "name": "菜单Extra2结束恢复原手动idle",
+      "pass": true
+    },
+    {
+      "name": "Extra0–Extra7均可通过圆形菜单触发单次动作",
+      "pass": true
+    },
+    {
+      "name": "Esc关闭菜单并恢复手动动作",
+      "pass": true
+    },
+    {
+      "name": "自然walk移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "walk到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "自然run移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "run到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "自然elytra_fly移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "elytra_fly到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "自然fly移动并平滑朝向目的地",
+      "pass": true
+    },
+    {
+      "name": "fly到达后自然转回主人",
+      "pass": true
+    },
+    {
+      "name": "呆住picnic连续滚动气泡，20秒周期",
+      "pass": true
+    },
+    {
+      "name": "呆住sneaking连续滚动气泡，20秒周期",
+      "pass": true
+    },
+    {
+      "name": "呆住keyboard连续滚动气泡，20秒周期",
+      "pass": true
+    },
+    {
+      "name": "无人互动10秒增加首个屏幕气泡",
+      "pass": true
+    },
+    {
+      "name": "气泡随等待逐步增多",
+      "pass": true
+    },
+    {
+      "name": "最终气泡铺满视口且节点数量受控",
+      "pass": true
+    },
+    {
+      "name": "互动立即清空所有呆住气泡",
+      "pass": true
+    },
+    {
+      "name": "呆住拖动不Fly",
+      "pass": true
+    },
+    {
+      "name": "情绪下run朝向原位返回",
+      "pass": true
+    },
+    {
+      "name": "回到原位并恢复情绪动作",
+      "pass": true
+    },
+    {
+      "name": "闲置情绪点击恢复",
+      "pass": true
+    },
+    {
+      "name": "离开MC销毁宠物和菜单",
+      "pass": true
+    },
+    {
+      "name": "取消加载无迟到实例",
+      "pass": true
+    },
+    {
+      "name": "无运行异常和CSP错误",
+      "pass": true
+    }
+  ],
+  "version": "0.4.1",
+  "scope": "Original core suite 30 only; elapsed-time fixtures for thought growth; no disabled suites"
+}
