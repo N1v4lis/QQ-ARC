@@ -670,7 +670,7 @@ function renderPersonaSection(c) {
       <div class="persona-options" data-persona-pane="rules" ${panel==='rules'?'':'hidden'}>
         <header class="persona-page-heading"><h3>回应规则</h3><p>在角色正文之外，补充需要遵守的约定。</p></header>
         <div class="field"><label for="cfg-customrules">附加规则</label><textarea id="cfg-customrules" class="persona-role-text" placeholder="${global?'补充角色应遵守的规则':'留空，沿用默认规则'}">${esc(per.customRules || '')}</textarea></div>
-        <details class="persona-advanced" ${per.systemPromptOverride?'open':''}><summary>高级：系统提示词覆盖</summary><div class="field"><label for="cfg-sysprompt">系统提示词覆盖</label><p class="hint">可选。填写后整体替换默认提示词；留空沿用默认。支持 {botName}、{roleText}、{participation}。</p><textarea id="cfg-sysprompt" class="persona-role-text">${esc(per.systemPromptOverride || '')}</textarea></div></details>
+        <div class="persona-advanced"><div class="field"><label for="cfg-sysprompt">高级：系统提示词覆盖</label><p class="hint">可选。填写后整体替换默认提示词；留空沿用默认。支持 {botName}、{roleText}、{participation}。</p><textarea id="cfg-sysprompt" class="persona-role-text">${esc(per.systemPromptOverride || '')}</textarea></div></div>
       </div>
       <div class="persona-options" data-persona-pane="model" ${panel==='model'?'':'hidden'}>
         <header class="persona-page-heading"><h3>身份与模型</h3><p>调整角色的称呼、参与方式和使用范围。</p></header>

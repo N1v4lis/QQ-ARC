@@ -16,6 +16,9 @@ await withPage({url,width:1360,height:900},async page=>{
   window.qqaSkin.set('minecraft');state.personaTarget='global';document.querySelector('.tab[data-tab=persona]').click();
  })()`);
  await page.waitFor('!!document.querySelector("#persona-manual-save")');
+ await page.eval('document.querySelector("[data-persona-panel=rules]").click()');
+ assert.equal(await page.eval('document.querySelector("#cfg-sysprompt").getBoundingClientRect().height>=180 && !document.querySelector("#cfg-sysprompt").closest("details")'),true,'系统覆盖文本框空值也常显');
+ await page.eval('document.querySelector("[data-persona-panel=role]").click()');
  await page.eval('document.querySelector("#cfg-persona-name").value="名称保存验证";document.querySelector("#cfg-persona-name").dispatchEvent(new Event("input",{bubbles:true}))');
  await page.eval('window.__baseline=window.__manualPosts.length;document.querySelector("#cfg-roletext").value="正文草稿";document.querySelector("#cfg-roletext").dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#cfg-customrules").value="附加规则草稿";document.querySelector("#cfg-customrules").dispatchEvent(new Event("input",{bubbles:true}));window.__typedAt=Date.now()');
  await page.waitFor('Date.now()-window.__typedAt>900');

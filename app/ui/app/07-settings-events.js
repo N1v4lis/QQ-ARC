@@ -1249,7 +1249,7 @@ function bindSettingsEvents(c) {
   const beforePersonaReplacement = async () => {
     if (!state.personaDrafts?.[personaRevisionKey()]) return true;
     const name = $('#cfg-persona-name')?.value || '未命名人设';
-    const yes = await uiConfirm(`是否要将更改保存至：${name}`,{title:'保存人设更改',okText:'是',cancelText:'否'});
+    const yes = await uiConfirm(`是否要将更改保存至：${name}`,{title:'保存人设更改',okText:'是',cancelText:'否',immediateClose:true});
     if (yes && !(await $('#settings-form').__savePersonaDraft())) return false;
     return true;
   };

@@ -50,7 +50,7 @@ function showAppAlert(message) {
  * 调用方写法：`if (!(await uiConfirm('确定删除…？'))) return;`（所在函数需 async）。
  * Esc / 点遮罩 / 「取消」→ false；「确定」→ true。
  */
-function uiConfirm(message, { title = '⚠️ 确认', okText = '确定', cancelText = '取消' } = {}) {
+function uiConfirm(message, { title = '⚠️ 确认', okText = '确定', cancelText = '取消', immediateClose = false } = {}) {
   return new Promise((resolve) => {
     let settled = false;
     let overlay = null;
@@ -75,6 +75,7 @@ function uiConfirm(message, { title = '⚠️ 确认', okText = '确定', cancel
       return;
     }
     overlay.querySelector('#ui-confirm-ok')?.addEventListener('click', () => settle(true));
+    overlay._immediateClose = immediateClose;
     overlay.querySelector('#ui-confirm-cancel')?.addEventListener('click', () => settle(false));
     // Esc / 点遮罩由 modelModalShell 直接关弹窗（不经过本函数）——
     // 监视弹窗被移除兜底落成 false，保证 Promise 一定 settle，调用方不会挂死。

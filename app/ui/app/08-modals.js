@@ -27,7 +27,8 @@ function closeModelModal(overlay) {
   if (back && typeof back.focus === 'function' && back.isConnected) {
     try { back.focus({ preventScroll: true }); } catch { /* ignore */ }
   }
-  closeAnimatedOverlay(overlay);
+  if (overlay._immediateClose) overlay.remove();
+  else closeAnimatedOverlay(overlay);
 }
 
 /**

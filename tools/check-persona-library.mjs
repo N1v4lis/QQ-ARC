@@ -28,7 +28,7 @@ await withPage({url,width:1360,height:900},async page=>{
  await page.eval('document.querySelector("#persona-new-blank").click()');
  await page.waitFor('!!document.querySelector(".model-modal-overlay:not(.closing) #ui-confirm-ok")');
  assert.equal(await page.eval('document.querySelector(".app-alert-text").textContent.includes("是否要将更改保存至：同文乙")'),true);
- await page.eval('document.querySelector(".model-modal-overlay:not(.closing) #ui-confirm-ok").click()');
+ assert.equal(await page.eval('(()=>{const button=document.querySelector(".model-modal-overlay:not(.closing) #ui-confirm-ok");const overlay=button.closest(".model-modal-overlay");button.click();return overlay.isConnected;})()'),false,'保存确认是立即关闭');
  await page.waitFor('document.querySelector("#cfg-persona-name").value==="未命名人设"');
  assert.equal(await page.eval('state.config.persona.roleText'),'相同正文','是：先保存旧正文');
  assert.equal(await page.eval('document.querySelector("#cfg-roletext").value'),'');
@@ -37,7 +37,7 @@ await withPage({url,width:1360,height:900},async page=>{
  await context('custom_1');
  await page.eval('document.querySelector("[data-template-action=copy]").click()');
  await page.waitFor('!!document.querySelector(".model-modal-overlay:not(.closing) #ui-confirm-cancel")');
- await page.eval('document.querySelector(".model-modal-overlay:not(.closing) #ui-confirm-cancel").click()');
+ assert.equal(await page.eval('(()=>{const button=document.querySelector(".model-modal-overlay:not(.closing) #ui-confirm-cancel");const overlay=button.closest(".model-modal-overlay");button.click();return overlay.isConnected;})()'),false,'保存确认否立即关闭');
  await page.waitFor('!!document.querySelector(".model-modal-overlay:not(.closing) #ui-prompt-ok")');
  await page.eval('document.querySelector(".model-modal-overlay:not(.closing) #ui-prompt-ok").click()');
  await page.waitFor('document.querySelector("#cfg-persona-name").value==="同文乙（副本）"');
