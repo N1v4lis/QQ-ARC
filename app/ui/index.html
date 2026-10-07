@@ -272,6 +272,10 @@
 
           <!-- 扩展：技能 + 插件（用户要求归为同一分类） -->
           <div class="q-side-group">
+            <button class="tab" data-tab="persona" data-icon="persona" title="人设">
+              <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 3h12v14H4zM7 6h6M7 14h6"/><circle cx="10" cy="9" r="2"/></svg>
+              <span class="tab-tx">人设</span>
+            </button>
             <button class="tab" data-tab="skills" data-icon="spark" title="技能">
               <svg class="tab-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.4l1.6 3.9 3.9 1.6-3.9 1.6L10 14.4 8.4 10.5 4.5 8.9l3.9-1.6zM15.4 14.2l.7 1.6 1.6.7-1.6.7-.7 1.6-.7-1.6-1.6-.7 1.6-.7z"/></svg>
               <span class="tab-tx">技能</span>
@@ -382,6 +386,8 @@
           <div id="plugins-page" class="usage-pane"></div>
         </section>
 
+        <!-- 人设独立入口：切换时移动唯一的settings-form，复用保存与弹窗接线。 -->
+        <section id="view-persona" class="view" aria-label="人设"></section>
         <!-- 设置视图（第二级导航由 06-settings-render.js 填充 #settings-sidebar） -->
         <section id="view-settings" class="view">
           <aside id="settings-sidebar" class="settings-sidebar"></aside>

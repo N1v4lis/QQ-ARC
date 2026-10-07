@@ -46,13 +46,13 @@ await withPage({ url: process.argv[2] || 'http://127.0.0.1:3210/', width: 1300, 
   assert.equal(result.localFont, true);
   assert.doesNotMatch(result.off, /Monocraft/);
   assert.doesNotMatch(result.normal, /Monocraft/);
-  assert.equal(result.sizes['.tab-tx'], '16px');
+  assert.equal(result.sizes['.tab-tx'], '14px');
   assert.equal(result.sizes['.db-value'], '22px');
   assert.equal(result.sizes['.db-sub'], '14px');
   assert.equal(result.sizes['.dd-li'], '14px');
   assert.equal(result.sizes['.dc-ytick'], '12px');
   assert.equal(result.foldedFontSize, '0px');
-  assert.notEqual(result.normalSidebarSize, '16px');
+  assert.equal(result.normalSidebarSize, '13px');
   fs.mkdirSync('shots/final', { recursive: true });
   await page.waitFor('!document.querySelector("#loading-overlay") || getComputedStyle(document.querySelector("#loading-overlay")).display === "none"', { timeout: 15000 });
   await page.screenshot('shots/final/monocraft-theme.png');

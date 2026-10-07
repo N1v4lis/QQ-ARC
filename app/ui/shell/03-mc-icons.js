@@ -7,6 +7,8 @@
   const ART = {
     gauge:[...R(C.edge,[4,1,8,14],[1,4,14,8]),...R(C.silver,[4,2,8,12],[2,4,12,8]),...R(C.stone,[4,4,8,8]),...R(C.red,[8,3,2,4],[7,6,2,3]),...R(C.paper,[6,9,2,4],[7,8,2,2])],
     chat:book(C.wood),
+    // 人设：带狐脸浮雕的角色卡，独立于账号头像和记忆水晶。
+    persona:[...R(C.dark,[2,1,12,14]),...R(C.paper,[3,2,10,12]),...R(C.purple,[3,2,10,2]),...R(C.wood,[5,5,2,3],[9,5,2,3]),...R(C.light,[5,7,6,4]),...R(C.dark,[6,8,1,1],[9,8,1,1]),...R(C.purple,[5,12,6,1])],
     archive:[...R(C.dark,[1,3,14,11]),...R(C.wood,[2,4,12,9]),...R(C.light,[2,3,12,3]),...R(C.dark,[2,7,12,1],[3,9,1,4],[12,9,1,4]),...R(C.silver,[7,6,2,5]),...R(C.stone,[8,8,1,2])],
     brain:[...R(C.edge,[6,0,4,16],[3,3,10,10],[1,6,14,4]),...R(C.purple,[6,1,4,14],[4,3,8,10],[2,6,12,4]),...R('#e8caff',[6,2,2,8],[4,5,2,4]),...R('#7745ad',[8,8,4,4],[7,12,2,2])],
     chart:[...R('#712327',[6,1,4,14],[1,6,14,4],[3,3,3,3],[10,10,3,3]),...R(C.red,[7,2,2,12],[2,7,12,2],[4,4,2,2],[10,10,2,2]),...R('#ff9b65',[7,6,3,2],[6,8,2,2])],
@@ -70,6 +72,7 @@
       else if(node.closest('.q-wbtn'))key=node.classList.contains('q-ico-restore')?'restore':({minimize:'minus','toggle-maximize':'max',close:'close'}[node.closest('.q-wbtn').dataset.qwin]);
       else if(box)key=({'调用次数':'runs','估算成本':'cost','Token 总量':'tokens','缓存命中率':'cache','联网搜索':'search','会话总数':'chat','账号':'account','OneBot 连接':'plug'}[box.querySelector('.db-label')?.textContent.trim()])||'plugin';
       else if(node.matches('.sl-chev'))key='down';
+      else if(node.matches('.sc-ico') && node.closest('#view-persona'))key='persona';
       else if(node.matches('.sc-ico') && /亮度/.test(node.closest('.setcard-head')?.textContent||''))key=document.documentElement.dataset.theme==='dark'?'moon':'sun';
       else key=emojiKey(saved.get(node)?.html||node.textContent);
       paint(node,key,true);
@@ -87,5 +90,5 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
   window.addEventListener('qqa-skin-change',sync);window.addEventListener('qqa-theme-change',schedule);
-  window.qqaMcIcons={NAV:Object.fromEntries(['gauge','chat','archive','brain','chart','spark','plugin','users','gear'].map(key=>[key,svg(key,'tab-ico')])),LOGO:svg('logo'),ART,applyToDom,sync};
+  window.qqaMcIcons={NAV:Object.fromEntries(['gauge','chat','archive','brain','chart','spark','plugin','users','persona','gear'].map(key=>[key,svg(key,'tab-ico')])),LOGO:svg('logo'),ART,applyToDom,sync};
 })();

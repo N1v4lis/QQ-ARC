@@ -160,3 +160,6 @@ node tools/check-dom-contract.mjs                            # 校验（回归�
 - **本地偏好**：`localStorage` 键 —— `qqa-skin`（皮肤）、`qqa-mc`（MC 音效/背景）、
   `qqa-theme`（亮度）、`qqa-motion` 等。新增偏好要**同时**写进 `DEFAULTS` 与读取时的
   白名单，并考虑老值迁移（MC 音效那批就做过 `note/lever/wood/stone/pistonSynth → menu` 的映射）。
+
+## 独立人设页（2026-10-08）
+主导航persona位于技能上方，设置二级菜单移除人设。唯一settings-form在view-persona与view-settings间移动，复用编辑/保存/守卫，切页先flush，保存分支按persona主路由选择。详见[实现与验证](PERSONA-PAGE.md)。

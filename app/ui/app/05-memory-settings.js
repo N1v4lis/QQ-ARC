@@ -434,7 +434,7 @@ async function loadSettings() {
   state.skills = skillsData.skills || [];
   state.skillsSummary = skillsData.summary || {};
   state.uninstalledSkills = skillsData.uninstalled || [];
-  for (const t of tplData.templates || []) state.personaTemplates[t.id] = { name: t.name, text: t.text, builtin: !!t.builtin };
+  for (const t of tplData.templates || []) state.personaTemplates[t.id] = { name: t.name, text: t.text, customRules: t.customRules || '', builtin: !!t.builtin };
   // 提示词预览与配置并行拉取；渲染时可能还没到（先显示占位，到达后原地替换）
   refreshPromptPreview(cfg);
   renderSettings();

@@ -1230,7 +1230,7 @@ async function saveConfig({ quiet = false } = {}) {
     const node = el(sel);
     return node ? node.checked : fallback;
   };
-  const sec = state.settingsSection || 'api';
+  const sec = state.tab === 'persona' ? 'persona' : (state.settingsSection || 'api');
 
   const patch = {};
 
@@ -1555,7 +1555,7 @@ async function saveConfig({ quiet = false } = {}) {
     // 顶栏标签是「人设/模型设置」入口：只刷新 title 里的模型名，别覆盖入口文字
     const modelLabel = $('#model-label');
     if (modelLabel) {
-      modelLabel.title = `当前主模型：${state.config.api.model || '未设置'}\n点击进入「设置 → 人设」（每个会话用哪个模型也在这里配）`;
+      modelLabel.title = `当前主模型：${state.config.api.model || '未设置'}\n点击进入「人设」（每个会话用哪个模型也在这里配）`;
       modelLabel.dataset.model = state.config.api.model || '';
     }
   }

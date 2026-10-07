@@ -138,7 +138,7 @@
     dashboard: '仪表盘',
     sessions: '会话', chats: '存档', memory: '记忆', usage: '用量',
     skills: '技能', plugins: '插件',
-    accounts: '账号', settings: '设置'
+    accounts: '账号', persona: '人设', settings: '设置'
   };
   if (sub) {
     const paint = () => { sub.textContent = NAMES[root.getAttribute('data-view') || ''] || '控制台'; };

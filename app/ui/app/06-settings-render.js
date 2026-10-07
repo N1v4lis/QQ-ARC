@@ -42,7 +42,6 @@ function renderSettingsSidebar() {
     ['api', '模型 API'],
     ['search', '搜索服务'],
     ['memory', '记忆'],
-    ['persona', '人设'],
     ['allow', '聊天白名单'],
     ['chat', '聊天设置'],
     ['desktop', '桌面端'],
@@ -99,6 +98,7 @@ function renderSettingsSidebar() {
  * @param {string} section 区块 id：api / persona / accounts / …
  */
 function openSettingsSection(section) {
+  if (section === 'persona') { switchTab('persona'); return; }
   try {
     if (typeof flushSettingsSaves === 'function') flushSettingsSaves();
     switchTab('settings');
@@ -116,7 +116,7 @@ function openSettingsSection(section) {
  * 跳到「设置 → 人设」页。（顶栏「人设/模型设置」标签用）
  */
 function openPersonaSettings() {
-  openSettingsSection('persona');
+  switchTab('persona');
 }
 
 /**
@@ -249,7 +249,7 @@ function renderSettings() {
     // SnowLuma 面板：整合进「OneBot（SnowLuma）」区块后，需要在这里主动加载一次
     // （以前是靠 switchTab('snowluma') 触发；现在只有设置页内部切换区块）。
     // 必须放在 innerHTML 之后：容器要先存在，loadSnowlumaPage 才找得到。
-    if ((state.settingsSection || 'api') === 'onebot' && typeof loadSnowlumaPage === 'function') {
+    if (state.tab === 'settings' && (state.settingsSection || 'api') === 'onebot' && typeof loadSnowlumaPage === 'function') {
       loadSnowlumaPage({ quiet: true });
     }
   } catch (err) {
@@ -273,7 +273,7 @@ function renderSettings() {
   if (!(state.chats || []).length && !renderSettings.__chatsFetch) {
     renderSettings.__chatsFetch = true;
     api('/api/chats').then((d) => {
-      if ((d.chats || []).length && state.tab === 'settings') renderSettings();
+      if ((d.chats || []).length && ['settings', 'persona'].includes(state.tab)) renderSettings();
     }).catch(() => {}).finally(() => { renderSettings.__chatsFetch = false; });
   }
   // ── SnowLuma 面板自愈（2026-10-04）────────────────────────────────────
@@ -291,7 +291,7 @@ function renderSettings() {
   // 只要当前还在 onebot 区块且面板仍空着，就再加载一次。
   // 正常情况下面板 300ms 内就渲染完，第一次检查就会看到内容并立即停止，
   // 不会产生多余请求；只有在真的出现上述竞态时才补几次。
-  if ((state.settingsSection || 'api') === 'onebot' && typeof loadSnowlumaPage === 'function') {
+  if (state.tab === 'settings' && (state.settingsSection || 'api') === 'onebot' && typeof loadSnowlumaPage === 'function') {
     let tries = 0;
     const heal = () => {
       tries += 1;
@@ -309,7 +309,7 @@ function renderSettings() {
 }
 
 function renderSettingsSection(c) {
-  const sec = state.settingsSection || 'api';
+  const sec = state.tab === 'persona' ? 'persona' : (state.settingsSection === 'persona' ? 'api' : state.settingsSection || 'api');
   const sections = {
     api: () => renderApiSection(c),
     search: () => renderSearchSection(c),

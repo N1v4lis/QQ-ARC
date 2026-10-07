@@ -454,23 +454,23 @@ html[data-skin='minecraft'][data-mc-font='on'] body {
   font-family: var(--q-font-mc);
 }
 
-/* 小字可读性：中文导航使用16px，说明与读数采用整数14px。
+/* 小字可读性：导航回调至14px，说明与读数采用整数14px。
    不改大号统计数值的字号或Monocraft 88%比例；仅字体开启时生效。 */
 html[data-skin='minecraft'][data-mc-font='on'] :is(
   #tabs.q-side .tab-tx, #q-side-toggle.q-side-toggle
 ) {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.5;
 }
 @media (min-width: 881px) {
   html[data-skin='minecraft'][data-mc-font='on']:not([data-nav='collapsed']) .q-side-foot .nav-btn {
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.5;
   }
 }
 @media (max-width: 880px) {
   html[data-skin='minecraft'][data-mc-font='on'][data-nav='expanded'] .q-side-foot .nav-btn {
-    font-size: 16px;
+    font-size: 14px;
     line-height: 1.5;
   }
 }

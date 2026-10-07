@@ -9,7 +9,7 @@ $$('.tab').forEach((tab) => {
   tab.addEventListener('click', () => switchTab(tab.dataset.tab));
 });
 
-// 顶栏「人设/模型设置」标签 = 跳到 设置 → 人设（每个会话的模型也在那一页配）
+// 顶栏「人设/模型设置」标签 = 跳到独立人设页。
 $('#model-label')?.addEventListener('click', () => openPersonaSettings());
 
 /* ── 顶栏另两个胶囊也是入口（2026-10-04 加）────────────────────────────────

@@ -949,7 +949,13 @@ function switchTab(name) {
   // （只是视图隐藏）其实也能读，但"正在输入的最后一个字段"可能只过了
   // 防抖窗口的一部分 —— 不 flush 的话这次改动要等 600ms 定时器到点，
   // 期间用户看到的其它页签数据（用量/状态）就是旧配置算出来的。
-  if (state.tab === 'settings' && name !== 'settings') flushSettingsSaves();
+  if (['settings', 'persona'].includes(state.tab) && name !== state.tab) flushSettingsSaves();
+  // 唯一表单在两个页面之间移动；ID、委托及保存守卫不复制。
+  if (name === 'persona' || name === 'settings') {
+    const form = $('#settings-form');
+    const host = $(`#view-${name}`);
+    if (form && host && form.parentElement !== host) host.append(form);
+  }
   $$('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
   const prevView = $('.view.active');
   $$('.view').forEach((v) => {
@@ -979,7 +985,7 @@ function switchTab(name) {
   // 群名补底：设置页（人设分群按钮/活跃设置分群下拉）用 chatNameOf 取名字，
   // 依赖 state.chats —— 若用户没先进过存档页这里是空的，会只显示群号。
   // 进设置页时悄悄拉一次（quiet，失败不报错），列表已在就跳过。
-  if (name === 'settings' && !(state.chats || []).length) {
+  if (['settings', 'persona'].includes(name) && !(state.chats || []).length) {
     api('/api/chats').then((d) => { state.chats = d.chats || []; }).catch(() => {});
   }
   if (name === 'memory') loadMemoryView();
@@ -989,5 +995,5 @@ function switchTab(name) {
   // ⚠️ 没有 'snowluma' 分支了：该面板已整合进「设置 → OneBot（SnowLuma）」，
   //    由 renderSettings() 末尾的 afterRender 钩子在那个区块渲染后加载。
   if (name === 'accounts') loadAccountsPage();
-  if (name === 'settings') loadSettings();
+  if (name === 'settings' || name === 'persona') loadSettings();
 }

@@ -10,7 +10,7 @@ await withPage({url:process.argv[2]||'http://127.0.0.1:3210/',width:1360,height:
     window.qqaSkin.set('minecraft');
     await new Promise(resolve=>requestAnimationFrame(resolve));
     const nav=[...document.querySelectorAll('#tabs .tab-ico')];
-    const pixelNav=nav.length===9&&nav.every(node=>node.dataset.mcIcon&&[...node.children].every(child=>child.tagName==='rect'));
+    const pixelNav=nav.length===10&&nav.every(node=>node.dataset.mcIcon&&[...node.children].every(child=>child.tagName==='rect'));
     const dashboard=[...document.querySelectorAll('.db-icon svg')].every(node=>!!node.dataset.mcIcon);
     const theme=!!document.querySelector('#theme-btn svg[data-mc-icon]');
     const host=document.createElement('div');host.id='mc-control-fixture';
