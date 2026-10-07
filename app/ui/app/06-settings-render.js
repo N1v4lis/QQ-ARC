@@ -653,10 +653,10 @@ function renderPersonaSection(c) {
     </aside>
     <section class="persona-desk" aria-label="人设编辑器">
       <header class="persona-desk-head"><div><span class="persona-eyebrow">正在编辑 · ${global ? '默认角色' : target.startsWith('group:') ? '群聊角色' : '好友角色'}</span><h2>${esc(global ? '默认人设' : title)}</h2></div><button type="button" class="persona-template-open" data-persona-left="templates"><small>选用人设</small><span id="persona-current-template">${esc(templateName)}</span><b aria-hidden="true">⌄</b></button></header>
-      <div class="persona-template-drawer" data-persona-list="templates" hidden aria-label="选择人设模板">
-        <header><div><h3>用模板开始</h3><p>选用后填入当前对象的正文和规则</p></div><button type="button" class="btn btn-small" data-persona-left="chats">收起</button></header>
+      <div class="persona-template-drawer" id="persona-template-library" data-persona-list="templates" hidden aria-label="选择人设模板">
+        <header><div><h3>用模板开始</h3><p>选用后填入当前对象的名称、正文和规则</p></div></header>
         <div class="persona-template-choices">${templates.map(([id,p]) => `<button type="button" class="persona-template" data-persona-id="${esc(id)}" aria-pressed="${p.text===per.roleText}"><span class="persona-template-name">${esc(p.name)}</span><small>${p.builtin?'内置':'自定义'}</small></button>`).join('')}</div>
-        <footer><button type="button" class="btn btn-small" id="new-persona-btn">＋ 新建人设</button><button type="button" class="btn btn-small btn-danger hidden" id="del-persona-btn">删除当前自定义人设</button></footer>
+        <footer><button type="button" class="btn btn-small btn-danger hidden" id="del-persona-btn">删除当前自定义人设</button></footer>
       </div>
       <input type="hidden" id="cfg-persona-pick" value="${esc(templateName)}" /><span id="persona-pick-hint" class="hidden"></span>
       <div class="persona-writing-room">
@@ -666,7 +666,7 @@ function renderPersonaSection(c) {
       </nav>
       <div class="persona-edit-surface">
       <div class="persona-manual-tools" ${panel==='model'?'hidden':''}><span id="persona-save-status" role="status">${state.personaDrafts?.[personaRevisionKey(c,target)]?'有未保存修改':'已保存'}</span><select id="persona-revisions" data-persona-filter aria-label="最近五次保存的人设"><option value="">最近保存记录</option>${readPersonaRevisions(c,target).map((revision,index)=>`<option value="${index}">${esc(new Date(revision.time).toLocaleString('zh-CN',{hour12:false}))}</option>`).join('')}</select><button type="button" class="btn btn-primary" id="persona-manual-save">保存</button></div>
-      <div class="persona-document" data-persona-pane="role" ${panel==='role'?'':'hidden'}><header class="persona-page-heading"><h3>角色正文</h3><p>身份、性格、说话方式，都写在这里。</p></header><textarea id="cfg-roletext" class="persona-role-text" aria-label="角色正文" placeholder="${global?'从一句角色描述开始…':'留空，沿用默认人设'}">${esc(per.roleText || '')}</textarea><footer><span>修改后点击保存 · 快捷键：Ctrl+S 快速保存，Ctrl+Z 撤销，Ctrl+Y 重做</span><span id="persona-character-count">${(per.roleText || '').length} 字</span></footer></div>
+      <div class="persona-document" data-persona-pane="role" ${panel==='role'?'':'hidden'}><header class="persona-page-heading"><input id="cfg-persona-name" type="text" maxlength="100" aria-label="人设名称" placeholder="人设名称" value="${esc(per.name ?? (templateName === '自定义正文' ? '' : templateName))}" /><p>身份、性格、说话方式，都写在这里。</p></header><textarea id="cfg-roletext" class="persona-role-text" aria-label="角色正文" placeholder="${global?'从一句角色描述开始…':'留空，沿用默认人设'}">${esc(per.roleText || '')}</textarea><footer><span>修改后点击保存 · 快捷键：Ctrl+S 快速保存，Ctrl+Z 撤销，Ctrl+Y 重做</span><span id="persona-character-count">${(per.roleText || '').length} 字</span></footer></div>
       <div class="persona-options" data-persona-pane="rules" ${panel==='rules'?'':'hidden'}>
         <header class="persona-page-heading"><h3>回应规则</h3><p>在角色正文之外，补充需要遵守的约定。</p></header>
         <div class="field"><label for="cfg-customrules">附加规则</label><textarea id="cfg-customrules" class="persona-role-text" placeholder="${global?'补充角色应遵守的规则':'留空，沿用默认规则'}">${esc(per.customRules || '')}</textarea></div>

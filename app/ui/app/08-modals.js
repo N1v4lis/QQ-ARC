@@ -1403,7 +1403,7 @@ async function saveConfig({ quiet = false } = {}) {
         if (defaults) patch.api = { apiByChat: defaults };
       } else {
         const next = { ...(c.personaByChat || {}) };
-        if (Object.values(entry).some(Boolean)) next[target] = { ...(next[target] || {}), ...entry }; else delete next[target];
+        if (Object.values(entry).some(Boolean) || savedPersona.name) next[target] = { ...(next[target] || {}), ...entry }; else delete next[target];
         patch.personaByChat = { __replace__: next };
         const byChat = { ...(c.api?.apiByChat?.byChat || {}) };
         const selected = val('#cfg-persona-chat-model', '');

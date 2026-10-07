@@ -10,6 +10,11 @@ await withPage({url,width:1360,height:900},async page=>{
  const initial=await page.eval(`({forms:document.querySelectorAll('#settings-form').length,cards:document.querySelectorAll('#view-persona .setcard').length,order:document.querySelector('.tab[data-tab=persona]').nextElementSibling.dataset.tab,templates:document.querySelectorAll('.persona-template').length,role:document.querySelector('#cfg-roletext').value})`);
  assert.equal(initial.forms,1);assert.equal(initial.cards,0);assert.equal(initial.order,'skills');assert(initial.templates>0);assert.equal(initial.role,before.persona.roleText);
  assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),true,'模板按需展开');
+ await page.eval('document.querySelector("[data-persona-left=templates]").click()');
+ assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),false);
+ await page.eval('document.querySelector("[data-persona-left=templates]").click()');
+ assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),true,'同一入口收起');
+ assert.equal(await page.eval('!!document.querySelector("#view-persona #new-persona-btn") || !!document.querySelector("[data-persona-left=chats]")'),false,'无新建/收起按钮');
  assert.equal(await page.eval('document.querySelector("#cfg-persona-unified").getClientRects().length'),0,'统一开关不占用正文页面');
  assert.equal(await page.eval('document.querySelector("#cfg-botname").getClientRects().length'),0,'身份信息不占用正文页面');
  await page.eval(`(()=>{
@@ -50,7 +55,7 @@ await withPage({url,width:1360,height:900},async page=>{
   await page.waitFor(`!state.config.api.apiByChat.byChat[${JSON.stringify(target)}]`);
   assert.equal(await page.eval('state.config.api.apiByChat.byChat["private:test-preserved"].model'),'preserved-model');
  }
- await page.eval('document.querySelector("[data-persona-left=chats]").click();document.querySelector("[data-persona-target=global]").click()');
+ await page.eval('document.querySelector("[data-persona-target=global]").click()');
  await page.waitFor('state.personaTarget==="global" && !!document.querySelector("#apibychat-rows")');
  await page.eval('(()=>{document.querySelector("[data-persona-panel=role]").click();const r=document.querySelector("#cfg-roletext");r.value+="\\n离页保存";r.dispatchEvent(new Event("input",{bubbles:true}));document.querySelector(".tab[data-tab=settings]").click();})()');
  await page.waitFor('state.tab==="settings" && settingsGuard.pending===0');

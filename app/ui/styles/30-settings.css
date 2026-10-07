@@ -500,6 +500,8 @@ html[data-motion='off'] #view-persona #persona-manual-save.persona-save-success 
 #view-persona .persona-manual-tools #persona-save-status { font-size: 11px; max-width: 110px; }
 #view-persona .persona-manual-tools + .persona-document > .persona-page-heading { padding-right: 350px; min-height: 48px; }
 #view-persona .persona-edit-surface { position: relative; }
+#view-persona #cfg-persona-name { width: 280px; max-width: 100%; font: inherit; font-size: 16px; padding: 7px 10px; }
+#view-persona .persona-template-drawer footer { justify-content: flex-end; }
 #view-persona .persona-edit-surface:has(.persona-manual-tools:not([hidden])) > .persona-options > .persona-page-heading { padding-right: 350px; min-height: 48px; }
 #view-persona .persona-desk { position: relative; padding: 0; background: var(--q-bg-base); }
 #view-persona .persona-desk-head { padding: 22px 28px; border-bottom: 1px solid var(--q-line-1); background: var(--q-bg-1); }

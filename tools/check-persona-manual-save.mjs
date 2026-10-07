@@ -16,6 +16,7 @@ await withPage({url,width:1360,height:900},async page=>{
   window.qqaSkin.set('minecraft');state.personaTarget='global';document.querySelector('.tab[data-tab=persona]').click();
  })()`);
  await page.waitFor('!!document.querySelector("#persona-manual-save")');
+ await page.eval('document.querySelector("#cfg-persona-name").value="名称保存验证";document.querySelector("#cfg-persona-name").dispatchEvent(new Event("input",{bubbles:true}))');
  await page.eval('window.__baseline=window.__manualPosts.length;document.querySelector("#cfg-roletext").value="正文草稿";document.querySelector("#cfg-roletext").dispatchEvent(new Event("input",{bubbles:true}));document.querySelector("#cfg-customrules").value="附加规则草稿";document.querySelector("#cfg-customrules").dispatchEvent(new Event("input",{bubbles:true}));window.__typedAt=Date.now()');
  await page.waitFor('Date.now()-window.__typedAt>900');
  assert.equal(await page.eval('window.__manualPosts.length===window.__baseline'),true,'输入不自动请求保存');
@@ -26,6 +27,7 @@ await withPage({url,width:1360,height:900},async page=>{
  await page.eval('document.querySelector("[data-persona-panel=role]").click();window.__shortcut=new KeyboardEvent("keydown",{key:"s",ctrlKey:true,bubbles:true,cancelable:true});document.dispatchEvent(window.__shortcut);document.dispatchEvent(new KeyboardEvent("keydown",{key:"s",ctrlKey:true,repeat:true,bubbles:true,cancelable:true}))');
  await page.waitFor('!personaManualBusy && state.config.persona.roleText==="正文草稿"');
  assert.equal(await page.eval('state.config.persona.customRules'),'附加规则草稿');
+ assert.equal(await page.eval('state.config.persona.name'),'名称保存验证');
  assert.equal(await page.eval('window.__shortcut.defaultPrevented'),true,'阻止浏览器保存网页');
  assert.equal(await page.eval('document.querySelector("#persona-manual-save").classList.contains("persona-save-success")'),true,'成功动画');
  assert.equal(await page.eval('document.querySelector("#persona-manual-save").textContent'),'✓ 已保存');
@@ -34,7 +36,7 @@ await withPage({url,width:1360,height:900},async page=>{
  assert.equal(await page.eval('getComputedStyle(document.querySelector("#persona-manual-save")).animationName'),'none','遵守关闭动效');
  await page.eval('delete document.documentElement.dataset.motion');
  for(let index=1;index<=6;index++){
-  await page.eval(`document.querySelector('#cfg-roletext').value='保存版本${index}';document.querySelector('#cfg-roletext').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#persona-manual-save').click()`);
+  await page.eval(`document.querySelector('#cfg-roletext').value='保存版本${index}';document.querySelector('#cfg-persona-name').value='名称${index}';document.querySelector('#cfg-roletext').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#persona-manual-save').click()`);
   await page.waitFor(`!personaManualBusy && state.config.persona.roleText==='保存版本${index}'`);
  }
  const history=await page.eval('readPersonaRevisions()');
@@ -43,6 +45,7 @@ await withPage({url,width:1360,height:900},async page=>{
  await page.waitFor('Date.now()-window.__typedAt>900');
  assert.equal(await page.eval('window.__manualPosts.length===window.__baseline'),true,'历史选择不直接生效');
  assert.equal(await page.eval('document.querySelector("#cfg-roletext").value'),'保存版本2');
+ assert.equal(await page.eval('document.querySelector("#cfg-persona-name").value'),'名称2','历史同时恢复名称');
  assert.equal(await page.eval('state.config.persona.roleText'),'保存版本6');
  await page.eval('renderSettings()');
  assert.equal(await page.eval('document.querySelector("#cfg-roletext").value'),'保存版本2','重绘保留草稿');

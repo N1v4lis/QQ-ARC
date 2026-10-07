@@ -143,10 +143,10 @@ function bindSettingsEvents(c) {
 
   function markDirty(el) {
     if (el?.matches?.('[data-persona-filter]')) return;
-    if (state.tab === 'persona' && el?.matches?.('#cfg-roletext,#cfg-customrules,#cfg-sysprompt')) {
+    if (state.tab === 'persona' && el?.matches?.('#cfg-persona-name,#cfg-roletext,#cfg-customrules,#cfg-sysprompt')) {
       const target = state.personaTarget || 'global';
       const saved = target === 'global' ? state.config.persona : (state.config.personaByChat?.[target] || {});
-      const draft = Object.fromEntries([['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([key,selector])=>[key,$(selector)?.value || '']));
+      const draft = Object.fromEntries([['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([key,selector])=>[key,$(selector)?.value || '']));
       state.personaDrafts ||= {};
       const key = personaRevisionKey();
       const dirty = Object.entries(draft).some(([field,value])=>value !== (saved[field] || ''));
@@ -1114,7 +1114,7 @@ function bindSettingsEvents(c) {
     const input = $('#cfg-persona-pick');
     if (input) input.value = tpl?.name || '自定义编辑';
     const templateName = $('#persona-current-template');
-    if (templateName) templateName.textContent = tpl?.name || '自定义正文';
+    if (templateName) templateName.textContent = $('#cfg-persona-name')?.value || tpl?.name || '自定义正文';
     const characters = $('#persona-character-count');
     if (characters) characters.textContent = `${$('#cfg-roletext')?.value.length || 0} 字`;
     $$('.persona-template').forEach(button => {
@@ -1153,6 +1153,7 @@ function bindSettingsEvents(c) {
   
   syncPersonaButtons(false);   // 初始装填不播动画（重渲染后是全新节点）
   $('#cfg-roletext')?.addEventListener('input', () => syncPersonaButtons(false));
+  $('#cfg-persona-name')?.addEventListener('input', () => syncPersonaButtons(false));
   if (!personaSaveShortcutBound) {
     personaSaveShortcutBound = true;
     document.addEventListener('keydown', event => {
@@ -1171,7 +1172,7 @@ function bindSettingsEvents(c) {
     const studio = $('.persona-studio');
     const target = state.personaTarget || 'global';
     const key = personaRevisionKey();
-    const revision = Object.fromEntries([['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([field,selector])=>[field,$(selector)?.value || '']));
+    const revision = Object.fromEntries([['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([field,selector])=>[field,$(selector)?.value || '']));
     button.disabled = true;
     clearTimeout(button.__feedbackTimer);
     button.classList.remove('persona-save-success');
@@ -1195,7 +1196,7 @@ function bindSettingsEvents(c) {
       if (state.personaDrafts) delete state.personaDrafts[key];
       const history = readPersonaRevisions(state.config,target);
       let historySaved = true;
-      if (!history[0] || ['roleText','customRules','systemPromptOverride'].some(field=>history[0][field] !== revision[field])) {
+      if (!history[0] || ['name','roleText','customRules','systemPromptOverride'].some(field=>history[0][field] !== revision[field])) {
         history.unshift({...revision,time:Date.now()});
         try { localStorage.setItem(key,JSON.stringify(history.slice(0,5))); } catch { historySaved = false; }
       }
@@ -1219,8 +1220,8 @@ function bindSettingsEvents(c) {
     if (event.currentTarget.value === '') return;
     const revision = readPersonaRevisions()[Number(event.currentTarget.value)];
     if (!revision) return;
-    for (const [field,selector] of [['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']]) {
-      const input = $(selector); if (input) input.value = revision[field];
+    for (const [field,selector] of [['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']]) {
+      const input = $(selector); if (input) input.value = revision[field] || '';
     }
     $('#cfg-roletext')?.dispatchEvent(new Event('input',{bubbles:true}));
   });
@@ -1229,11 +1230,12 @@ function bindSettingsEvents(c) {
     if (!tpl) return;
     $('#cfg-roletext').value = tpl.text;
     $('#cfg-customrules').value = tpl.customRules || '';
+    if ($('#cfg-persona-name')) $('#cfg-persona-name').value = tpl.name || '';
     $('#cfg-roletext').dispatchEvent(new Event('input', { bubbles: true }));
     syncPersonaButtons(false);
     if ($('.persona-canvas')) {
       $('[data-persona-panel="role"]')?.click();
-      $('[data-persona-left="chats"]')?.click();
+      setPersonaLeft('chats');
     }
   }));
   const personaSearch = $('#persona-search');
@@ -1263,8 +1265,10 @@ function bindSettingsEvents(c) {
       button.setAttribute('aria-pressed', String(button.dataset.personaLeft === name));
     });
     filterPersonas();
+    const opener = $('[data-persona-left="templates"]');
+    if (opener) { opener.setAttribute('aria-expanded',String(name === 'templates')); opener.setAttribute('aria-controls','persona-template-library'); }
   };
-  $$('[data-persona-left]').forEach(button => button.addEventListener('click', () => setPersonaLeft(button.dataset.personaLeft)));
+  $$('[data-persona-left]').forEach(button => button.addEventListener('click', () => setPersonaLeft(button.dataset.personaLeft === 'templates' && state.personaLeft === 'templates' ? 'chats' : button.dataset.personaLeft)));
   if ($('.persona-studio')) setPersonaLeft(state.personaLeft || 'chats');
   $$('[data-persona-panel]').forEach(button => button.addEventListener('click', () => {
     state.personaPanel = button.dataset.personaPanel;
