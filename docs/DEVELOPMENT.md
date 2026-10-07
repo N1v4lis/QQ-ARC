@@ -1,6 +1,6 @@
 # 开发工作流
 
-> 日常部署后先跑 node tools/run-all-checks.mjs --profile quick 并补相关专项，发布或广泛改动用 --profile full；文档/工具改动只跑static与工具专项，不重启应用。浏览器测试等待真实就绪，无需固定睡13秒。见 [REGRESSION-WORKFLOW.md](REGRESSION-WORKFLOW.md)。
+> 用户最新范围：自动回归仅原编号1、2、3、5、30，默认5项core；文档/工具用4项static；其他38套停用，发布不自动恢复。旧quick/full均映射core。见 [REGRESSION-WORKFLOW.md](REGRESSION-WORKFLOW.md)。
 
 > ARCFØX：当前部署89个UI文件，完整回归43套件。预览 http://127.0.0.1:3400/startup-preview.html；专项 node tools/check-startup.mjs http://127.0.0.1:3210/；真机 node tools/verify-startup-electron.mjs（需临时CDP9224，结束普通重启关闭）。实现 [STARTUP-ANIMATION.md](STARTUP-ANIMATION.md)。
 

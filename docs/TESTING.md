@@ -1,6 +1,6 @@
 # 测试与验收
 
-> 最新节约规则（2026-10-07）：日常 --profile quick（9套、实测55秒）；文档/静态 --profile static（5套、不到1秒）；改动专项 --only 编号或名称；失败 --failed；发布/广泛改动 --profile full（43套）。完整清单与边界见 [REGRESSION-WORKFLOW.md](REGRESSION-WORKFLOW.md)。下文全量入口仍兼容，历史42套统计不代表当前注册数。
+> 用户最新范围（2026-10-07）：只保留原编号1、2、3、5、30，共5项；其他38套全部停用。默认core，static为前4项，旧quick/full也只映射core；发布不恢复43套。见 [REGRESSION-WORKFLOW.md](REGRESSION-WORKFLOW.md)。下文旧套件与命令属于历史交接记录，不作为自动执行要求。
 
 > 启动动画增量：总入口现为43套件，新增 check-startup（21项），覆盖同一粒子对象、13时刻亮暗一致、最终像素静止、移动、减弱动态效果、真实ready与故障降级。verify-startup-electron单独验证真实绘制与窗口按钮。页面命中/像素检查在每次导航后等待loading-overlay摘除，不能仅等待固定2600ms。
 

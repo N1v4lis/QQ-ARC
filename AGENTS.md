@@ -10,7 +10,7 @@
 - 酒狐已通过最新 GLB 接入主题卡页，默认关闭、按需加载。完整来源位于 Wine_Fox，运行资源为 app/ui/assets/wine-fox。读 docs/WINE-FOX-INTEGRATION.md；新启停验收替代旧删除守卫，不恢复旧 CPU 光栅化实现。
 - 不裁剪用户素材、动画，不编造角色设定。遵守 MC 字体链和音效用途约定。
 - 启动动画遵守 docs/STARTUP-ANIMATION.md 与原要求：六阶段、同一粒子模拟、SVG掩膜、ARCFØX、第6阶段静止；亮暗切换不得重建几何。
-- JS 修改后检查语法。UI变更部署后跑quick加相关专项；发布、核心启动/全局样式/DOM契约等广泛改动跑full。文档/工具改动只跑static与工具专项，不重启应用。失败只复跑失败范围；见docs/REGRESSION-WORKFLOW.md。
+- JS 修改后检查语法。自动回归仅原编号1、2、3、5、30，用户明确停用其他38套，发布也不自动恢复。文档/工具改动跑static四项；酒狐改动补30。UI部署后最多core五项，失败只复跑失败项；见docs/REGRESSION-WORKFLOW.md。
 - CSP 检查用 node tools/csp-hash.mjs；写回需要 --write。
 - 改行为同步专题文档；design-notes.md 只追加，历史记录不批量改写路径。
 - VERSION 是本 UI 分支版本；宿主 0.4.0 与 UI 分支版本分别记录。首次 UI 基线为 0.4.0；当前用户指定归档版为 0.4.01。

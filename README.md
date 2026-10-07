@@ -33,9 +33,9 @@ node tools/restore-plugin-inject.mjs        # 3. 补回托管插件被镜像冲�
 node tools/restart-agent.mjs --apply        # 4. 重启 QQ Agent 并验证新 UI 真的上来了
 # 浏览器检查自动等待界面就绪，无需固定等待13秒
 
-# 日常基础验收（9套，实测55秒），按改动补相关专项
-node tools/run-all-checks.mjs 'http://127.0.0.1:3210/' --profile quick
-# 发布或广泛改动用 --profile full 跑完整43套；流程见 docs/REGRESSION-WORKFLOW.md
+# 用户指定核心回归（原编号1、2、3、5、30，共5项）
+node tools/run-all-checks.mjs 'http://127.0.0.1:3210/'
+# 纯文档/工具改动用 --profile static（4项）；流程见 docs/REGRESSION-WORKFLOW.md
 ```
 
 **为什么需要这些步骤**：`app/ui/index.html` 里那段"主题预置"必须是**内联脚本**（外链会晚一帧执行 → 首屏闪白），
