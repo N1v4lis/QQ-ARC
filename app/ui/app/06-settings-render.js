@@ -651,27 +651,33 @@ function renderPersonaSection(c) {
       <p class="hint hidden" id="persona-search-empty">没有匹配的对象</p>
     </aside>
     <section class="persona-desk" aria-label="人设编辑器">
-      <header class="persona-desk-head"><div><span class="persona-eyebrow">${global ? '默认角色' : target.startsWith('group:') ? '群聊角色' : '私聊角色'}</span><h2>${esc(global ? '默认人设' : title)}</h2></div><span id="persona-save-status">自动保存</span></header>
-      <div class="persona-desk-tools"><nav aria-label="编辑内容">
-        ${[['role','正文'],['rules','规则'],['model','其他']].map(([id,name]) => `<button type="button" data-persona-panel="${id}" class="${panel===id?'active':''}" aria-pressed="${panel===id}">${name}</button>`).join('')}
-        </nav><button type="button" class="persona-template-open" data-persona-left="templates">人设模板 <span id="persona-current-template">${esc(templateName)}</span></button></div>
+      <header class="persona-desk-head"><div><span class="persona-eyebrow">正在编辑 · ${global ? '默认角色' : target.startsWith('group:') ? '群聊角色' : '好友角色'}</span><h2>${esc(global ? '默认人设' : title)}</h2></div><button type="button" class="persona-template-open" data-persona-left="templates"><small>选用人设</small><span id="persona-current-template">${esc(templateName)}</span><b aria-hidden="true">⌄</b></button></header>
       <div class="persona-template-drawer" data-persona-list="templates" hidden aria-label="选择人设模板">
         <header><div><h3>用模板开始</h3><p>选用后填入当前对象的正文和规则</p></div><button type="button" class="btn btn-small" data-persona-left="chats">收起</button></header>
         <div class="persona-template-choices">${templates.map(([id,p]) => `<button type="button" class="persona-template" data-persona-id="${esc(id)}" aria-pressed="${p.text===per.roleText}"><span class="persona-template-name">${esc(p.name)}</span><small>${p.builtin?'内置':'自定义'}</small></button>`).join('')}</div>
         <footer><button type="button" class="btn btn-small" id="new-persona-btn">＋ 新建人设</button><button type="button" class="btn btn-small btn-danger hidden" id="del-persona-btn">删除当前自定义人设</button></footer>
       </div>
       <input type="hidden" id="cfg-persona-pick" value="${esc(templateName)}" /><span id="persona-pick-hint" class="hidden"></span>
-      <div class="persona-document" data-persona-pane="role" ${panel==='role'?'':'hidden'}><textarea id="cfg-roletext" class="persona-role-text" aria-label="角色正文" placeholder="${global?'从一句角色描述开始…':'留空，沿用默认人设'}">${esc(per.roleText || '')}</textarea><footer><span>${global?'写下身份、性格与说话方式':'空白字段会沿用默认人设'}</span><span id="persona-character-count">${(per.roleText || '').length} 字</span></footer></div>
+      <div class="persona-writing-room">
+      <nav class="persona-editor-rail" aria-label="编辑内容">
+        ${[['role','角色正文','TA 是谁'],['rules','附加规则','TA 如何回应'],['model','身份与模型','称呼与应用范围']].map(([id,name,note]) => `<button type="button" data-persona-panel="${id}" class="${panel===id?'active':''}" aria-pressed="${panel===id}"><span>${name}</span><small>${note}</small></button>`).join('')}
+        <p class="persona-rail-note">${global?'这套人设作为所有会话的默认。':'为左侧选中的对象编辑；空白字段沿用默认人设。'}</p>
+      </nav>
+      <div class="persona-edit-surface">
+      <div class="persona-document" data-persona-pane="role" ${panel==='role'?'':'hidden'}><header class="persona-page-heading"><h3>角色正文</h3><p>身份、性格、说话方式，都写在这里。</p></header><textarea id="cfg-roletext" class="persona-role-text" aria-label="角色正文" placeholder="${global?'从一句角色描述开始…':'留空，沿用默认人设'}">${esc(per.roleText || '')}</textarea><footer><span>${global?'直接编辑，改动自动保存':'只编辑当前会话的人设'}</span><span id="persona-character-count">${(per.roleText || '').length} 字</span></footer></div>
       <div class="persona-options" data-persona-pane="rules" ${panel==='rules'?'':'hidden'}>
+        <header class="persona-page-heading"><h3>回应规则</h3><p>在角色正文之外，补充需要遵守的约定。</p></header>
         <div class="field"><label for="cfg-customrules">附加规则</label><textarea id="cfg-customrules" class="persona-role-text" placeholder="${global?'补充角色应遵守的规则':'留空，沿用默认规则'}">${esc(per.customRules || '')}</textarea></div>
-        <div class="field"><label for="cfg-sysprompt">系统提示词覆盖</label><p class="hint">可选。填写后整体替换默认提示词；留空沿用默认。支持 {botName}、{roleText}、{participation}。</p><textarea id="cfg-sysprompt" class="persona-role-text">${esc(per.systemPromptOverride || '')}</textarea></div>
+        <details class="persona-advanced" ${per.systemPromptOverride?'open':''}><summary>高级：系统提示词覆盖</summary><div class="field"><label for="cfg-sysprompt">系统提示词覆盖</label><p class="hint">可选。填写后整体替换默认提示词；留空沿用默认。支持 {botName}、{roleText}、{participation}。</p><textarea id="cfg-sysprompt" class="persona-role-text">${esc(per.systemPromptOverride || '')}</textarea></div></details>
       </div>
       <div class="persona-options" data-persona-pane="model" ${panel==='model'?'':'hidden'}>
+        <header class="persona-page-heading"><h3>身份与模型</h3><p>调整角色的称呼、参与方式和使用范围。</p></header>
         <h3>角色行为</h3><div class="field-row">${global?`<div class="field"><label for="cfg-botname">机器人名字</label><input id="cfg-botname" value="${esc(per.botName || '')}" /></div><div class="field"><label for="cfg-selfnick">群内展示名</label><input id="cfg-selfnick" value="${esc(per.selfNickname || '')}" /></div>`:''}<div class="field"><label for="cfg-participation">参与度</label><select id="cfg-participation">${global?'':'<option value="">沿用默认</option>'}${[['low','安静型'],['medium','普通群友'],['high','活跃型']].map(([id,name])=>`<option value="${id}" ${per.participation===id?'selected':''}>${name}</option>`).join('')}</select></div></div>
         <h3>模型</h3>${global?'<div id="apibychat-rows"></div>':`<div class="field"><label for="cfg-persona-chat-model">当前会话</label><select id="cfg-persona-chat-model">${modelOptions}</select></div>`}
         <h3>应用范围</h3><div class="checkbox-row"><input type="checkbox" id="cfg-persona-unified" ${c.personaUnified!==false?'checked':''} /><label for="cfg-persona-unified">所有会话统一使用默认人设</label></div><p class="hint">关闭后，各会话的独立人设生效。已编辑的内容会保留。</p>
       </div>
-      ${!global?`<p class="persona-scope-note" id="persona-unified-note" ${c.personaUnified!==false?'':'hidden'}>统一模式开启 · 此会话配置暂不生效，可在“其他”中调整。</p>`:''}
+      </div></div>
+      <footer class="persona-editor-status"><span id="persona-save-status">自动保存</span>${!global?`<span class="persona-scope-note" id="persona-unified-note" ${c.personaUnified!==false?'':'hidden'}>统一模式开启 · 当前使用默认人设，可在“身份与模型”调整。</span>`:'<span>默认人设 · 未单独配置的会话使用这套内容</span>'}</footer>
     </section>
   </div>`;
 
