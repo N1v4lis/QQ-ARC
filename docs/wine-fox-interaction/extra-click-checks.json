@@ -1,0 +1,86 @@
+{
+  "date": "2026-10-08",
+  "scope": "仅普通点击Extra0–Extra7和原表情，未运行完整56项",
+  "results": [
+    {
+      "name": "普通鼠标点击extra0使用模型原表情及正确播放方式",
+      "pass": true,
+      "animation": "extra0",
+      "expression": -1,
+      "effective": 0,
+      "interaction": "happy",
+      "matches": true,
+      "loop": 2200
+    },
+    {
+      "name": "普通鼠标点击extra1使用模型原表情及正确播放方式",
+      "pass": true,
+      "animation": "extra1",
+      "expression": -1,
+      "effective": 0,
+      "interaction": "happy",
+      "matches": true,
+      "loop": 2200
+    },
+    {
+      "name": "普通鼠标点击extra2使用模型原表情及正确播放方式",
+      "pass": true,
+      "animation": "extra2",
+      "expression": -1,
+      "effective": 1,
+      "interaction": "happy",
+      "matches": true,
+      "loop": 2201
+    },
+    {
+      "name": "普通鼠标点击extra3使用模型原表情及正确播放方式",
+      "pass": true,
+      "animation": "extra3",
+      "expression": -1,
+      "effective": 0,
+      "interaction": "happy",
+      "matches": true,
+      "loop": 2200
+    },
+    {
+      "name": "普通鼠标点击extra4使用模型原表情及正确播放方式",
+      "pass": true,
+      "animation": "extra4",
+      "expression": -1,
+      "effective": 0,
+      "interaction": "happy",
+      "matches": true,
+      "loop": 2200
+    },
+    {
+      "name": "普通鼠标点击extra5使用模型原表情及正确播放方式",
+      "pass": true,
+      "animation": "extra5",
+      "expression": -1,
+      "effective": 1,
+      "interaction": "happy",
+      "matches": true,
+      "loop": 2201
+    },
+    {
+      "name": "普通鼠标点击extra6使用模型原表情及正确播放方式",
+      "pass": true,
+      "animation": "extra6",
+      "expression": -1,
+      "effective": 0,
+      "interaction": "happy",
+      "matches": true,
+      "loop": 2201
+    },
+    {
+      "name": "普通鼠标点击extra7使用模型原表情及正确播放方式",
+      "pass": true,
+      "animation": "extra7",
+      "expression": -1,
+      "effective": 0,
+      "interaction": "happy",
+      "matches": true,
+      "loop": 2201
+    }
+  ]
+}

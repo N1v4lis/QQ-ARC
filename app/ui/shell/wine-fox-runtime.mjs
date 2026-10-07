@@ -81,7 +81,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
   function dispose(){if(disposed)return;disposed=true;stopVoice();cancelFrame();clearTimeout(behaviorTimer);clearTimeout(pressTimer);thoughts.dispose();menu.remove();for(const remove of listeners)remove();
     if(drag&&canvas.hasPointerCapture(drag.id))canvas.releasePointerCapture(drag.id);drag=null;
     mixer?.stopAllAction();if(model)mixer?.uncacheRoot(model);freeModel(model);renderer?.dispose();renderer?.forceContextLoss();host.remove();}
-  function activeMode(now=performance.now()){return injury?6:interaction==='happy'?1:brain.mood==='angry'?2:brain.mood==='dazed'?6:prefs.expression;}
+  function activeMode(now=performance.now()){return injury?6:brain.mood==='angry'?2:brain.mood==='dazed'?6:/^extra\d+$/i.test(currentName)&&['happy','menu'].includes(interaction)?-1:interaction==='happy'?1:prefs.expression;}
   function pose(now){if(!model||!action)return;
     for(const b of faceTracks){const v=b.sample.evaluate(action.time);if(b.property==='scale')b.node.scale.fromArray(v);else for(let i=0;i<v.length;i++)b.node.morphTargetInfluences[i]=v[i];}
     const mode=activeMode(now);for(const o of faceMeshes)o.visible=mode<0||Number(o.userData.expressionMode)===mode;
@@ -240,10 +240,10 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
     model.traverse(o=>{if(o.userData.expressionMode!==undefined)faceMeshes.push(o);if(/^FaceMode_[0-6]$/.test(o.name))faceBones.push(o);
       if(!o.isMesh)return;if(/^(Lever_|Base_Bolt|Travel_Stop|Grip_Endcap)/.test(o.name))leverMeshes.push(o);
       for(const m of Array.isArray(o.material)?o.material:[o.material]){if(m.map){m.map.magFilter=THREE.NearestFilter;m.map.minFilter=THREE.NearestFilter;m.map.generateMipmaps=false;}m.roughness=.85;m.metalness=0;}});
-    happyNames=clips.filter(clip=>!/^(gui2?|jump)$/i.test(clip.name)&&clip.tracks.some(track=>{
+    happyNames=clips.filter(clip=>/^extra\d+$/i.test(clip.name)||(!/^(gui2?|jump)$/i.test(clip.name)&&clip.tracks.some(track=>{
       const parsed=THREE.PropertyBinding.parseTrackName(track.name),node=THREE.PropertyBinding.findNode(model,parsed.nodeName);
       return node?.name==='FaceMode_1'&&parsed.propertyName==='scale'&&Array.from(track.values).every(value=>value>.5);
-    })).map(clip=>clip.name);
+    }))).map(clip=>clip.name);
     mixer=new THREE.AnimationMixer(model);mixer.addEventListener('finished',e=>queueMicrotask(()=>{if(!disposed&&action===e.action)finishMotion();}));
     listen(menu,'click',e=>{const button=e.target.closest('button');if(!button)return;acknowledge();e.preventDefault();e.stopPropagation();if(button.hasAttribute('data-menu-close')){closeMenu();return;}const name=button.dataset.extra;if(!name)return;closeMenu(false);brain.mood='normal';brain.reason='';brain.until=0;brain.clicks=[];brain.recovery=[];brain.touch(performance.now());startMotion(name,'menu');});
     listen(menu,'keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeMenu();}else if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();const buttons=[...menu.querySelectorAll('button')],i=buttons.indexOf(document.activeElement),step=['ArrowRight','ArrowDown'].includes(e.key)?1:-1;buttons[(i+step+buttons.length)%buttons.length].focus();}});
