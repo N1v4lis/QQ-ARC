@@ -19,6 +19,7 @@ await withPage({url,width:1360,height:900},async page=>{
   window.qqaSkin.set('minecraft');state.personaTarget='global';document.querySelector('.tab[data-tab=persona]').click();
  })()`);
  await page.waitFor('!!document.querySelector("[data-persona-target=\\"group:991000001\\"]") && !state.personaContacts.loading');
+ assert.match(await page.eval('document.querySelector("#persona-contacts-status").textContent'),/上次缓存：\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/);
  assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"private:992000001\\"]").textContent.includes("好友备注甲")'),true);
  assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"] .persona-whitelist-dot").dataset.whitelisted'),'false');
  assert.equal(await page.eval('document.querySelector("[data-persona-target=\\"group:991000001\\"]").textContent.includes("白名单")'),false);
@@ -56,9 +57,10 @@ await withPage({url,width:1360,height:900},async page=>{
  await context('group:991000002');
  await page.eval('document.dispatchEvent(new KeyboardEvent("keydown",{key:"Escape",bubbles:true}))');
  assert.equal(await page.eval('!!document.querySelector(".persona-context-menu")'),false);
- await page.eval('window.__contactFail=true;document.querySelector("#persona-contacts-refresh").click()');
+ await page.eval('window.__previousCache=state.personaContacts.cachedAt;window.__contactFail=true;document.querySelector("#persona-contacts-refresh").click()');
  await page.waitFor('!state.personaContacts.loading && state.personaContacts.errors.length>0');
  assert.equal(await page.eval('document.querySelector("#persona-contacts-status").textContent.includes("群聊")'),true);
+ assert.equal(await page.eval('state.personaContacts.cachedAt===window.__previousCache'),true,'失败不更新成功缓存时间');
  assert.equal(await page.eval('!!document.querySelector("[data-persona-target=\\"group:991000002\\"]")'),true,'失败保留已同步名单');
  await page.waitFor('!document.querySelector("#loading-overlay")',{timeout:15000});
  await page.screenshot('shots/final/persona-contacts.png');

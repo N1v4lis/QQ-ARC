@@ -601,6 +601,15 @@ function renderPersonaDirectoryItems(c) {
   return row('global', '默认人设', '所有会话的起点') + '<h3>群聊</h3>' + rows('group', contacts.groups) + '<h3>好友</h3>' + rows('private', contacts.friends);
 }
 
+function personaContactsStatus(contacts = state.personaContacts || {}) {
+  if (contacts.loading) return '正在同步QQ列表…';
+  const date = contacts.cachedAt ? new Date(contacts.cachedAt) : null;
+  const pad = value => String(value).padStart(2, '0');
+  const time = date ? `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` : '';
+  const status = contacts.errors?.length ? '部分列表未同步：' + contacts.errors.join('；') : contacts.cachedAt ? `已同步 ${contacts.groups.length} 个群 · ${contacts.friends.length} 位好友` : 'QQ列表尚未缓存';
+  return status + (time ? ` · 上次缓存：${time}` : '');
+}
+
 async function loadPersonaContacts({ refresh = false } = {}) {
   const contacts = state.personaContacts ||= { groups: [], friends: [], attempted: false, loading: false, errors: [] };
   if (contacts.loading || (contacts.attempted && !refresh)) return;
@@ -610,7 +619,7 @@ async function loadPersonaContacts({ refresh = false } = {}) {
     if (!list) return;
     list.innerHTML = renderPersonaDirectoryItems(state.config || {});
     const status = document.getElementById('persona-contacts-status');
-    if (status) status.textContent = contacts.loading ? '正在同步QQ列表…' : contacts.errors.length ? '部分列表未同步：' + contacts.errors.join('；') : `已同步 ${contacts.groups.length} 个群 · ${contacts.friends.length} 位好友`;
+    if (status) status.textContent = personaContactsStatus(contacts);
     const button = document.getElementById('persona-contacts-refresh');
     if (button) button.disabled = contacts.loading;
     document.querySelector('.persona-studio')?.__personaFilter?.();
@@ -625,6 +634,7 @@ async function loadPersonaContacts({ refresh = false } = {}) {
   results.forEach((result, index) => {
     if (result.status === 'rejected') contacts.errors.push((index === 0 ? '群聊' : '好友') + '（检查OneBot连接后刷新）');
   });
+  if (!contacts.errors.length) contacts.cachedAt = Date.now();
   contacts.loading = false;
   paint();
 }
@@ -647,7 +657,7 @@ function renderPersonaSection(c) {
     <aside class="persona-directory" aria-label="选择编辑对象">
       <header><h2>人设</h2><p>选择要编辑的对象</p></header>
       <input type="search" id="persona-search" data-persona-filter placeholder="查找群聊或私聊" aria-label="查找编辑对象" value="${esc(state.personaSearch || '')}" autocomplete="off" />
-      <div class="persona-directory-sync"><span id="persona-contacts-status">${state.personaContacts?.errors?.length ? 'QQ列表未同步，可刷新重试' : state.personaContacts?.attempted ? 'QQ列表已缓存' : '正在同步QQ列表…'}</span><button type="button" id="persona-contacts-refresh">刷新</button></div>
+      <div class="persona-directory-sync"><span id="persona-contacts-status">${esc(personaContactsStatus())}</span><button type="button" id="persona-contacts-refresh">刷新</button></div>
       <div class="persona-object-list">${renderPersonaDirectoryItems(c)}</div>
       <p class="hint hidden" id="persona-search-empty">没有匹配的对象</p>
     </aside>
@@ -661,7 +671,7 @@ function renderPersonaSection(c) {
       <input type="hidden" id="cfg-persona-pick" value="${esc(templateName)}" /><span id="persona-pick-hint" class="hidden"></span>
       <div class="persona-writing-room">
       <nav class="persona-editor-rail" aria-label="编辑内容">
-        ${[['role','角色正文','TA 是谁'],['rules','附加规则','TA 如何回应'],['model','身份与模型','称呼与模型选择']].map(([id,name,note]) => `<button type="button" data-persona-panel="${id}" class="${panel===id?'active':''}" aria-pressed="${panel===id}"><span>${name}</span><small>${note}</small></button>`).join('')}
+        ${[['role','角色正文','TA 是谁'],['rules','附加规则','TA 如何回应'],['model','身份与其他设置','称呼与其他设置']].map(([id,name,note]) => `<button type="button" data-persona-panel="${id}" class="${panel===id?'active':''}" aria-pressed="${panel===id}"><span>${name}</span><small>${note}</small></button>`).join('')}
         <p class="persona-rail-note">${global?'这套人设作为所有会话的默认。':'为左侧选中的对象编辑；空白字段沿用默认人设。'}</p>
       </nav>
       <div class="persona-edit-surface">
@@ -673,9 +683,9 @@ function renderPersonaSection(c) {
         <div class="persona-advanced"><div class="field"><label for="cfg-sysprompt">高级：系统提示词覆盖</label><p class="hint">可选。填写后整体替换默认提示词；留空沿用默认。支持 {botName}、{roleText}、{participation}。</p><textarea id="cfg-sysprompt" class="persona-role-text">${esc(per.systemPromptOverride || '')}</textarea></div></div>
       </div>
       <div class="persona-options" data-persona-pane="model" ${panel==='model'?'':'hidden'}>
-        <header class="persona-page-heading"><h3>身份与模型</h3><p>调整角色的称呼、参与方式和使用范围。</p></header>
+        <header class="persona-page-heading"><h3>身份</h3><p>调整角色的称呼、展示名、参与度。</p></header>
         <h3>角色行为</h3><div class="field-row">${global?`<div class="field"><label for="cfg-botname">机器人名字</label><input id="cfg-botname" value="${esc(per.botName || '')}" /></div><div class="field"><label for="cfg-selfnick">群内展示名</label><input id="cfg-selfnick" value="${esc(per.selfNickname || '')}" /></div>`:''}<div class="field"><label for="cfg-participation">参与度</label><select id="cfg-participation">${global?'':'<option value="">沿用默认</option>'}${[['low','安静型'],['medium','普通群友'],['high','活跃型']].map(([id,name])=>`<option value="${id}" ${per.participation===id?'selected':''}>${name}</option>`).join('')}</select></div></div>
-        <h3>模型</h3>${global?'<p class="hint">未单独指定模型的会话使用主模型，可在设置的模型配置中修改。</p>':`<div class="field"><label for="cfg-persona-chat-model">当前会话</label><select id="cfg-persona-chat-model">${modelOptions}</select></div>`}
+        ${global?'':`<h3>模型</h3><div class="field"><label for="cfg-persona-chat-model">当前会话</label><select id="cfg-persona-chat-model">${modelOptions}</select></div>`}
       </div>
       </div></div>
       <footer class="persona-editor-status"><span>${global?'默认人设 · 未单独配置的会话使用这套内容':'已加入白名单的会话使用独立配置；空白字段沿用默认人设。'}</span></footer>
