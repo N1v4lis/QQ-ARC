@@ -577,9 +577,6 @@ function renderMemorySettingsSection(c) {
 }
 
 function renderPersonaSection(c) {
-  // ⚠️ 卡片助手是**每个渲染函数各自声明**的局部常量（renderApiSection 里也有一份）：
-  //    直接用人设区里的 sc 会 ReferenceError —— "设置页渲染失败：sc is not defined"（实测踩到）。
-  const sc = (typeof setCard === 'function') ? setCard : (o) => `<div class="setcard">${o.body}</div>`;
   // 统一人设开关：开启（默认）= 所有用同一套全局人设（下方完整编辑器）；
   // 关闭 = 每个白名单会话一个按钮，点开模态框单独编辑（personaByChat）。
   const unified = c.personaUnified !== false;
@@ -592,7 +589,7 @@ function renderPersonaSection(c) {
   const chatIds = [...allowIds, ...extraIds];
 
   const unifiedEditor = `
-    ${renderPersonaPicker(c)}
+    ${renderPersonaPicker(c, { standalone: true })}
     <div class="field-row">
       <div class="field"><label>机器人名字</label><input type="text" id="cfg-botname" value="${esc(c.persona.botName)}" /></div>
       <div class="field"><label>群内展示名（可选）</label><input type="text" id="cfg-selfnick" value="${esc(c.persona.selfNickname || '')}" /></div>
@@ -643,32 +640,45 @@ function renderPersonaSection(c) {
       </div>`;
   }).join('');
 
-  return `
-    <h3>人设</h3>
+  const templates = Object.entries(state.personaTemplates || {});
+  const templateRows = templates.map(([id, p]) => `<button type="button" class="persona-template" data-persona-id="${esc(id)}" aria-pressed="${p.text === c.persona.roleText}">
+    <span class="persona-template-name">${esc(p.name)}</span><span class="uc-tag">${p.builtin ? '内置' : '自定义'}</span>
+    <span class="persona-template-desc">${esc(String(p.text || '').replace(/\s+/g, ' ').slice(0, 100))}</span>
+  </button>`).join('');
+  return `<div class="usage-wrap persona-page">
+    <div class="usage-head"><h2>人设</h2>
+      <button type="button" class="btn btn-small" id="new-persona-btn" ${unified ? '' : 'disabled'}>＋ 添加人设</button>
+      <span class="uc-tag">${templates.length} 套人设</span>
+      <span class="hint persona-save-note">编辑自动保存</span>
+    </div>
+    <p class="hint">选择一套人设作为起点，在编辑区调整角色设定与规则；也可以为不同会话配置独立人设。</p>
     <div class="checkbox-row"><input type="checkbox" id="cfg-persona-unified" ${unified ? 'checked' : ''} />
       <label for="cfg-persona-unified">为所有的群聊/私聊使用同一个人设</label></div>
     <div class="hint" style="margin-bottom:12px">${unified
       ? '所有会话共用下方这一套人设。'
       : '每个会话独立人设 + 独立模型：点按对应按钮弹窗编辑（● = 已配置独立人设）。机器人名字/群内展示名是账号身份，只能全局设置。'}</div>
     <div id="persona-unified-box" style="${unified ? '' : 'display:none'}">
-      ${unifiedEditor}
+      <div class="persona-workspace">
+        <aside class="persona-library" aria-label="人设库">
+          <h3>人设库</h3>
+          <input type="search" id="persona-search" data-persona-filter placeholder="搜索人设名称 / 内容…" aria-label="搜索人设" value="${esc(state.personaSearch || '')}" autocomplete="off" />
+          <div class="persona-template-list">${templateRows || '<p class="hint">暂无人设，可以添加自己的角色设定。</p>'}</div>
+          <p class="hint hidden" id="persona-search-empty">没有匹配的人设</p>
+        </aside>
+        <section class="persona-editor" aria-label="当前人设编辑器"><h3>当前人设</h3>${unifiedEditor}</section>
+      </div>
     </div>
     <div id="persona-perchat-box" style="${unified ? 'display:none' : ''}">
       <div class="field" style="margin-bottom:10px">
         <button class="btn" id="open-global-persona-btn">⚙ 全局人设设置（未单独配置的会话用这套）</button>
       </div>
-      ${sc({
-        id: 'card-persona-model-default',
-        icon: '🧠',
-        gray: true,
-        title: '默认模型（群聊 / 私聊）',
-        sub: '没在会话里单独指定的，就用这里的 · 留空 = 跟随主模型',
-        body: `
+      <h3>默认模型（群聊 / 私聊）</h3>
+      <p class="hint">未单独指定模型的会话使用这里的配置，留空跟随主模型。</p>
       <div id="apibychat-rows"></div>
-      <div class="hint" style="margin-top:6px">在会话弹窗里可以给单个群 / 单个私聊指定模型（优先级高于这里）。图片 / 视频消息仍按「模型配置」里的专用模型走。</div>`
-      })}
+      <div class="hint" style="margin-top:6px">在会话弹窗里可以给单个群 / 单个私聊指定模型（优先级高于这里）。图片 / 视频消息仍按「模型配置」里的专用模型走。</div>
+      <h3>会话人设</h3>
       <div class="persona-chat-grid">${chatRows || '<div class="hint">（白名单为空——先在「聊天白名单」里添加群聊/私聊）</div>'}</div>
-    </div>`;
+    </div></div>`;
 }
 
 /**

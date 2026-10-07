@@ -732,7 +732,7 @@ function openBatchPriceModal() {
   });
 }
 
-function renderPersonaPicker(c) {
+function renderPersonaPicker(c, { standalone = false } = {}) {
   const currentId = Object.entries(state.personaTemplates || {}).find(([, p]) => p.text === (c.persona?.roleText || ''))?.[0] || '';
   const currentName = state.personaTemplates[currentId]?.name || '';
   return `
@@ -741,7 +741,7 @@ function renderPersonaPicker(c) {
         <label>选择人设</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <input type="text" id="cfg-persona-pick" class="inp persona-pick" readonly placeholder="点击选择人设" value="${esc(currentName)}" style="flex:1;min-width:160px;cursor:pointer" />
-          <button class="btn btn-small" id="new-persona-btn">＋ 添加人设</button>
+          ${standalone ? '' : '<button class="btn btn-small" id="new-persona-btn">＋ 添加人设</button>'}
           <button class="btn btn-small btn-danger hidden" id="del-persona-btn">删除当前自定义人设</button>
         </div>
         <span id="persona-pick-hint" class="muted" style="font-size:12px"></span>

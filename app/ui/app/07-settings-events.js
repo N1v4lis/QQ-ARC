@@ -45,6 +45,7 @@ function bindSettingsEvents(c) {
   let undoBtn = null;
 
   function markDirty(el) {
+    if (el?.matches?.('[data-persona-filter]')) return;
     const block = el?.closest?.('.field, .checkbox-row, .tier-param, .price-card, .tool-card, .settings-runstate, .prompt-preview-card, .persona-per-chat, .persona-chat-btn');
     if (block) dirtyEls.add(block);
     showUndoBtn();
@@ -103,7 +104,7 @@ function bindSettingsEvents(c) {
      *    没有回退的话，按钮会彻底不出现，那是更糟的结果。
      */
     const form = $('#settings-form');
-    const h3 = form ? form.querySelector('h3') : null;
+    const h3 = form ? form.querySelector(state.tab === 'persona' ? '.usage-head h2' : 'h3') : null;
     if (h3) {
       if (!h3.classList.contains('settings-h3-row')) {
         // 把 h3 里的节点整体挪进一个 span，保留原来的文本/子元素
@@ -994,6 +995,13 @@ function bindSettingsEvents(c) {
     }
     const hint = $('#persona-pick-hint');
     if (hint) hint.textContent = tpl ? (tpl.builtin ? '内置人设' : '自定义人设') : '';
+    const input = $('#cfg-persona-pick');
+    if (input) input.value = tpl?.name || '自定义编辑';
+    $$('.persona-template').forEach(button => {
+      const active = button.dataset.personaId === id;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
   }
   if (personaPick) {
     personaPick.addEventListener('click', () => openPersonaPicker());
@@ -1021,6 +1029,29 @@ function bindSettingsEvents(c) {
   });
   
   syncPersonaButtons(false);   // 初始装填不播动画（重渲染后是全新节点）
+  $('#cfg-roletext')?.addEventListener('input', () => syncPersonaButtons(false));
+  $$('.persona-template').forEach(button => button.addEventListener('click', () => {
+    const tpl = state.personaTemplates[button.dataset.personaId];
+    if (!tpl || !$('#cfg-persona-unified')?.checked) return;
+    $('#cfg-roletext').value = tpl.text;
+    $('#cfg-customrules').value = tpl.customRules || '';
+    $('#cfg-roletext').dispatchEvent(new Event('input', { bubbles: true }));
+    syncPersonaButtons(false);
+  }));
+  const personaSearch = $('#persona-search');
+  const filterPersonas = () => {
+    const term = (personaSearch?.value || '').trim().toLowerCase();
+    state.personaSearch = personaSearch?.value || '';
+    let count = 0;
+    $$('.persona-template').forEach(button => {
+      const tpl = state.personaTemplates[button.dataset.personaId];
+      const match = !term || `${tpl?.name || ''} ${tpl?.text || ''}`.toLowerCase().includes(term);
+      button.hidden = !match;
+      if (match) count++;
+    });
+    $('#persona-search-empty')?.classList.toggle('hidden', count > 0);
+  };
+  if (personaSearch) { personaSearch.addEventListener('input', filterPersonas); filterPersonas(); }
 
   // ── 白名单区块事件 ──
   const pickGroupsBtn = $('#pick-groups-btn');
@@ -1034,6 +1065,7 @@ function bindSettingsEvents(c) {
   // 统一开关：切显隐（不触发保存——display 切换不是配置变化，真正的值在 checkbox 上）。
   const personaUnifiedChk = $('#cfg-persona-unified');
   if (personaUnifiedChk) personaUnifiedChk.addEventListener('change', () => {
+    if (newPersonaBtn) newPersonaBtn.disabled = !personaUnifiedChk.checked;
     const ub = $('#persona-unified-box');
     const pb = $('#persona-perchat-box');
     if (ub) {

@@ -406,3 +406,34 @@
 .field > input:not([type='checkbox']):not([type='radio']),
 .field > select { width: 100%; }
 .field > textarea { width: 100%; }
+
+/* 独立人设：复用技能/插件标题栏，列表与编辑器常显，不采用设置折叠卡。 */
+#view-persona #settings-form { width: 100%; max-width: none; padding: 20px; }
+#view-persona .persona-page { max-width: 1180px; }
+#view-persona .usage-head h2 { margin: 0; font-size: 22px; }
+#view-persona .persona-save-note { margin-left: auto; }
+#view-persona .usage-head .settings-h3-row { display: flex; align-items: center; gap: 12px; }
+#view-persona .persona-workspace { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 24px; align-items: start; }
+#view-persona .persona-library { min-width: 0; border-right: 1px solid var(--q-line-1); padding-right: 20px; }
+#view-persona .persona-library h3, #view-persona .persona-editor h3 { margin: 0 0 12px; }
+#view-persona #persona-search { width: 100%; margin-bottom: 12px; }
+#view-persona .persona-template-list { display: flex; flex-direction: column; gap: 0; max-height: 660px; overflow-y: auto; }
+#view-persona .persona-template { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; width: 100%; text-align: left; font: inherit; color: var(--q-fg); border: 0; border-bottom: 1px solid var(--q-line-1); background: transparent; padding: 12px; cursor: pointer; }
+#view-persona .persona-template[hidden] { display: none; }
+#view-persona .persona-template:hover { background: var(--q-bg-hover); }
+#view-persona .persona-template.active { background: var(--q-accent-soft); box-shadow: inset 3px 0 var(--q-accent); }
+#view-persona .persona-template:focus-visible { outline: 2px solid var(--q-accent); outline-offset: -2px; }
+#view-persona .persona-template-name { font-weight: 600; overflow-wrap: anywhere; }
+#view-persona .persona-template-desc { grid-column: 1 / -1; color: var(--q-fg-2); font-size: 13px; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#view-persona .persona-editor { min-width: 0; }
+#view-persona .persona-editor .field-row { flex-wrap: wrap; }
+#view-persona .persona-editor .field-row .field { min-width: 140px; }
+#view-persona #cfg-roletext { min-height: 320px; resize: vertical; line-height: 1.7; }
+#view-persona #persona-perchat-box { padding-top: 12px; }
+html[data-skin='minecraft'] #view-persona .persona-template-desc { font-size: 14px; }
+@media (max-width: 980px) {
+  #view-persona .persona-workspace { grid-template-columns: 1fr; }
+  #view-persona .persona-library { border-right: 0; border-bottom: 1px solid var(--q-line-1); padding: 0 0 16px; }
+  #view-persona .persona-template-list { max-height: 260px; }
+  #view-persona #settings-form { padding: 14px; }
+}

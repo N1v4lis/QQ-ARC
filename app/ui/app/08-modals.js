@@ -199,7 +199,7 @@ function openPersonaPicker() {
         $('#cfg-roletext')?.dispatchEvent(new Event('input', { bubbles: true }));
       }
       closeModelModal(overlay);
-      syncPersonaButtons();
+      // roletext 的 input 监听同步列表选中态与删除按钮。
     });
   });
   overlay.querySelector('#persona-cancel').addEventListener('click', () => closeModelModal(overlay));
