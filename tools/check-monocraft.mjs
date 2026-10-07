@@ -5,6 +5,7 @@ import { withPage } from './cdp.mjs';
 
 await withPage({ url: process.argv[2] || 'http://127.0.0.1:3210/', width: 1300, height: 850 }, async page => {
   await page.waitFor('!!window.qqaSkin && !!document.querySelector("#tabs .tab.active")', { timeout: 30000 });
+  await page.waitFor('!!document.querySelector(".dd-li") && !!document.querySelector(".dc-ytick")', { timeout: 15000 });
   const result = await page.eval(`(async () => {
     const root = document.documentElement;
     window.qqaSkin.set('minecraft');
@@ -14,6 +15,10 @@ await withPage({ url: process.argv[2] || 'http://127.0.0.1:3210/', width: 1300, 
       if (!faces.length || faces.some(face => face.status !== 'loaded')) throw Error('字体未加载: ' + font);
     }
     const chain = getComputedStyle(document.body).fontFamily;
+    const sizes = Object.fromEntries(['.tab-tx', '.db-value', '.db-sub', '.dd-li', '.dc-ytick'].map(selector => [selector, getComputedStyle(document.querySelector(selector)).fontSize]));
+    root.setAttribute('data-nav', 'collapsed');
+    const foldedFontSize = getComputedStyle(document.querySelector('.q-side-foot .nav-btn')).fontSize;
+    root.setAttribute('data-nav', 'expanded');
     const canvas = document.createElement('canvas'); canvas.width = 80; canvas.height = 64;
     const ctx = canvas.getContext('2d');
     const signature = (font, text) => {
@@ -31,15 +36,23 @@ await withPage({ url: process.argv[2] || 'http://127.0.0.1:3210/', width: 1300, 
     const off = getComputedStyle(document.body).fontFamily;
     window.qqaSkin.set('default');
     const normal = getComputedStyle(document.body).fontFamily;
+    const normalSidebarSize = getComputedStyle(document.querySelector('.tab-tx')).fontSize;
     window.qqaSkin.set('minecraft'); root.setAttribute('data-mc-font', 'on');
     const fontRequest = performance.getEntriesByType('resource').find(item => item.name.endsWith('/Monocraft.ttf'));
-    return { chain, groups, off, normal, localFont: !!fontRequest && new URL(fontRequest.name).origin === location.origin };
+    return { chain, groups, sizes, foldedFontSize, normalSidebarSize, off, normal, localFont: !!fontRequest && new URL(fontRequest.name).origin === location.origin };
   })()`);
   assert.match(result.chain, /^Monocraft/);
   for (const row of result.groups) assert.equal(row.matches, true, row.label + '字形来源错误');
   assert.equal(result.localFont, true);
   assert.doesNotMatch(result.off, /Monocraft/);
   assert.doesNotMatch(result.normal, /Monocraft/);
+  assert.equal(result.sizes['.tab-tx'], '16px');
+  assert.equal(result.sizes['.db-value'], '22px');
+  assert.equal(result.sizes['.db-sub'], '14px');
+  assert.equal(result.sizes['.dd-li'], '14px');
+  assert.equal(result.sizes['.dc-ytick'], '12px');
+  assert.equal(result.foldedFontSize, '0px');
+  assert.notEqual(result.normalSidebarSize, '16px');
   fs.mkdirSync('shots/final', { recursive: true });
   await page.waitFor('!document.querySelector("#loading-overlay") || getComputedStyle(document.querySelector("#loading-overlay")).display === "none"', { timeout: 15000 });
   await page.screenshot('shots/final/monocraft-theme.png');

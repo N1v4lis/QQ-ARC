@@ -252,3 +252,6 @@ background: var(--q-bg-titlebar, var(--q-bg-base));
 
 ### Monocraft 字面比例（2026-10-08）
 为避免英文及长数字显得过大，Monocraft 的 @font-face 使用 size-adjust:88%，仅缩小拉丁字形与宽度，中文字号不变。
+
+### 小字号可读性（2026-10-08）
+MC字体开启时：侧栏16px，标签15px，说明与次要读数14px，图表刻度12px。说明文字使用fg-2增强对比；中文仍MinecraftAE，Monocraft仍88%，大统计数字字号保持。折叠和窄窗导航原有隐藏规则保留。

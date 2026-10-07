@@ -454,6 +454,54 @@ html[data-skin='minecraft'][data-mc-font='on'] body {
   font-family: var(--q-font-mc);
 }
 
+/* 小字可读性：中文导航使用16px，说明与读数采用整数14px。
+   不改大号统计数值的字号或Monocraft 88%比例；仅字体开启时生效。 */
+html[data-skin='minecraft'][data-mc-font='on'] :is(
+  #tabs.q-side .tab-tx, #q-side-toggle.q-side-toggle
+) {
+  font-size: 16px;
+  line-height: 1.5;
+}
+@media (min-width: 881px) {
+  html[data-skin='minecraft'][data-mc-font='on']:not([data-nav='collapsed']) .q-side-foot .nav-btn {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+}
+@media (max-width: 880px) {
+  html[data-skin='minecraft'][data-mc-font='on'][data-nav='expanded'] .q-side-foot .nav-btn {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+}
+html[data-skin='minecraft'][data-mc-font='on'] :is(
+  .db-label, .dash-card-head h3, .th-field-label, .field label
+) {
+  font-size: 15px;
+}
+html[data-skin='minecraft'][data-mc-font='on'] :is(
+  .db-sub, .db-foot, .dash-sub, .dash-range, .dash-range-info,
+  .dash-card-head .btn, .dd-li, .dp-val, .dp-name, .dc-tip, .dc-tip b,
+  .th-skin-desc, .th-field-label small, .th-field-val,
+  .hint, .setsub, .sc-sub, .sc-val, .settings-runstate .rs-title,
+  .settings-runstate .rs-row, .pc-row, .pc-label, .pc-unit, .pc-note,
+  .session-meta, .session-trigger, .chat-item-sub, .chat-msg-role, .mcard-desc, .mcard-err,
+  .stat .stat-unit, .metric .unit, .allow-pick-msg
+) {
+  font-size: 14px;
+  line-height: 1.5;
+}
+html[data-skin='minecraft'][data-mc-font='on'] :is(
+  .dc-ytick, .dc-xtick, .dc-bar-val, .dc-bar-name, .dd-center-l
+) {
+  font-size: 12px;
+}
+html[data-skin='minecraft'][data-mc-font='on'] :is(
+  .db-sub, .dash-sub, .dd-li, .dp-name, .sc-sub, .hint, .setsub
+) {
+  color: var(--q-fg-2);
+}
+
 /* ── MC 皮肤下的正文：字号 +1px、加一点字距、略降对比度（2026-10-05）────────
    用户反馈："英文和数字能否细一些，太粗了堆在一块，可读性下降很多"。
 
