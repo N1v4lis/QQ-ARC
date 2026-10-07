@@ -502,6 +502,16 @@ html[data-motion='off'] #view-persona #persona-manual-save.persona-save-success 
 #view-persona .persona-edit-surface { position: relative; }
 #view-persona #cfg-persona-name { width: 280px; max-width: 100%; font: inherit; font-size: 16px; padding: 7px 10px; }
 #view-persona .persona-template-drawer footer { justify-content: flex-end; }
+#view-persona .persona-save-actions { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+#view-persona .persona-save-actions .btn { min-width: 82px; }
+#view-persona .persona-template-open b { transition: transform 160ms ease-out; }
+#view-persona .persona-template-open[aria-expanded='true'] b { transform: rotate(180deg); }
+#view-persona .persona-template-open[aria-expanded='true'] { background: var(--q-accent-soft); }
+#view-persona .persona-template-drawer { animation: persona-library-open 160ms ease-out; }
+@keyframes persona-library-open { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+html[data-motion='off'] #view-persona .persona-template-drawer { animation: none; }
+html[data-motion='off'] #view-persona .persona-template-open b { transition: none; }
+@media (prefers-reduced-motion: reduce) { #view-persona .persona-template-drawer { animation: none; } #view-persona .persona-template-open b { transition: none; } }
 #view-persona .persona-edit-surface:has(.persona-manual-tools:not([hidden])) > .persona-options > .persona-page-heading { padding-right: 350px; min-height: 48px; }
 #view-persona .persona-desk { position: relative; padding: 0; background: var(--q-bg-base); }
 #view-persona .persona-desk-head { padding: 22px 28px; border-bottom: 1px solid var(--q-line-1); background: var(--q-bg-1); }

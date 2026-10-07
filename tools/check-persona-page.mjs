@@ -5,7 +5,7 @@ const url=process.argv[2]||'http://127.0.0.1:3210/';
 const before=await(await fetch(new URL('/api/config',url))).json();
 await withPage({url,width:1360,height:900},async page=>{
  await page.waitFor('!!window.qqaSkin && !!document.querySelector(".tab.active")',{timeout:15000});
- await page.eval('window.qqaSkin.set("minecraft");state.personaTarget="global";document.querySelector(".tab[data-tab=persona]").click()');
+ await page.eval('window.__prePersonaFetch=window.fetch;window.fetch=async(input,init)=>{const u=typeof input==="string"?input:input.url;if(u.includes("/api/config")&&init?.method==="POST")return new Response(JSON.stringify({ok:true,config:state.config}),{headers:{"Content-Type":"application/json"}});return window.__prePersonaFetch(input,init);};window.qqaSkin.set("minecraft");state.personaTarget="global";document.querySelector(".tab[data-tab=persona]").click()');
  await page.waitFor('!!document.querySelector(".persona-studio #cfg-roletext")',{timeout:15000});
  const initial=await page.eval(`({forms:document.querySelectorAll('#settings-form').length,cards:document.querySelectorAll('#view-persona .setcard').length,order:document.querySelector('.tab[data-tab=persona]').nextElementSibling.dataset.tab,templates:document.querySelectorAll('.persona-template').length,role:document.querySelector('#cfg-roletext').value})`);
  assert.equal(initial.forms,1);assert.equal(initial.cards,0);assert.equal(initial.order,'skills');assert(initial.templates>0);assert.equal(initial.role,before.persona.roleText);
@@ -20,7 +20,7 @@ await withPage({url,width:1360,height:900},async page=>{
  await page.eval(`(()=>{
   window.__personaPosts=[];window.__personaFetch=window.fetch;
   const merge=(base,patch)=>{for(const [k,v] of Object.entries(patch)){if(v&&typeof v==='object'&&!Array.isArray(v)){if('__replace__' in v)base[k]=structuredClone(v.__replace__);else {if(!base[k]||typeof base[k]!=='object')base[k]={};merge(base[k],v);}}else base[k]=v;}return base;};
-  window.fetch=async function(input,init){const u=typeof input==='string'?input:input.url;if(u.includes('/api/config')&&init?.method==='POST'){const patch=JSON.parse(init.body);window.__personaPosts.push(patch);const config=merge(structuredClone(state.config),patch);return new Response(JSON.stringify({ok:true,config}),{status:200,headers:{'Content-Type':'application/json'}});}return window.__personaFetch.call(this,input,init);};
+  window.fetch=async function(input,init){const u=typeof input==='string'?input:input.url;if(u.includes('/api/persona-library'))return new Response(JSON.stringify({ok:true}),{headers:{'Content-Type':'application/json'}});if(u.includes('/api/config')&&init?.method==='POST'){const patch=JSON.parse(init.body);window.__personaPosts.push(patch);const config=merge(structuredClone(state.config),patch);return new Response(JSON.stringify({ok:true,config}),{status:200,headers:{'Content-Type':'application/json'}});}return window.__personaFetch.call(this,input,init);};
   const search=document.querySelector('#persona-search');search.value='__no_match__';search.dispatchEvent(new Event('input',{bubbles:true}));
  })()`);
  assert.equal(await page.eval('document.querySelectorAll(".persona-target:not([hidden])").length'),0);

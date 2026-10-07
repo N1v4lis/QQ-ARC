@@ -1095,9 +1095,15 @@ function bindSettingsEvents(c) {
 
   // ── 人设区块事件 ──
   const personaPick = $('#cfg-persona-pick');
+  state.personaEditingTemplates ||= {};
   function currentPersonaId() {
+    const selected = state.personaEditingTemplates[personaRevisionKey()];
+    if (selected && state.personaTemplates?.[selected.id]) return selected.id;
     const roleText = $('#cfg-roletext')?.value ?? '';
-    const found = Object.entries(state.personaTemplates || {}).find(([, p]) => p.text === roleText);
+    const name = $('#cfg-persona-name')?.value || '';
+    const rules = $('#cfg-customrules')?.value || '';
+    const found = Object.entries(state.personaTemplates || {}).find(([, p]) => p.text === roleText && (p.customRules || '') === rules && p.name === name);
+    if (found) state.personaEditingTemplates[personaRevisionKey()] = {id:found[0],...found[1]};
     return found ? found[0] : '';
   }
   function syncPersonaButtons(animate = true) {
@@ -1114,7 +1120,7 @@ function bindSettingsEvents(c) {
     const input = $('#cfg-persona-pick');
     if (input) input.value = tpl?.name || '自定义编辑';
     const templateName = $('#persona-current-template');
-    if (templateName) templateName.textContent = $('#cfg-persona-name')?.value || tpl?.name || '自定义正文';
+    if (templateName) templateName.textContent = tpl?.name || $('#cfg-persona-name')?.value || '自定义正文';
     const characters = $('#persona-character-count');
     if (characters) characters.textContent = `${$('#cfg-roletext')?.value.length || 0} 字`;
     $$('.persona-template').forEach(button => {
@@ -1166,9 +1172,9 @@ function bindSettingsEvents(c) {
   }
   $('#persona-manual-save')?.setAttribute('title', '保存人设（Ctrl+S）');
   $('#persona-manual-save')?.setAttribute('aria-keyshortcuts', 'Control+s');
-  $('#persona-manual-save')?.addEventListener('click', async event => {
-    if (personaManualBusy) return;
-    const button = event.currentTarget;
+  const savePersonaDraft = async () => {
+    const button = $('#persona-manual-save');
+    if (!button || button.disabled || personaManualBusy) return false;
     const studio = $('.persona-studio');
     const target = state.personaTarget || 'global';
     const key = personaRevisionKey();
@@ -1189,10 +1195,20 @@ function bindSettingsEvents(c) {
       const results = await flushSettingsSaves();
       if (results.some(result=>result === false)) throw new Error('设置保存失败，请重试');
       personaManualBusy = true; beginSettingsGuard(); guarded = true;
+      const template = state.personaEditingTemplates[key];
+      if (template?.editable) {
+        await api('/api/persona-library',{method:'POST',body:JSON.stringify({action:'update',owner:template.owner,index:template.index,expectedName:template.name,expectedText:template.text,name:revision.name,text:revision.roleText,customRules:revision.customRules})});
+        const updated = {...template,name:revision.name,text:revision.roleText,customRules:revision.customRules};
+        state.personaEditingTemplates[key] = updated;
+        state.personaTemplates[template.id] = updated;
+        const item = document.querySelector(`[data-persona-id="${template.id}"] .persona-template-name`);
+        if (item) item.textContent = revision.name;
+      }
       const latest = await api('/api/config');
       const patch = target === 'global' ? {persona:{...latest.persona,...revision}} : {personaByChat:{__replace__:{...(latest.personaByChat || {}),[target]:{...(latest.personaByChat?.[target] || {}),...revision}}}};
       const response = await api('/api/config',{method:'POST',body:JSON.stringify(patch)});
       state.config = response.config;
+      syncPersonaButtons(false);
       if (state.personaDrafts) delete state.personaDrafts[key];
       const history = readPersonaRevisions(state.config,target);
       let historySaved = true;
@@ -1215,7 +1231,10 @@ function bindSettingsEvents(c) {
       if (guarded) endSettingsGuard();
       if (state.tab === 'persona' && (state.personaTarget || 'global') === target) showPersonaSaveFeedback(success);
     }
-  });
+    return success;
+  };
+  if (form) form.__savePersonaDraft = savePersonaDraft;
+  $('#persona-manual-save')?.addEventListener('click', () => void savePersonaDraft());
   $('#persona-revisions')?.addEventListener('change', event => {
     if (event.currentTarget.value === '') return;
     const revision = readPersonaRevisions()[Number(event.currentTarget.value)];
@@ -1224,20 +1243,110 @@ function bindSettingsEvents(c) {
       const input = $(selector); if (input) input.value = revision[field] || '';
     }
     $('#cfg-roletext')?.dispatchEvent(new Event('input',{bubbles:true}));
+    state.personaEditingTemplates[personaRevisionKey()] = null;
+    syncPersonaButtons(false);
   });
-  $$('.persona-template').forEach(button => button.addEventListener('click', () => {
-    const tpl = state.personaTemplates[button.dataset.personaId];
-    if (!tpl) return;
+  const beforePersonaReplacement = async () => {
+    if (!state.personaDrafts?.[personaRevisionKey()]) return true;
+    const name = $('#cfg-persona-name')?.value || '未命名人设';
+    const yes = await uiConfirm(`是否要将更改保存至：${name}`,{title:'保存人设更改',okText:'是',cancelText:'否'});
+    if (yes && !(await $('#settings-form').__savePersonaDraft())) return false;
+    return true;
+  };
+  const usePersonaTemplate = (id,tpl) => {
+    state.personaEditingTemplates[personaRevisionKey()] = {id,...tpl};
     $('#cfg-roletext').value = tpl.text;
     $('#cfg-customrules').value = tpl.customRules || '';
     if ($('#cfg-persona-name')) $('#cfg-persona-name').value = tpl.name || '';
+    if ($('#cfg-sysprompt')) $('#cfg-sysprompt').value = '';
     $('#cfg-roletext').dispatchEvent(new Event('input', { bubbles: true }));
     syncPersonaButtons(false);
     if ($('.persona-canvas')) {
       $('[data-persona-panel="role"]')?.click();
       setPersonaLeft('chats');
     }
-  }));
+  };
+  const reloadPersonaTemplates = async () => {
+    const data = await api('/api/persona-templates');
+    state.personaTemplates = Object.fromEntries((data.templates || []).map(t=>[t.id,{...t,customRules:t.customRules || ''}]));
+  };
+  let templateActionBusy = false;
+  const createPersona = async (source=null) => {
+    if (templateActionBusy || personaManualBusy) return;
+    templateActionBusy = true;
+    try {
+      if (!(await beforePersonaReplacement())) return;
+      const names = new Set(Object.values(state.personaTemplates || {}).map(p=>p.name));
+      let name = '未命名人设'; let suffix = 2;
+      while(names.has(name)) name = '未命名人设 ' + suffix++;
+      if (source) { name = await uiPrompt('新的人设名称',source.name + '（副本）'); if (name === null) return; }
+      name = name.trim().slice(0,100);
+      if (!name.trim()) throw new Error('人设名称不能为空');
+      await api('/api/persona-library',{method:'POST',body:JSON.stringify({action:'create',name,text:source?.text || '',customRules:source?.customRules || ''})});
+      await reloadPersonaTemplates();
+      const found = Object.entries(state.personaTemplates).find(([,p])=>p.name===name.trim() && p.editable);
+      if (!found) throw new Error('新模板已创建，列表未同步，请刷新');
+      usePersonaTemplate(found[0],found[1]);
+      renderSettings();
+      $('#cfg-persona-name')?.focus();
+    } catch(error) { const status=$('#persona-save-status'); if(status)status.textContent=error.message; }
+    finally { templateActionBusy = false; }
+  };
+  $('#persona-new-blank')?.addEventListener('click',()=>void createPersona());
+  $$('.persona-template').forEach(button => {
+    button.addEventListener('click',async()=>{
+      if(templateActionBusy || personaManualBusy)return;
+      templateActionBusy=true;
+      try {
+        const tpl = state.personaTemplates[button.dataset.personaId];
+        if(tpl && await beforePersonaReplacement())usePersonaTemplate(button.dataset.personaId,tpl);
+      } finally {templateActionBusy=false;}
+    });
+    button.addEventListener('contextmenu',event=>{
+      event.preventDefault();
+      const id=button.dataset.personaId, tpl=state.personaTemplates[id];
+      if(!tpl)return;
+      closePersonaWhitelistMenu?.();
+      const menu=document.createElement('div');menu.className='persona-context-menu';menu.setAttribute('role','menu');
+      menu.innerHTML=`<button type="button" data-template-action="copy" role="menuitem">从“${esc(tpl.name)}”创建新人设</button><button type="button" data-template-action="rename" role="menuitem" ${tpl.editable?'':'disabled'}>重命名人设</button><button type="button" data-template-action="delete" role="menuitem" ${tpl.editable?'':'disabled'}>删除人设</button>`;
+      document.body.append(menu);menu.style.left=Math.max(4,Math.min(event.clientX,innerWidth-menu.offsetWidth-4))+'px';menu.style.top=Math.max(4,Math.min(event.clientY,innerHeight-menu.offsetHeight-4))+'px';
+      const close=()=>{menu.remove();document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',keyboard);if(closePersonaWhitelistMenu===close)closePersonaWhitelistMenu=null;};
+      const outside=e=>{if(!menu.contains(e.target))close();};
+      const keyboard=e=>{if(e.key==='Escape')close();};
+      closePersonaWhitelistMenu=close;document.addEventListener('pointerdown',outside);document.addEventListener('keydown',keyboard);
+      menu.querySelector('button').focus();
+      menu.addEventListener('click',async e=>{
+        const action=e.target.closest('[data-template-action]')?.dataset.templateAction;
+        if(!action || templateActionBusy || personaManualBusy)return;
+        close();
+        if(action==='copy'){void createPersona(tpl);return;}
+        templateActionBusy=true;
+        try {
+          let name=tpl.name;
+          if(action==='rename'){name=await uiPrompt('重命名人设',tpl.name);if(name===null)return;name=name.trim().slice(0,100);}
+          if(action==='delete' && !(await uiConfirm(`删除人设“${tpl.name}”？最近保存记录将保留。`)))return;
+          await api('/api/persona-library',{method:'POST',body:JSON.stringify({action,owner:tpl.owner,index:tpl.index,expectedName:tpl.name,expectedText:tpl.text,name})});
+          const key=personaRevisionKey(), selected=state.personaEditingTemplates[key];
+          if(selected?.owner===tpl.owner && selected?.index===tpl.index){
+            if(action==='delete')state.personaEditingTemplates[key]=null;
+            else {
+              state.personaEditingTemplates[key]={...selected,name};
+              if($('#cfg-persona-name').value===tpl.name){$('#cfg-persona-name').value=name;$('#cfg-persona-name').dispatchEvent(new Event('input',{bubbles:true}));}
+            }
+          }
+          // 删项会改变旧索引：所有对象的已绑定模板都按原内容重新定位。
+          await reloadPersonaTemplates();
+          for(const [key,selected]of Object.entries(state.personaEditingTemplates)){
+            if(!selected)continue;
+            const found=Object.entries(state.personaTemplates).find(([,p])=>p.owner===selected.owner && p.name===selected.name && p.text===selected.text);
+            state.personaEditingTemplates[key]=found?{id:found[0],...found[1]}:null;
+          }
+          renderSettings();
+        }catch(error){const status=$('#persona-save-status');if(status)status.textContent=error.message;}
+        finally{templateActionBusy=false;}
+      });
+    });
+  });
   const personaSearch = $('#persona-search');
   const filterPersonas = () => {
     const term = (personaSearch?.value || '').trim().toLowerCase();
@@ -1268,7 +1377,11 @@ function bindSettingsEvents(c) {
     const opener = $('[data-persona-left="templates"]');
     if (opener) { opener.setAttribute('aria-expanded',String(name === 'templates')); opener.setAttribute('aria-controls','persona-template-library'); }
   };
-  $$('[data-persona-left]').forEach(button => button.addEventListener('click', () => setPersonaLeft(button.dataset.personaLeft === 'templates' && state.personaLeft === 'templates' ? 'chats' : button.dataset.personaLeft)));
+  $$('[data-persona-left]').forEach(button => button.addEventListener('click', () => {
+    const name=button.dataset.personaLeft === 'templates' && state.personaLeft === 'templates' ? 'chats' : button.dataset.personaLeft;
+    window.qqaMcTheme?.playToggle(name==='templates');
+    setPersonaLeft(name);
+  }));
   if ($('.persona-studio')) setPersonaLeft(state.personaLeft || 'chats');
   $$('[data-persona-panel]').forEach(button => button.addEventListener('click', () => {
     state.personaPanel = button.dataset.personaPanel;

@@ -1,0 +1,22 @@
+// 在隔离的配置容器执行新路由，禁止使用真实配置写入。
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const source=fs.readFileSync('E:/QQ Agent/resources/app/src/routes.js','utf8');
+const block=source.split('// ARCFOX persona library management v1')[1]?.split("method: 'POST', pattern: '/api/persona-templates'")[0];
+assert(block,'补丁路由存在');
+const code=block.slice(block.indexOf('{'),block.lastIndexOf('},')+1);
+const store={active:{customPersonas:[{name:'甲',text:'正文',customRules:'规则'},{name:'乙',text:'正文乙'}]},owner:{customPersonas:[{name:'共享',text:'共享正文'}]}};
+const getConfig=owner=>store[owner||'active'];
+const route=new Function('bodyOf','activeAccountUin','personaLibraryOwnerFor','accountParamOf','getConfig','primaryUin','updateConfig',`return (${code});`)(async req=>req,()=> 'active',()=> 'owner',()=>undefined,getConfig,()=> 'owner',(patch,owner)=>Object.assign(store[owner||'active'],patch));
+const call=async req=>{let response;await route.handler({req,res:{},json:(_res,status,body)=>response={status,body}});return response;};
+assert.equal((await call({action:'create',name:'空白',text:''})).status,200);
+assert.equal(store.owner.customPersonas.at(-1).text,'');
+assert.equal((await call({action:'rename',owner:'active',index:0,expectedName:'甲',expectedText:'正文',name:'改名'})).status,200);
+assert.equal(store.active.customPersonas[0].text,'正文');
+assert.equal((await call({action:'delete',owner:'active',index:0,expectedName:'甲',expectedText:'正文'})).status,409,'陈旧标识禁止误删');
+assert.equal((await call({action:'update',owner:'active',index:0,expectedName:'改名',expectedText:'正文',name:'改名',text:'更新',customRules:'新规则'})).status,200);
+assert.equal((await call({action:'delete',owner:'active',index:0,expectedName:'改名',expectedText:'更新'})).status,200);
+assert.equal(store.active.customPersonas[0].name,'乙');
+assert.equal((await call({action:'create',owner:'other',name:'错误',text:''})).status,403);
+assert.equal((await call({action:'create',name:'共享',text:''})).status,409);
+console.log('✔ 后端空模板、改名保留正文、更新/删除、共享库归属、重复名称、陈旧索引及越权保护（隔离数据）');

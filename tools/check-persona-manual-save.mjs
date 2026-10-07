@@ -10,7 +10,7 @@ await withPage({url,width:1360,height:900},async page=>{
   const merge=(base,patch)=>{for(const [k,v] of Object.entries(patch)){if(v&&typeof v==='object'&&!Array.isArray(v)){if('__replace__' in v)base[k]=structuredClone(v.__replace__);else {base[k]||={};merge(base[k],v);}}else base[k]=v;}return base;};
   const json=value=>new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}});
   window.fetch=async function(input,init){const u=typeof input==='string'?input:input.url;
-   if(u.includes('/api/config')){if(init?.method==='POST'){const patch=JSON.parse(init.body);window.__manualPosts.push(patch);if(window.__manualFail)return new Response('模拟保存失败',{status:503});merge(window.__manualConfig,patch);return json({ok:true,config:structuredClone(window.__manualConfig)});}return json(structuredClone(window.__manualConfig));}
+   if(u.includes('/api/persona-library'))return json({ok:true});if(u.includes('/api/config')){if(init?.method==='POST'){const patch=JSON.parse(init.body);window.__manualPosts.push(patch);if(window.__manualFail)return new Response('模拟保存失败',{status:503});merge(window.__manualConfig,patch);return json({ok:true,config:structuredClone(window.__manualConfig)});}return json(structuredClone(window.__manualConfig));}
    return original.call(this,input,init);
   };
   window.qqaSkin.set('minecraft');state.personaTarget='global';document.querySelector('.tab[data-tab=persona]').click();
