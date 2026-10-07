@@ -665,7 +665,7 @@ function renderPersonaSection(c) {
       <header class="persona-desk-head"><div><span class="persona-eyebrow">正在编辑 · ${global ? '默认角色' : target.startsWith('group:') ? '群聊角色' : '好友角色'}</span><h2>${esc(global ? '默认人设' : title)}</h2></div><button type="button" class="persona-template-open" data-persona-left="templates"><small>选用人设</small><span id="persona-current-template">${esc(templateName)}</span><b aria-hidden="true">⌄</b></button></header>
       <div class="persona-template-drawer" id="persona-template-library" data-persona-list="templates" hidden aria-label="选择人设模板">
         <header><div><h3>用模板开始</h3><p>选用后填入当前对象的名称、正文和规则</p></div></header>
-        <div class="persona-template-choices">${templates.map(([id,p]) => `<button type="button" class="persona-template" data-persona-id="${esc(id)}" aria-pressed="${p.text===per.roleText}"><span class="persona-template-name">${esc(p.name)}</span><small>${p.builtin?'内置':'自定义'}</small></button>`).join('')}</div>
+        <div class="persona-template-choices">${templates.map(([id,p]) => `<div class="persona-template-item"><button type="button" class="persona-template" data-persona-id="${esc(id)}" aria-pressed="${p.text===per.roleText}"><span class="persona-template-name">${esc(p.name)}</span>${p.builtin?'<small>内置</small>':''}</button><button type="button" class="persona-usage-open" data-persona-usage="${esc(id)}" aria-label="查看${esc(p.name)}的使用情况" title="查看使用情况">◉</button></div>`).join('')}</div>
 
       </div>
       <input type="hidden" id="cfg-persona-pick" value="${esc(templateName)}" /><span id="persona-pick-hint" class="hidden"></span>
@@ -688,7 +688,6 @@ function renderPersonaSection(c) {
         ${global?'':`<h3>模型</h3><div class="field"><label for="cfg-persona-chat-model">当前会话</label><select id="cfg-persona-chat-model">${modelOptions}</select></div>`}
       </div>
       </div></div>
-      <footer class="persona-editor-status"><span>${global?'默认人设 · 未单独配置的会话使用这套内容':'已加入白名单的会话使用独立配置；空白字段沿用默认人设。'}</span></footer>
     </section>
   </div>`;
 

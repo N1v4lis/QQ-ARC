@@ -1,0 +1,42 @@
+import fs from 'node:fs';
+const file='E:/QQ Agent/resources/app/src/routes.js';
+let source=fs.readFileSync(file,'utf8');
+if(!source.includes('// ARCFOX persona usage and builtin protection v1')){
+ let next=source.replaceAll('\r\n','\n');
+ const anchor="    {\n      method: 'GET', pattern: '/api/persona-templates',";
+ const helper=fs.readFileSync(new URL('./host/arcfox-persona-usage.mjs',import.meta.url),'utf8').replace('export function','function');
+ const route=`    // ARCFOX persona usage and builtin protection v1
+    {
+      method: 'POST', pattern: '/api/persona-usage',
+      handler: async ({req,res,json}) => {
+        const template=await bodyOf(req);
+        ${helper}
+        const accounts=listQqAccounts().map(a=>({uin:a.uin,config:getConfig(String(a.uin))}));
+        return json(res,200,{usage:personaUsage(template,accounts)});
+      }
+    },
+`;
+ if(next.split(anchor).length!==2)throw Error('Template anchor changed');next=next.replace(anchor,route+anchor);
+ const configAnchor='        const patch = await readBody(req);\n        const next = updateConfig(patch);';
+ const protection=`        const patch = await readBody(req);
+        const protect = (entry, previous) => {
+          if(!entry || typeof entry !== 'object')return;
+          const ref = Object.hasOwn(entry,'templateRef') ? entry.templateRef : previous?.templateRef;
+          const builtin = ref?.builtin ? PERSONAS[ref.id] : null;
+          if(builtin)Object.assign(entry,{name:builtin.name,roleText:builtin.text,customRules:'',systemPromptOverride:''});
+        };
+        protect(patch.persona,getConfig().persona);
+        const entries=patch.personaByChat?.__replace__ || patch.personaByChat || {};
+        for(const [key,entry]of Object.entries(entries))protect(entry,getConfig().personaByChat?.[key]);
+        const next = updateConfig(patch);`;
+ if(next.split(configAnchor).length!==2)throw Error('Config anchor changed');next=next.replace(configAnchor,protection);
+ fs.writeFileSync(file+'.bak-persona-policy-'+Date.now(),source);fs.writeFileSync(file,source.includes('\r\n')?next.replaceAll('\n','\r\n'):next);
+}
+source=fs.readFileSync(file,'utf8');
+let normalized=source.replaceAll('\r\n','\n');
+const helperStart=normalized.indexOf('function personaUsage('), helperEnd=normalized.indexOf('        const accounts=listQqAccounts()',helperStart);
+if(helperStart<0 || helperEnd<0)throw Error('Usage helper anchor changed');
+normalized=normalized.slice(0,helperStart)+fs.readFileSync(new URL('./host/arcfox-persona-usage.mjs',import.meta.url),'utf8').replace('export function','function')+'\n'+normalized.slice(helperEnd);
+const updated=source.includes('\r\n')?normalized.replaceAll('\n','\r\n'):normalized;
+if(updated!==source){fs.writeFileSync(file+'.bak-persona-usage-'+Date.now(),source);fs.writeFileSync(file,updated);}
+console.log('Persona usage and builtin save protection installed.');

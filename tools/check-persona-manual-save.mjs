@@ -61,7 +61,7 @@ await withPage({url,width:1360,height:900},async page=>{
  assert.equal(await page.eval('readPersonaRevisions()[0].roleText'),'保存版本6','失败不加入历史');
  assert.equal(await page.eval('document.querySelector("#persona-manual-save").classList.contains("persona-save-success")'),false,'失败不播放成功动画');
  assert.equal(await page.eval('(()=>{state.tab="dashboard";const e=new KeyboardEvent("keydown",{key:"s",ctrlKey:true,bubbles:true,cancelable:true});document.dispatchEvent(e);state.tab="persona";return e.defaultPrevented})()'),false,'其他页面不劫持快捷键');
- assert.equal(await page.eval('document.querySelector(".persona-editor-status").textContent.includes("自动保存")'),false);
+ assert.equal(await page.eval('!!document.querySelector(".persona-editor-status")'),false,'底部说明条已删除');
  await page.waitFor('!document.querySelector("#loading-overlay")',{timeout:15000});
  await page.screenshot('shots/final/persona-manual-save.png');
  console.log('✔ 正文/规则不自动保存、其他设置不夹带草稿、手动保存、最近五次记录、时间/账号/对象隔离、恢复不自动生效、重绘保留草稿、失败不记历史');

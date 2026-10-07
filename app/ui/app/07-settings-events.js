@@ -1024,13 +1024,21 @@ function bindSettingsEvents(c) {
     const roleText = $('#cfg-roletext')?.value ?? '';
     const name = $('#cfg-persona-name')?.value || '';
     const rules = $('#cfg-customrules')?.value || '';
-    const found = Object.entries(state.personaTemplates || {}).find(([, p]) => p.text === roleText && (p.customRules || '') === rules && p.name === name);
+    const saved = (state.personaTarget || 'global') === 'global' ? state.config.persona : state.config.personaByChat?.[state.personaTarget];
+    const ref = saved?.templateRef;
+    const found = Object.entries(state.personaTemplates || {}).find(([id,p]) => ref?.builtin && p.builtin && id === ref.id && p.text === roleText && !rules)
+      || Object.entries(state.personaTemplates || {}).find(([, p]) => p.text === roleText && (p.customRules || '') === rules && (p.name === name || (p.builtin && !name)));
     if (found) state.personaEditingTemplates[personaRevisionKey()] = {id:found[0],...found[1]};
     return found ? found[0] : '';
   }
   function syncPersonaButtons(animate = true) {
     const id = currentPersonaId();
     const tpl = state.personaTemplates[id];
+    const locked = !!tpl?.builtin;
+    for (const selector of ['#cfg-persona-name','#cfg-roletext','#cfg-customrules','#cfg-sysprompt']) {
+      const field = $(selector);
+      if (field) { field.readOnly = locked; field.title = locked ? '内置人设提示词不可修改，可在身份中调整角色行为。' : ''; }
+    }
     const isCustom = id.startsWith('custom_');
     const delBtn = $('#del-persona-btn');
     if (delBtn) {
@@ -1101,6 +1109,9 @@ function bindSettingsEvents(c) {
     const target = state.personaTarget || 'global';
     const key = personaRevisionKey();
     const revision = Object.fromEntries([['name','#cfg-persona-name'],['roleText','#cfg-roletext'],['customRules','#cfg-customrules'],['systemPromptOverride','#cfg-sysprompt']].map(([field,selector])=>[field,$(selector)?.value || '']));
+    const selectedTemplate = state.personaEditingTemplates[key];
+    if (selectedTemplate?.builtin) Object.assign(revision,{name:selectedTemplate.name,roleText:selectedTemplate.text,customRules:'',systemPromptOverride:''});
+    const templateRef = selectedTemplate ? {id:selectedTemplate.id,owner:selectedTemplate.owner || '',name:revision.name,builtin:!!selectedTemplate.builtin} : null;
     button.disabled = true;
     clearTimeout(button.__feedbackTimer);
     button.classList.remove('persona-save-success');
@@ -1127,7 +1138,7 @@ function bindSettingsEvents(c) {
         if (item) item.textContent = revision.name;
       }
       const latest = await api('/api/config');
-      const patch = target === 'global' ? {persona:{...latest.persona,...revision}} : {personaByChat:{__replace__:{...(latest.personaByChat || {}),[target]:{...(latest.personaByChat?.[target] || {}),...revision}}}};
+      const patch = target === 'global' ? {persona:{...latest.persona,...revision,templateRef}} : {personaByChat:{__replace__:{...(latest.personaByChat || {}),[target]:{...(latest.personaByChat?.[target] || {}),...revision,templateRef}}}};
       const response = await api('/api/config',{method:'POST',body:JSON.stringify(patch)});
       state.config = response.config;
       syncPersonaButtons(false);
@@ -1271,6 +1282,22 @@ function bindSettingsEvents(c) {
       });
     });
   });
+  $$('[data-persona-usage]').forEach(button => button.addEventListener('click',async event=>{
+    event.stopPropagation();
+    const id=button.dataset.personaUsage, tpl=state.personaTemplates[id];
+    const overlay=modelModalShell({head:`「${esc(tpl.name)}」的使用情况`,body:'<p>正在查看…</p>'});
+    try {
+      const data=await api('/api/persona-usage',{method:'POST',body:JSON.stringify({id,...tpl})});
+      const contacts=state.personaContacts || {};
+      const rows=(data.usage || []).map(row=>{
+        const [kind,number]=row.target.split(':');
+        const contact=String(row.account)===String(state.config.account) ? (contacts[kind==='group'?'groups':'friends'] || []).find(c=>String(c.id)===number) : null;
+        const title=row.target==='all'?'白名单为空，允许全部会话':`${kind==='group'?'群聊':'私聊'} · ${contact?.remark || contact?.name || number}${contact && (contact.remark || contact.name)?'（'+number+'）':''}`;
+        return `<li>账号 ${esc(row.account)} · ${esc(title)}${row.inherited?' · 沿用默认':''}</li>`;
+      });
+      overlay.querySelector('.model-modal-body').innerHTML=rows.length?`<ul>${rows.join('')}</ul><p class="hint">显示白名单内已保存配置的使用情况；旧配置按名称和内容匹配。</p>`:'<p>当前没有白名单内的会话使用这套人设。</p>';
+    } catch(error){overlay.querySelector('.model-modal-body').textContent='查看失败：'+error.message;}
+  }));
   const personaSearch = $('#persona-search');
   const filterPersonas = () => {
     const term = (personaSearch?.value || '').trim().toLowerCase();
