@@ -356,7 +356,7 @@
     const t = e.target;
     if (!t || !t.closest) return;
     // 滑条 / 复选框 / 下拉 / 文本输入：交给各自的音效，不叠加点击音
-    if (t.closest('input[type="range"], input[type="checkbox"], select, input[type="text"], textarea')) return;
+    if (t.closest('#q-side-toggle, .switch, input[type="range"], input[type="checkbox"], select, input[type="text"], textarea')) return;
     const el = t.closest(CLICKABLE);
     if (!el) return;
     if (el.disabled || el.getAttribute('aria-disabled') === 'true') return;

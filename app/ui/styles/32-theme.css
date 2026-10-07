@@ -546,115 +546,108 @@ html[data-skin='minecraft'] {
   --q-font-tarkov: var(--q-font-mc);
 }
 
-/* ═══ ③ 拉杆开关（第 5 段）═══════════════════════════════════════════════
-   需求："开关功能采用拉杆，木质/石质按钮开关"。
-   MC 的拉杆结构：一块石座（底板）+ 一根木杆 + 杆顶的握把。
-   开 = 杆向右倾、红石亮起；关 = 杆向左倾、暗。
-   实现上**不换 DOM**，只用 CSS 把原来的 checkbox 视觉替换掉 ——
-   这样所有既有逻辑（change 事件、checked 状态、label 关联）全部照旧，
-   零风险。checkbox 本体 opacity:0 但仍在原位，可点、可聚焦、可用键盘。 */
-html[data-skin='minecraft'] input[type='checkbox'] {
+/* 2026-10-08：大号物品拉杆。输入框及switch共用80×64占位，
+   石座和木杆均在占位内，卡片行自然增高，不以变换撑破点击区域。 */
+html[data-skin='minecraft'] input[type='checkbox'],
+html[data-skin='minecraft'] .switch .track {
+  width: 80px;
+  height: 64px;
+  min-width: 80px;
+  flex: 0 0 80px;
   appearance: none;
   -webkit-appearance: none;
-  position: relative;
-  width: 34px;
-  height: 18px;
-  margin: 0 2px 0 0;
-  vertical-align: middle;
   cursor: pointer;
+  box-sizing: border-box;
+  position: relative;
   background: transparent;
   border: 0;
+  box-shadow: none;
+  border-radius: 0;
+  vertical-align: middle;
 }
-/* 石座底板 */
-html[data-skin='minecraft'] input[type='checkbox']::before {
+html[data-skin='minecraft'] .switch input[type='checkbox'] {
+  width: 0;
+  height: 0;
+  min-width: 0;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+html[data-skin='minecraft'] input[type='checkbox']::before,
+html[data-skin='minecraft'] .switch .track::before {
   content: '';
   position: absolute;
-  inset: 6px 0 0 0;
-  height: 12px;
-  background: #8f8f8f;
-  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.35), inset -2px -2px 0 rgba(0, 0, 0, 0.3);
+  inset: 42px 8px 4px;
+  height: auto;
+  background: repeating-linear-gradient(90deg, #90939b 0 8px, #a5a8ae 8px 16px, #81858d 16px 24px);
+  border: 4px solid #484d56;
+  box-shadow: inset 0 4px #cdd0d5, inset 0 -4px #666b74, 0 4px #30343b;
 }
-/* 木质拉杆 + 顶端握把 */
-html[data-skin='minecraft'] input[type='checkbox']::after {
+html[data-skin='minecraft'] input[type='checkbox']::after,
+html[data-skin='minecraft'] .switch .thumb {
   content: '';
   position: absolute;
-  width: 8px;
-  height: 16px;
-  top: 0;
-  left: 3px;
-  background: linear-gradient(#b08c58, #8b6b45 45%, #6b5432);
-  box-shadow: -1px 0 0 rgba(0, 0, 0, 0.35);
-  transform-origin: 4px 14px;
-  transform: rotate(-38deg);
-  transition: transform var(--q-mo-base) var(--q-ease-out);
+  top: 6px;
+  left: 31px;
+  width: 18px;
+  height: 42px;
+  border-radius: 0;
+  background: linear-gradient(90deg, #644020 0 5px, #bb8041 5px 10px, #edb773 10px 13px, #81562d 13px);
+  border: 0;
+  clip-path: polygon(0 0,100% 0,100% 12px,78% 12px,78% 100%,22% 100%,22% 12px,0 12px);
+  box-shadow: none;
+  transform-origin: 9px 40px;
+  transform: rotate(-30deg);
+  transition: transform 160ms ease-out;
 }
-html[data-skin='minecraft'] input[type='checkbox']:checked::after {
-  transform: rotate(38deg);
+html[data-skin='minecraft'] input[type='checkbox']:checked::after,
+html[data-skin='minecraft'] .switch input:checked ~ .track .thumb {
+  transform: rotate(30deg);
+  background: linear-gradient(90deg, #644020 0 5px, #bb8041 5px 10px, #edb773 10px 13px, #81562d 13px);
 }
-/* 开态：底板透出一点红石光（MC 拉杆开启的视觉信号） */
-html[data-skin='minecraft'] input[type='checkbox']:checked::before {
-  background: #a0522d;
-  box-shadow: inset 2px 2px 0 rgba(255, 200, 160, 0.4), inset -2px -2px 0 rgba(0, 0, 0, 0.3), 0 0 6px rgba(220, 90, 40, 0.55);
+html[data-skin='minecraft'] input[type='checkbox']:checked::before,
+html[data-skin='minecraft'] .switch input:checked ~ .track::before {
+  border-bottom-color: #a32e26;
+  box-shadow: inset 0 4px #cdd0d5, inset 0 -4px #666b74, 0 4px #ef5738;
 }
-html[data-skin='minecraft'] input[type='checkbox']:focus-visible::before {
-  outline: 2px solid var(--q-accent);
+html[data-skin='minecraft'] .switch input:checked ~ .track {
+  background: transparent;
+  box-shadow: none;
+}
+html[data-skin='minecraft'] .checkbox-row,
+html[data-skin='minecraft'] .switch { gap: 12px; min-height: 64px; }
+html[data-skin='minecraft'] .checkbox-row { display: flex; align-items: center; }
+html[data-skin='minecraft'] input[type='checkbox']:disabled,
+html[data-skin='minecraft'] .switch input:disabled ~ .track { opacity: .5; cursor: not-allowed; }
+html[data-skin='minecraft'] .setcard-head.has-extra { flex-wrap: wrap; row-gap: 8px; }
+html[data-skin='minecraft'] .ac-head-controls { flex-wrap: wrap; }
+html[data-skin='minecraft'] .switch input:focus-visible ~ .track,
+html[data-skin='minecraft'] input[type='checkbox']:focus-visible {
+  outline: 3px solid var(--q-accent);
   outline-offset: 2px;
 }
-html[data-skin='minecraft'] input[type='checkbox']:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* 拉杆需要一点左侧留白，否则握把会压到前面的文字 */
-html[data-skin='minecraft'] .checkbox-row { display: flex; align-items: center; gap: 9px; }
-html[data-skin='minecraft'] .checkbox-row label { cursor: pointer; }
-
-/* ══════════════════════════════════════════════════════════════════════════
-   开关（.switch）在 MC 皮肤下也要变成**拉杆**，和二级设置里的一致。
-
-   起因（用户原话）："所有开关都应该用二级设置中的小拉杆形式（包括动效），
-   如图一所示的开关仍然为原版，极度违和。"
-
-   为什么原来不是：MC 的拉杆样式是画在 **`input[type=checkbox]` 自身**上的
-   （`::before` 石座 + `::after` 木杆，见上面那段）。而 `.switch` 组件把它的
-   复选框**视觉隐藏**了（`opacity:0; width:0; height:0`，见 40-market.css），
-   显示的其实是 `.track` + `.thumb` —— 所以拉杆根本画不出来，
-   落回默认的"胶囊 + 圆点"，和旁边的真拉杆放在一起就非常违和。
-
-   做法：把 `.track` 当石座、`.thumb` 当木杆，只做平移（左右各 8px 为"推/拉"），
-   视觉语言与真拉杆一致（灰石凹槽 + 木色握把 + 开态红石光）。
-   ⚠️ 只做平移不做旋转：像真拉杆那样绕底端转 38° 会把握把甩出 22px 高的轨道，
-      在卡头那种紧凑行里会盖到旁边的文字，得不偿失。
-
-   选择器带 `html[data-skin=…]` 前缀是**必须**的：40-market.css 里的
-   `.switch .track` 是普通类选择器，特指度 (0,2,0)，裸写同名规则压不过它。
-   ══════════════════════════════════════════════════════════════════════════ */
-html[data-skin='minecraft'] .switch .track {
-  width: 30px;
-  height: 18px;
-  border-radius: 0;
-  background: #8f8f8f;
-  border: 0;
-  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, 0.35), inset -2px -2px 0 rgba(0, 0, 0, 0.3);
-  transition: background-color var(--q-mo-base) var(--q-ease), box-shadow var(--q-mo-base) var(--q-ease);
+html[data-skin='minecraft'] #tabs .tab-ico { width: 32px; height: 32px; opacity: 1; }
+html[data-skin='minecraft'] .q-tb-logo { border-radius: 0; background: transparent; box-shadow: none; }
+html[data-skin='minecraft'] .q-tb-logo svg { width: 24px; height: 24px; }
+html[data-skin='minecraft'] :is(.sc-ico,.t-ico,.tool-ico,.tool-icon) svg { width: 32px; height: 32px; vertical-align: middle; }
+html[data-skin='minecraft'] .chev-r svg { width: 16px; height: 16px; }
+html[data-skin='minecraft'] .db-icon { opacity: .7; }
+html[data-skin='minecraft'] .sc-ico { background: transparent; border-radius: 0; }
+html[data-skin='minecraft'] svg[data-mc-icon] { image-rendering: pixelated; stroke: none; }
+html[data-skin='minecraft'] .mc-nav-item { width: 24px; height: 24px; flex: 0 0 24px; }
+html[data-skin='minecraft'] .q-side-foot .nav-btn::before { display: none; }
+html[data-skin='minecraft'] select {
+  background-image: url('/assets/mc/dropdown.svg');
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 30px;
+  appearance: none;
 }
-html[data-skin='minecraft'] .switch .thumb {
-  top: 1px;
-  left: 1px;
-  width: 8px;
-  height: 16px;
-  border-radius: 0;
-  background: linear-gradient(#b08c58, #8b6b45 45%, #6b5432);
-  box-shadow: -1px 0 0 rgba(0, 0, 0, 0.35);
-  transition: transform var(--q-mo-base) var(--q-ease-out), background var(--q-mo-base) var(--q-ease);
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin='minecraft'] input[type='checkbox']::after,
+  html[data-skin='minecraft'] .switch .thumb { transition: none; }
 }
-/* 开态：石座透出红石光，木杆被推到右端 */
-html[data-skin='minecraft'] .switch input:checked ~ .track {
-  background: #a0522d;
-  border-color: transparent;
-  box-shadow: inset 2px 2px 0 rgba(255, 200, 160, 0.4), inset -2px -2px 0 rgba(0, 0, 0, 0.3), 0 0 6px rgba(220, 90, 40, 0.55);
-}
-html[data-skin='minecraft'] .switch input:checked ~ .track .thumb { transform: translateX(20px); background: linear-gradient(#c39a63, #9a774c 45%, #775c37); }
-html[data-skin='minecraft'] .switch input:focus-visible ~ .track { outline: 2px solid var(--q-accent); outline-offset: 2px; }
-html[data-skin='minecraft'] .switch input:disabled ~ .track { opacity: 0.5; }
-
 
 /* ── 滑条：MC 的滑条是"凹槽 + 方钮" ───────────────────────────────────── */
 html[data-skin='minecraft'] input[type='range'] {

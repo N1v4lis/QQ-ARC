@@ -1,219 +1,91 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// 03-mc-icons.js — Minecraft 皮肤的图标集（全新设计，像素网格）
-// ═══════════════════════════════════════════════════════════════════════════
-// 用户要求："侧边栏的图标元素，左上角的 QQ Agent 的 logo 均采用 MC 风格的全新图标
-//            （不准用现有图标，也不可以按照旧图标重绘）"。
-//
-// 怎么做到"既不沿用、也不重绘"——靠**换一套几何语言**，而不是把旧图标改粗：
-//   · 现有图标：20×20 viewBox、`stroke` 线稿、圆角线帽、曲线（circle/path 弧线）。
-//   · 本图标集：**16×16 像素网格**、**纯填充矩形**、**零曲线**、**零 stroke**。
-// 两者在实现层面没有任何共用的几何 —— 这是"重绘"和"新设计"的客观分界：
-//   重绘 = 同样的圆/曲线换个粗细；这里 = 连绘制方式（线稿 vs 方块填充）都换了。
-//
-// 设计语言（对齐 MC 的物品图标）：
-//   · 每格 1 单位，坐标全为整数 → 天然像素对齐，放大也不糊；
-//   · 每个图标 2~4 个色阶（暗部/主体/亮部），模拟 MC 物品的斜面高光；
-//   · 轮廓用自身暗色，**不描黑边**（MC 的 GUI 物品图标就是靠色阶分层的）。
-// 题 material：每个图标对应一个真实存在的 MC 物品/方块，这样"MC 味"是有出处的：
-//   仪表盘=工作台  会话=成书  存档=箱子  记忆=附魔书  用量=红石比较器
-//   技能=工作台网格  插件=红石中继器  账号=玩家头颅  设置=石座拉杆
+// 原创16格物品图标；只替换装饰节点，功能节点和默认皮肤保持。
 'use strict';
-
 (function mcIcons() {
-  // ── 色板（取自 MC 物品图标的实际色域）──────────────────────────────────
-  const C = {
-    ink: '#2b2b2b', ink2: '#141414',
-    wood: '#9c7a4a', woodD: '#6b5432', woodL: '#b08c58',
-    stone: '#a0a0a0', stoneD: '#6e6e6e', stoneL: '#c6c6c6',
-    paper: '#e8e0cc', paperD: '#c9bfa6', pageLine: '#9a8f76',
-    leather: '#8b5a2b', leatherD: '#5f3c1b', leatherL: '#a9713a',
-    gold: '#f2c94c', goldD: '#b8912f',
-    red: '#b02e26', redD: '#7d1f19',
-    blue: '#3b6fd4', blueD: '#24488f',
-    purple: '#8b4fd4', purpleD: '#5c3390',
-    green: '#5d9c3c', greenD: '#3d6b26',
-    copper: '#c07a4a', copperD: '#8a5230',
-    skin: '#c99a6a', skinD: '#9a7248',
-    hair: '#4a3421'
+  const R = (c,...rects) => rects.map(r=>({c,r}));
+  const C = {dark:'#30251c',wood:'#a46b37',light:'#e0a55c',stone:'#767984',edge:'#363d49',silver:'#cdd5dd',paper:'#fff0c9',gold:'#ffcf53',red:'#e44b35',blue:'#66d9ed',purple:'#b677ec',green:'#72ae42'};
+  const book = color => [...R(C.dark,[1,3,14,11]),...R(color,[2,2,5,10],[9,2,5,10]),...R(C.paper,[3,3,3,7],[10,3,3,7]),...R(C.wood,[7,3,2,10]),...R(C.light,[3,5,3,1],[10,7,3,1])];
+  const ART = {
+    gauge:[...R(C.edge,[4,1,8,14],[1,4,14,8]),...R(C.silver,[4,2,8,12],[2,4,12,8]),...R(C.stone,[4,4,8,8]),...R(C.red,[8,3,2,4],[7,6,2,3]),...R(C.paper,[6,9,2,4],[7,8,2,2])],
+    chat:book(C.wood),
+    archive:[...R(C.dark,[1,3,14,11]),...R(C.wood,[2,4,12,9]),...R(C.light,[2,3,12,3]),...R(C.dark,[2,7,12,1],[3,9,1,4],[12,9,1,4]),...R(C.silver,[7,6,2,5]),...R(C.stone,[8,8,1,2])],
+    brain:[...R(C.edge,[6,0,4,16],[3,3,10,10],[1,6,14,4]),...R(C.purple,[6,1,4,14],[4,3,8,10],[2,6,12,4]),...R('#e8caff',[6,2,2,8],[4,5,2,4]),...R('#7745ad',[8,8,4,4],[7,12,2,2])],
+    chart:[...R('#712327',[6,1,4,14],[1,6,14,4],[3,3,3,3],[10,10,3,3]),...R(C.red,[7,2,2,12],[2,7,12,2],[4,4,2,2],[10,10,2,2]),...R('#ff9b65',[7,6,3,2],[6,8,2,2])],
+    spark:[...R(C.dark,[1,12,3,3],[3,10,3,3],[5,8,3,3],[4,7,6,2],[7,4,3,5],[9,2,4,5],[12,1,3,3]),...R(C.wood,[2,12,2,2],[4,10,2,2]),...R(C.gold,[5,8,4,1]),...R(C.blue,[8,5,2,3],[10,3,2,3],[12,2,2,2]),...R('#c8ffff',[9,5,1,2],[11,3,1,2])],
+    plugin:[...R(C.edge,[1,6,14,8]),...R(C.silver,[2,6,12,6]),...R(C.stone,[2,12,12,2]),...R(C.wood,[4,3,2,5],[10,4,2,5]),...R(C.red,[3,2,4,3],[9,3,4,3],[6,9,4,2]),...R(C.paper,[4,2,2,1],[10,3,2,1])],
+    users:[...R(C.dark,[2,1,4,6],[10,1,4,6],[2,5,12,9]),...R(C.light,[3,2,2,5],[11,2,2,5],[3,5,10,8]),...R(C.paper,[4,7,8,6],[6,5,4,3]),...R(C.blue,[4,9,2,2],[10,9,2,2]),...R(C.dark,[7,11,2,1])],
+    gear:[...R(C.edge,[1,10,14,5]),...R(C.stone,[2,10,12,4]),...R(C.silver,[3,11,10,1]),...R(C.dark,[7,3,3,9],[9,1,4,3]),...R(C.wood,[8,3,2,8]),...R(C.light,[10,1,3,2])],
+    cost:[...R(C.dark,[4,1,8,14],[1,4,14,8]),...R(C.gold,[4,2,8,12],[2,4,12,8]),...R('#b87525',[5,4,6,8]),...R('#fff2a5',[6,4,2,7],[8,4,2,2],[8,7,2,2])],
+    search:[...R(C.dark,[3,1,7,10],[1,3,11,6],[10,10,3,3],[12,12,3,3]),...R(C.blue,[3,2,7,8],[2,4,9,4]),...R('#dafaff',[4,3,2,4],[6,3,3,1]),...R(C.wood,[11,10,2,3],[13,12,2,3])],
+    sun:[...R('#ab651f',[4,4,8,8]),...R(C.gold,[5,4,6,8],[4,5,8,6],[7,0,2,3],[7,13,2,3],[0,7,3,2],[13,7,3,2],[2,2,2,2],[12,2,2,2],[2,12,2,2],[12,12,2,2]),...R('#fff6b0',[5,5,3,3])],
+    moon:[...R(C.edge,[5,1,7,14],[2,4,11,8]),...R(C.silver,[5,2,6,12],[3,4,9,8]),...R('#edf8ff',[4,5,3,5]),...R(C.stone,[8,10,3,2],[7,3,2,2]),...R('#8aadd6',[12,2,2,2])],
+    warning:[...R(C.dark,[7,0,2,2],[6,2,4,2],[5,4,6,2],[4,6,8,2],[3,8,10,2],[2,10,12,2],[1,12,14,3]),...R(C.gold,[7,2,2,2],[6,4,4,2],[5,6,6,2],[4,8,8,2],[3,10,10,3]),...R(C.dark,[7,5,2,4],[7,11,2,2])],
+    menu:R('currentColor',[1,3,14,2],[1,7,14,2],[1,11,14,2]),
+    close:R('currentColor',[2,2,3,3],[4,4,3,3],[6,6,4,4],[9,9,3,3],[11,11,3,3],[11,2,3,3],[9,4,3,3],[4,9,3,3],[2,11,3,3]),
+    minus:R('currentColor',[2,11,12,2]),
+    max:R('currentColor',[2,2,12,2],[2,12,12,2],[2,4,2,8],[12,4,2,8]),
+    restore:R('currentColor',[5,1,10,2],[13,3,2,8],[1,5,10,2],[1,7,2,8],[3,13,8,2],[9,7,2,6]),
+    arrow:R('currentColor',[4,2,2,2],[6,4,2,2],[8,6,2,4],[6,10,2,2],[4,12,2,2]),
+    down:R('currentColor',[2,4,2,2],[4,6,2,2],[6,8,4,2],[10,6,2,2],[12,4,2,2]),
+    refresh:R(C.green,[3,2,10,2],[2,4,2,5],[12,7,2,5],[3,12,10,2],[10,4,4,2],[10,2,2,6],[2,10,4,2],[4,8,2,6]),
+    palette:[...R(C.edge,[1,2,14,12]),...R(C.wood,[2,3,12,10]),...R(C.red,[3,4,3,3]),...R(C.gold,[8,4,3,3]),...R(C.blue,[3,9,3,3]),...R(C.green,[8,9,3,3])],
+    logo:[...R(C.edge,[2,2,12,13]),...R(C.green,[3,2,10,5]),...R('#acd65e',[4,3,3,2],[9,2,3,2]),...R(C.wood,[3,7,10,7]),...R(C.light,[4,8,2,2],[9,11,3,2]),...R(C.dark,[6,11,2,2],[11,8,2,2])]
   };
-
-  /** 一行矩形：`[color, [x,y,w,h], ...]` */
-  const R = (col, ...rects) => rects.map((r) => ({ c: col, r }));
-
-  // ── 九个导航图标 ────────────────────────────────────────────────────────
-  // ⚠️ 键名必须与 index.html 里 `<button data-icon="…">` 的值**逐字一致**。
-  //    第一版我按导航名（dashboard/sessions/…）命名，而 HTML 里写的是
-  //    功能名（gauge/chat/archive/brain/chart/spark/plugin/users/gear）——
-  //    结果查找全部落空、图标一个都没换，而且**不报错**，只是静默不换。
-  //    以 index.html 为准；改那边要同步改这里。
-  const NAV = {
-    // 工作台：顶面木板 + 下方工具格
-    gauge: [
-      ...R(C.wood, [0, 0, 16, 11]),
-      ...R(C.woodD, [0, 0, 16, 1], [0, 3, 16, 1], [0, 6, 16, 1], [0, 9, 16, 1]),
-      ...R(C.woodL, [2, 2, 4, 2], [10, 5, 4, 2]),
-      ...R(C.stoneD, [0, 11, 16, 5]),
-      ...R(C.stone, [1, 12, 6, 3], [9, 12, 6, 3])
-    ],
-    // 成书：封面 + 书页边缘 + 书签带
-    chat: [
-      ...R(C.leather, [1, 0, 13, 16]),
-      ...R(C.leatherD, [1, 0, 13, 1], [1, 15, 13, 1], [1, 0, 1, 16]),
-      ...R(C.paper, [4, 2, 9, 12]),
-      ...R(C.pageLine, [5, 4, 7, 1], [5, 6, 6, 1], [5, 8, 7, 1], [5, 10, 5, 1]),
-      ...R(C.gold, [6, 0, 3, 3]),
-      ...R(C.goldD, [6, 3, 3, 1])
-    ],
-    // 箱子：木箱体 + 铁扣 + 盖缝
-    archive: [
-      ...R(C.wood, [0, 1, 16, 14]),
-      ...R(C.woodD, [0, 1, 16, 1], [0, 14, 16, 1], [0, 1, 1, 14], [15, 1, 1, 14], [0, 7, 16, 1]),
-      ...R(C.woodL, [2, 3, 12, 3]),
-      ...R(C.stone, [6, 5, 4, 6]),
-      ...R(C.stoneD, [7, 7, 2, 2]),
-      ...R(C.ink2, [7, 7, 1, 2])
-    ],
-    // 附魔书：紫皮封面 + 金色符文
-    brain: [
-      ...R(C.purple, [1, 0, 13, 16]),
-      ...R(C.purpleD, [1, 0, 13, 1], [1, 15, 13, 1], [1, 0, 1, 16]),
-      ...R(C.paper, [4, 2, 9, 12]),
-      ...R(C.purple, [5, 5, 7, 1], [5, 8, 5, 1]),
-      ...R(C.gold, [11, 0, 3, 3], [5, 10, 3, 2]),
-      ...R(C.goldD, [11, 3, 3, 1])
-    ],
-    // 红石比较器：石座 + 红石火把 + 前端两点
-    chart: [
-      ...R(C.stone, [1, 3, 14, 11]),
-      ...R(C.stoneD, [1, 3, 14, 1], [1, 13, 14, 1], [1, 3, 1, 11], [14, 3, 1, 11]),
-      ...R(C.ink2, [3, 5, 10, 2]),
-      ...R(C.woodD, [4, 7, 2, 5], [10, 7, 2, 5]),
-      ...R(C.red, [4, 5, 2, 2], [10, 5, 2, 2]),
-      ...R(C.gold, [6, 6, 4, 3])
-    ],
-    // 技能：工作台 3×3 网格（每格一个小工具色块）
-    spark: [
-      ...R(C.wood, [0, 0, 16, 16]),
-      ...R(C.woodD, [0, 0, 16, 1], [0, 15, 16, 1], [0, 0, 1, 16], [15, 0, 1, 16], [5, 1, 1, 14], [10, 1, 1, 14], [1, 5, 14, 1], [1, 10, 14, 1]),
-      ...R(C.stoneL, [2, 2, 3, 3]),
-      ...R(C.gold, [7, 2, 3, 3]),
-      ...R(C.stone, [12, 2, 2, 3]),
-      ...R(C.green, [2, 7, 3, 3]),
-      ...R(C.goldD, [7, 7, 3, 3]),
-      ...R(C.red, [12, 7, 2, 3]),
-      ...R(C.blue, [2, 12, 3, 2]),
-      ...R(C.paper, [7, 12, 3, 2]),
-      ...R(C.purple, [12, 12, 2, 2])
-    ],
-    // 插件：红石中继器（可插拔的"连接件"）
-    plugin: [
-      ...R(C.stone, [1, 4, 14, 9]),
-      ...R(C.stoneD, [1, 4, 14, 1], [1, 12, 14, 1], [1, 4, 1, 9], [14, 4, 1, 9]),
-      ...R(C.stoneL, [3, 6, 10, 2]),
-      ...R(C.red, [6, 2, 4, 3]),
-      ...R(C.gold, [4, 9, 3, 3], [9, 9, 3, 3]),
-      ...R(C.green, [2, 6, 1, 2], [13, 6, 1, 2])
-    ],
-    // 账号：玩家头颅（正面）
-    users: [
-      ...R(C.skin, [2, 2, 12, 12]),
-      ...R(C.skinD, [2, 2, 12, 1], [2, 13, 12, 1], [2, 2, 1, 12], [13, 2, 1, 12]),
-      ...R(C.hair, [2, 2, 12, 3]),
-      ...R(C.ink2, [5, 7, 2, 2], [10, 7, 2, 2]),
-      ...R(C.skinD, [7, 10, 3, 1])
-    ],
-    // 设置：石座上的拉杆（正是用户要求"开关采用拉杆"的那个拉杆）
-    gear: [
-      ...R(C.stone, [1, 10, 14, 6]),
-      ...R(C.stoneD, [1, 10, 14, 1], [1, 15, 14, 1], [1, 10, 1, 6], [14, 10, 1, 6]),
-      ...R(C.stoneL, [3, 12, 10, 2]),
-      ...R(C.wood, [7, 2, 3, 8]),
-      ...R(C.woodD, [7, 2, 1, 8], [9, 2, 1, 8]),
-      ...R(C.woodL, [8, 2, 1, 8]),
-      ...R(C.stoneD, [5, 8, 7, 2])
-    ]
-  };
-
-  /** 左上角品牌 logo：绿色草方块（MC 最标志性的方块） */
-  const LOGO = [
-    ...R(C.green, [0, 0, 24, 24]),
-    ...R(C.greenD, [0, 18, 24, 6], [0, 0, 24, 1], [0, 0, 1, 24], [23, 0, 1, 24]),
-    ...R('#7ab648', [1, 1, 22, 1], [1, 1, 1, 16]),
-    // 草皮与泥土的交界（不规则，像真的草方块侧面）
-    ...R(C.woodD, [0, 9, 3, 2], [3, 10, 2, 2], [5, 9, 4, 1], [9, 10, 3, 2], [12, 9, 3, 1], [15, 10, 4, 2], [19, 9, 5, 1]),
-    ...R(C.wood, [0, 11, 24, 13]),
-    ...R(C.woodL, [3, 13, 4, 3], [12, 15, 5, 3], [6, 18, 3, 2], [17, 12, 3, 2]),
-    ...R(C.woodD, [9, 13, 2, 3], [15, 18, 4, 3], [2, 17, 4, 2])
-  ];
-
-  // ── 生成 SVG ────────────────────────────────────────────────────────────
-  /**
-   * 把矩形表渲染成 SVG 字符串。
-   *
-   * @param cls 必须带上原元素的 class（导航图标是 `tab-ico`）。
-   *   ⚠️ 第一版忘了这个：`outerHTML = …` 替换后新节点没有 `tab-ico` 类，
-   *      于是所有依赖 `#tabs .tab-ico` 的选择器全部落空 ——
-   *      布局（.tab-ico 的尺寸规则）失效、后续查找也找不到图标。
-   *      现象是"图标换了但变小/错位、连测试都选不中它"。
-   *      outerHTML 替换是**整节点替换**，原节点上的 class/属性都不会保留。
-   */
-  function toSvg(rects, size, cls) {
-    const body = rects.map(({ c, r }) => `<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" fill="${c}"/>`).join('');
-    const clsAttr = cls ? ` class="${cls}"` : '';
-    return `<svg${clsAttr} viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges" aria-hidden="true">${body}</svg>`;
-  }
-
-  const NAV_SVG = {};
-  for (const [k, rects] of Object.entries(NAV)) NAV_SVG[k] = toSvg(rects, 16, 'tab-ico');
-  const LOGO_SVG = toSvg(LOGO, 24, null);
-
-  /**
-   * 把页面上的导航图标换成 MC 版（或换回默认版）。
-   * 为什么要"能换回"：皮肤是随时可切的，不能只在开启时替换 —— 关掉后必须复原，
-   * 否则用户切回默认皮肤会看到 MC 图标残留在默认界面上。
-   *
-   * 实现方式：**把原图标 HTML 预先存进 data-orig**，复原时读回来。
-   * 不重新拼一份默认图标的原因：默认图标在 index.html 里，是"唯一事实来源"，
-   * 在这里复制一份就会有两份、以后改一处忘一处。
-   */
-  function applyToDom(on) {
-    document.querySelectorAll('#tabs .tab[data-icon]').forEach((btn) => {
-      const ico = btn.querySelector('.tab-ico');
-      if (!ico) return;
-      if (ico.dataset.orig === undefined) ico.dataset.orig = ico.outerHTML;
-      const want = on ? NAV_SVG[btn.dataset.icon] : null;
-      if (want) {
-        if (ico.outerHTML !== want) ico.outerHTML = want;
-      } else if (ico.dataset.orig) {
-        ico.outerHTML = ico.dataset.orig;
-      }
-      // 换进来的新节点也要带上 data-orig，否则切来切去会丢原始版本
-      const cur = btn.querySelector('.tab-ico');
-      if (cur && cur.dataset.orig === undefined) cur.dataset.orig = ico.dataset.orig || '';
-    });
-    // 品牌 logo
-    const logo = document.querySelector('#topbar .q-tb-logo');
-    if (logo) {
-      const svg = logo.querySelector('svg');
-      if (svg) {
-        if (svg.dataset.orig === undefined) svg.dataset.orig = svg.outerHTML;
-        const want = on ? LOGO_SVG : null;
-        if (want) {
-          if (svg.outerHTML !== want) svg.outerHTML = want;
-        } else if (svg.dataset.orig) {
-          svg.outerHTML = svg.dataset.orig;
-        }
-        const cur = logo.querySelector('svg');
-        if (cur && cur.dataset.orig === undefined) cur.dataset.orig = svg.dataset.orig || '';
-      }
+  ART.cache=ART.archive; ART.tokens=ART.brain; ART.runs=ART.chart; ART.account=ART.users; ART.plug=ART.plugin;
+  const body = key => ART[key].map(({c,r})=>`<rect x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" fill="${c}"/>`).join('');
+  const svg = (key,cls='')=>`<svg class="${cls}" data-mc-icon="${key}" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">${body(key)}</svg>`;
+  const saved=new Map();
+  function paint(node,key,on) {
+    if(!on) {
+      const original=saved.get(node);
+      if(original) {node.innerHTML=original.html; if(node.tagName.toLowerCase()==='svg') for(const [name,value] of Object.entries(original.attrs)) value===null?node.removeAttribute(name):node.setAttribute(name,value);node.removeAttribute('data-mc-icon');saved.delete(node);}
+      return;
     }
+    if(!ART[key] || node.dataset.mcIcon===key)return;
+    if(!saved.has(node))saved.set(node,{html:node.innerHTML,attrs:Object.fromEntries(['viewBox','fill','stroke','shape-rendering'].map(name=>[name,node.getAttribute(name)]))});
+    if(node.tagName.toLowerCase()==='svg') {node.innerHTML=body(key);node.setAttribute('viewBox','0 0 16 16');node.setAttribute('stroke','none');node.setAttribute('shape-rendering','crispEdges');}
+    else node.innerHTML=svg(key);
+    node.dataset.mcIcon=key;
   }
-
-  // 初始应用 + 皮肤变化时跟随
-  function sync() { applyToDom(document.documentElement.getAttribute('data-skin') === 'minecraft'); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sync, { once: true });
-  else sync();
-  window.addEventListener('qqa-skin-change', sync);
-
-  window.qqaMcIcons = { NAV: NAV_SVG, LOGO: LOGO_SVG, applyToDom, sync };
+  const emojiKey=text=>{
+    for(const [pattern,key] of [[/[☀🌞]/u,'sun'],[/[🌙🌚]/u,'moon'],[/[🎨🖌]/u,'palette'],[/[🧠💎]/u,'brain'],[/[💰💵💲]/u,'cost'],[/[💬📨📖]/u,'chat'],[/[📦🗃]/u,'archive'],[/[👤👥😄🦊]/u,'users'],[/[🔄⏳⏱]/u,'refresh'],[/[🔍🔎]/u,'search'],[/[✨⚡🚀]/u,'spark'],[/[🧩🔌💉]/u,'plugin'],[/[🔑⚙🛠🔇🖥]/u,'gear'],[/[›▶]/u,'arrow']])if(pattern.test(text))return key;
+    return 'gear';
+  };
+  const targets='#tabs .tab[data-icon] .tab-ico, .q-tb-logo svg, #theme-btn svg, #q-side-toggle svg, #q-reload-btn svg, .q-wbtn svg, .db-icon svg, .dash-beta-badge svg, .sc-ico, .t-ico, .tool-ico, .tool-icon, .chev-r, .sl-chev';
+  function applyToDom(on) {
+    for(const node of saved.keys())if(!node.isConnected)saved.delete(node);
+    if(!on){for(const node of [...saved.keys()])paint(node,null,false);document.querySelectorAll('.mc-nav-item').forEach(node=>node.remove());return;}
+    document.querySelectorAll('.q-side-foot .nav-btn').forEach(button=>{
+      if(button.querySelector('.mc-nav-item'))return;
+      const key=({'quote-confirm-btn':'chat','feedback-btn':'chat','skill-market-btn':'spark','plugin-market-btn':'plugin','persona-plaza-btn':'users','open-site-btn':'search'}[button.id])||'chat';
+      button.insertAdjacentHTML('afterbegin',svg(ART[key]?key:'chat','mc-nav-item'));
+    });
+    document.querySelectorAll(targets).forEach(node=>{
+      let key;const nav=node.closest('.tab[data-icon]'),box=node.closest('.dash-box');
+      if(nav)key=nav.dataset.icon;
+      else if(node.closest('.q-tb-logo'))key='logo';
+      else if(node.closest('#theme-btn'))key=document.documentElement.dataset.theme==='dark'?'moon':'sun';
+      else if(node.closest('#q-side-toggle'))key='menu';
+      else if(node.closest('#q-reload-btn'))key='refresh';
+      else if(node.closest('.dash-beta-badge'))key='warning';
+      else if(node.closest('.q-wbtn'))key=node.classList.contains('q-ico-restore')?'restore':({minimize:'minus','toggle-maximize':'max',close:'close'}[node.closest('.q-wbtn').dataset.qwin]);
+      else if(box)key=({'调用次数':'runs','估算成本':'cost','Token 总量':'tokens','缓存命中率':'cache','联网搜索':'search','会话总数':'chat','账号':'account','OneBot 连接':'plug'}[box.querySelector('.db-label')?.textContent.trim()])||'plugin';
+      else if(node.matches('.sl-chev'))key='down';
+      else if(node.matches('.sc-ico') && /亮度/.test(node.closest('.setcard-head')?.textContent||''))key=document.documentElement.dataset.theme==='dark'?'moon':'sun';
+      else key=emojiKey(saved.get(node)?.html||node.textContent);
+      paint(node,key,true);
+    });
+  }
+  function sync(){applyToDom(document.documentElement.dataset.skin==='minecraft');}
+  let pending=false;
+  function schedule(){if(pending)return;pending=true;queueMicrotask(()=>{pending=false;sync();});}
+  function start(){
+    sync();
+    new MutationObserver(records=>{
+      // 只处理含图标的新节点，跳过自身绘制和图表，不轮询整页。
+      if(records.some(record=>[...record.addedNodes].some(node=>node.nodeType===1&&!node.closest('[data-mc-icon]')&&(node.matches(targets)||node.querySelector(targets)))))schedule();
+    }).observe(document.body,{childList:true,subtree:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+  window.addEventListener('qqa-skin-change',sync);window.addEventListener('qqa-theme-change',schedule);
+  window.qqaMcIcons={NAV:Object.fromEntries(['gauge','chat','archive','brain','chart','spark','plugin','users','gear'].map(key=>[key,svg(key,'tab-ico')])),LOGO:svg('logo'),ART,applyToDom,sync};
 })();

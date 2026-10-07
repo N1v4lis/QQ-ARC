@@ -98,8 +98,13 @@
   try { setCollapsed(localStorage.getItem(SIDE_KEY) === '1'); } catch { setCollapsed(false); }
 
   const sideToggle = document.getElementById('q-side-toggle');
+  const toggleNavigation = () => {
+    const collapsed = root.getAttribute('data-nav') !== 'collapsed';
+    setCollapsed(collapsed);
+    window.qqaMcTheme?.playToggle(!collapsed);
+  };
   sideToggle?.addEventListener('click', () => {
-    setCollapsed(root.getAttribute('data-nav') !== 'collapsed');
+    toggleNavigation();
   });
 
   // Ctrl+B 折叠/展开（与多数编辑器一致；输入框里不抢键）
@@ -109,7 +114,7 @@
     const t = e.target;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
     e.preventDefault();
-    setCollapsed(root.getAttribute('data-nav') !== 'collapsed');
+    toggleNavigation();
   });
 
   /* ── 4. 导航反馈 + 进场动画 ──────────────────────────────────────────

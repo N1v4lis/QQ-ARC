@@ -163,40 +163,24 @@ plains-dawn.png  forest-lake.png  mesa-canyon.png  cave-torch.png  night-stars.p
   > 这段是**功能性的，不是装饰**。删掉它背景图就被不透明的面盖住了。
 - 生成脚本 `tools/gen-mc-bg.mjs`（已生成过，一般不用重跑）。
 
-### 3.5 像素图标
+### 3.5 统一物品图标（2026-10-08）
 
-`shell/03-mc-icons.js`：16×16 像素网格定义 + `toSvg(rects, size, cls)`，
-换图标时把原 `outerHTML` 存进 `dataset.orig` 以便还原。
-导航按钮用 `data-icon` 指定图标名（`gauge / chat / archive / brain / chart / spark / plugin / users / gear`）。
+shell/03-mc-icons.js 用原创16×16整数矩形绘制整套像素物品图标。
+九项导航重绘为指南针、成书、箱子、紫色水晶、红石、钻石剑、中继器、狐头像、拉杆。
+同时覆盖品牌方块、太阳/月亮、刷新、窗口按钮、侧栏社区入口、仪表盘卡片、警示标识、设置卡片/工具/折叠箭头。
+导航图标32px，设置物品32px，社区入口24px；字体和主题配色沿用当前约定。
+装饰节点原内容用Map暂存，SVG保留节点/class/事件；切回默认主题还原，移除失联节点。
+MutationObserver只处理新增的含图标节点，不轮询，不扫描绘制过程中的矩形；动态设置也能更新。
+数据图表和启动Logo不作为控件图标替换。
 
-⚠️ 图标按**函数名**而非导航名索引（HTML 用的是函数名）。另外替换 `outerHTML` 时
-class 会丢，所以 `toSvg` 必须把 class 一起输出 —— 这两点都踩过。
+### 3.6 大拉杆（2026-10-08）
 
-### 3.6 拉杆开关（`.switch` → 拉杆）
-
-**这是最容易做错的一处**，两个要点：
-
-1. **为什么原来不是拉杆**：MC 的拉杆是画在 `input[type=checkbox]` **自身**上的
-   （`::before` 石座 + `::after` 木杆）。而设置页那批开关用的是 `.switch` 组件，
-   它把复选框**视觉隐藏**了（`opacity:0; width:0`），显示的是 `.track` + `.thumb` ——
-   所以拉杆根本画不出来，落回"胶囊 + 圆点"，和旁边的真拉杆放在一起极度违和。
-2. **修法**：把 `.track` 当石座、`.thumb` 当木杆，在 MC 皮肤下重做外观：
-
-```css
-html[data-skin='minecraft'] .switch .track { width:30px; height:18px; border-radius:0;
-  background:#8f8f8f; box-shadow: inset 2px 2px 0 rgba(255,255,255,.35), inset -2px -2px 0 rgba(0,0,0,.3); }
-html[data-skin='minecraft'] .switch .thumb { top:1px; left:1px; width:8px; height:16px; border-radius:0;
-  background: linear-gradient(#b08c58, #8b6b45 45%, #6b5432); }
-/* 开态：石座透红石光，木杆推到右端 */
-html[data-skin='minecraft'] .switch input:checked ~ .track .thumb { transform: translateX(20px); }
-```
-
-- ⚠️ **只平移不旋转**。像真拉杆那样绕底端转 38° 会把握把甩出 22px 高的轨道，
-  在卡头那种紧凑行里会**盖住旁边的文字**。
-- ⚠️ 选择器**必须**带 `html[data-skin=…]` 前缀：`40-market.css` 里的 `.switch .track`
-  特指度 (0,2,0)，裸写同名规则压不过它。
-- 原生 `input[type=checkbox]`（二级设置里那些）仍走 `32-theme.css` 里
-  `::before/::after` 那套真拉杆，两者视觉语言保持一致。
+用户最新要求覆盖旧小拉杆限制：普通checkbox和switch均为80×64占位，64px石座和42px木杆，左右旋转30°。
+通过input伪元素或track::before/thumb分别绘制同一几何，开启时石座下方红石亮起。
+整个占位可点击；switch内部input仍隐藏、可通过label与键盘操作。禁用、焦点、减少动态效果保留。
+设置卡头及控件组允许换行，为大拉杆留空间；仅MC皮肤生效。
+导航展开/收起和Ctrl+B改用playToggle，展开on、收起off；从全局点击音中排除，不叠加两声。
+开关音仍遵守用户选定音效、音量及总开关，默认主题无MC音效。
 
 ---
 
