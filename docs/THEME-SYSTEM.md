@@ -249,3 +249,6 @@ background: var(--q-bg-titlebar, var(--q-bg-base));
 ⚠️ 注意暗色下 `--q-bg-sidebar`(`#1b1b1c`) 与 `--q-bg-base`(`#151517`) 差 **6 级明度**，
 一旦混用会出现**横贯整窗的色差线**。`tools/check-seamless-pixels.mjs` 就是守这个的
 （它会像素级采样 y≈92 那一行）。
+
+### Monocraft 字面比例（2026-10-08）
+为避免英文及长数字显得过大，Monocraft 的 @font-face 使用 size-adjust:88%，仅缩小拉丁字形与宽度，中文字号不变。

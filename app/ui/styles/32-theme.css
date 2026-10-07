@@ -46,6 +46,8 @@
 @font-face {
   font-family: 'Monocraft';
   src: url('/assets/mc/fonts/Monocraft.ttf') format('truetype');
+  /* Monocraft 字面较大：只缩小这份拉丁字体，不影响同一行的中文。 */
+  size-adjust: 88%;
   font-weight: 400;
   font-style: normal;
   font-display: swap;
