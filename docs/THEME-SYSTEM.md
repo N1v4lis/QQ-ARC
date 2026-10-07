@@ -80,9 +80,20 @@ MC 另有一组 `--q-mc-*` **素材色**（不参与皮肤切换逻辑，就是�
 `--q-mc-wood-dark #6b5432`、`--q-mc-grass #6aa84f`、`--q-mc-dirt #8b6b45`、
 `--q-mc-panel #c6c6c6`、`--q-mc-slot #1e1e1f`、`--q-mc-gold #fcd34d` 等。
 
-### 3.2 字体：**双字体链 + `unicode-range`**（顺序承重）
+### 3.2 字体：**Monocraft 英文 + Minecraft AE 中文**（2026-10-08）
+
+用户指定中文继续使用 MinecraftAE，英文改用 Monocraft。当前链为
+`Monocraft → Minecraft AE → Minecraft AE CJK → 系统兜底`。
+Monocraft 仅用于 ASCII/拉丁区间（含数字、英文标点），中文字体文件及汉字区间保持原样；
+全角标点及 Monocraft 区间之外的符号沿用原 Latin 字体回退。
+只在 MC 字体开关开启的 Minecraft 主题生效，原有主题外观和字号/字距保持。
+字体从本地加载，随 UI 打包；新增常规 TTF 为210,192字节。
+上游、固定提交及 OFL 1.1 许可证随字体保存于 `app/ui/assets/mc/fonts/Monocraft-SOURCE.txt`
+与 `Monocraft-OFL.txt`。本轮按最新回归规则只验证相关字体加载、字形和主题切换。
 
 ```css
+@font-face { font-family:'Monocraft'; src:url('/assets/mc/fonts/Monocraft.ttf');
+             font-weight:400; unicode-range: U+0020-007E, U+00A0-024F, U+1E00-1EFF; }
 @font-face { font-family:'Minecraft AE';     src:url('/assets/mc/fonts/minecraft-latin.ttf'); font-weight:100 900; }
 @font-face { font-family:'Minecraft AE CJK'; src:url('/assets/mc/fonts/minecraft-ae.ttf');
              font-weight:100 900;
@@ -93,10 +104,10 @@ MC 另有一组 `--q-mc-*` **素材色**（不参与皮肤切换逻辑，就是�
 半角 `:` 画成 `u`、`(` 画成 `C`、`/` 画成 `i`；全角 `）`/`％`/`＃` 也变形；`¥` 是个折线块。
 而它唯一不可替代的是**汉字**。所以：
 
-- 拉丁那份（14 KB）管 ASCII、货币、数学符号、**全角标点**；
+- Monocraft 管英文、数字、英文标点；原拉丁那份（14 KB）管余下符号及**全角标点**；
 - CJK 那份用 `unicode-range` **严格限定**只吃汉字区间。
 
-⚠️ **顺序是承重的，别调换**；改完必须跑 `node tools/check-font-chain.mjs`（逐字形比对 19 个字符）。
+⚠️ **顺序是承重的，别调换**；按最新验证要求进行相关字体的定点验证，旧逐字形脚本保留作手动工具。
 字号/字距也调过：MC 皮肤正文 15px + `letter-spacing: 0.3px`（密集数字区 0.4px），
 暗色正文 `#d0d0d0`。像素字体只有一个字重，`font-weight` 对它无效。
 

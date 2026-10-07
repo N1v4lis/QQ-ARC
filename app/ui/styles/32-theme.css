@@ -41,6 +41,16 @@
      字体到位后自动替换 —— 而不是 block（那段等待期整屏无字）。
    ⚠️ 字体链末尾必须留系统兜底
      万一文件缺失/损坏，后面的项会接住，界面不会变豆腐块。 */
+/* 2026-10-08：英文/数字改用 Monocraft，中文保留 Minecraft AE CJK。
+   限定拉丁区间，保持原来的全角标点与符号回退；字体本地打包，无网络请求。 */
+@font-face {
+  font-family: 'Monocraft';
+  src: url('/assets/mc/fonts/Monocraft.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-024F, U+1E00-1EFF;
+}
 @font-face {
   font-family: 'Minecraft AE';
   src: url('/assets/mc/fonts/minecraft-latin.ttf') format('truetype');
@@ -71,9 +81,9 @@
 }
 
 :root {
-  /* MC 字体链：拉丁（标点/货币/数学/全角标点都正确）→ 汉字 → 系统同名注册字体 → 系统兜底。
+  /* MC 字体链：Monocraft 英文/数字 → 原 Latin 符号回退 → 原 CJK 汉字 → 系统兜底。
      顺序不能颠倒：把 CJK 那份放前面会让 ASCII 与全角标点又变回坏字形。 */
-  --q-font-mc: 'Minecraft AE', 'Minecraft AE CJK', 'Minecraft', 
+  --q-font-mc: 'Monocraft', 'Minecraft AE', 'Minecraft AE CJK', 'Minecraft',
                'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
 }
 

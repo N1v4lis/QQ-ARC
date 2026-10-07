@@ -1,0 +1,6 @@
+Monocraft by Idrees Hassan
+Upstream: https://github.com/IdreesInc/Monocraft
+Commit: e498bf70aeb25b4bdcff1e44d878fb2cb4f7c2a9
+Source: https://raw.githubusercontent.com/IdreesInc/Monocraft/e498bf70aeb25b4bdcff1e44d878fb2cb4f7c2a9/dist/Monocraft-ttf/Monocraft.ttf
+License: SIL Open Font License 1.1 (Monocraft-OFL.txt)
+Unmodified regular TTF, bundled locally; no CDN dependency.
