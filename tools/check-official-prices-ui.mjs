@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';import {withPage} from './cdp.mjs';
+await withPage({url:'http://127.0.0.1:3210/',width:1360,height:860,onConsole:s=>{if(s.startsWith('[exception]'))console.log(s)},initScripts:[`const originalFetch=fetch;window.priceWrites=[];window.fetch=(i,o)=>{if(typeof i==='string'&&i.includes('/api/config')&&o?.method==='POST'){priceWrites.push(JSON.parse(o.body));return Promise.resolve(new Response(JSON.stringify({ok:true,config:state.config}),{headers:{'content-type':'application/json'}}));}return originalFetch(i,o)};`]},async p=>{
+ await p.waitFor('!!state.config&&!document.getElementById("loading-overlay")',{timeout:60000});
+ await p.eval(`openSettingsSection('api')`);
+ await p.waitFor('state.modelPrices?.remote?.catalogue?.length>0',{timeout:30000});
+ for(const skin of ['default','minecraft']){
+  await p.eval(`qqaSkin.apply('${skin}');openSettingsSection('api')`);await p.waitFor('!!document.querySelector("#official-price-catalogue-btn")');
+  const height=await p.eval(`document.querySelector('.api-current-top').getBoundingClientRect().height`);assert.ok(height<230,`${skin}: ${height}`);
+  await p.waitFor(`document.querySelector('#api-current-title img')?.complete`);
+  assert.ok(await p.eval(`document.querySelector('#api-current-title img').naturalWidth>0`));
+  await new Promise(r=>setTimeout(r,400));
+  await p.screenshot('shots/final/api-official-'+skin+'.png');
+  await p.eval(`document.querySelector('#official-price-catalogue-btn').click()`);await p.waitFor('!!document.querySelector("#official-query")');
+  assert.equal(await p.eval(`document.querySelectorAll('#official-sources button').length`),10);
+  assert.equal(await p.eval(`document.querySelectorAll('#official-source-links a').length`),10);
+  await p.eval(`document.querySelector('[data-vendor="openai"]').click()`);
+  assert.equal(await p.eval(`document.querySelector('#official-vendor-caption').textContent`),'已选 1 家');
+  assert.equal(await p.eval(`document.querySelectorAll('#official-source-links a').length`),1);
+  assert.ok(await p.eval(`document.querySelector('#official-source-links a').href.includes('developers.openai.com')`));
+  assert.equal(await p.eval(`document.querySelectorAll('#official-sources button').length`),10);
+  assert.ok(await p.eval(`document.querySelector('[data-vendor="openai"]').getAttribute('aria-pressed')==='true'`));
+  await p.eval(`document.querySelector('[data-vendor="openai"]').click()`);
+  assert.equal(await p.eval(`document.querySelector('#official-vendor-caption').textContent`),'全部厂商');
+  await p.eval(`document.querySelector('[data-filter-vendor][value=glm]').click()`);
+  assert.ok(await p.eval(`document.querySelector('[data-vendor="glm"]').getAttribute('aria-pressed')==='true'`));
+  assert.ok(await p.eval(`Array.from(document.querySelectorAll('.official-model-record summary .model-name-with-logo')).every(x=>state.modelPrices.remote.catalogue.some(r=>r.vendor==='glm'&&r.id===x.textContent))`));
+  await p.eval(`document.querySelector('#official-vendor-all').click()`);
+  await p.eval(`document.querySelector('#official-query').value='gpt-4.1';document.querySelector('#official-query').dispatchEvent(new Event('input'))`);
+  assert.ok(await p.eval(`document.querySelectorAll('.official-model-record').length>0`));
+  await p.eval(`document.querySelector('.official-model-record').open=true`);
+  await new Promise(r=>setTimeout(r,350));
+  await p.screenshot('shots/final/api-prices-'+skin+'.png');
+  await p.eval(`document.querySelector('#official-close').click()`);
+ }
+ await p.eval(`state.config.api.model='gpt-4.1';state.config.api.baseUrl='https://relay.example/v1';state.config.api.modelPrices={};openSettingsSection('api')`);
+ assert.equal(await p.eval(`document.querySelector('#cfg-price-in').disabled`),false);
+ assert.ok(await p.eval(`document.querySelector('#pc-note').textContent.includes('当前站点')`));
+ await p.eval(`document.querySelector('#cfg-price-in').value='12';document.querySelector('#cfg-price-out').value='24';saveConfig({quiet:true})`);
+ assert.ok(await p.eval(`Object.keys(priceWrites.at(-1).api.modelPrices.__replace__).some(k=>k.endsWith('：gpt-4.1'))`));
+ console.log('两皮肤紧凑主区、Logo加载、厂商双向筛选/取消、独立官网链接、全目录搜索/展开与中转站可编辑/渠道保存通过（模拟写入）。');
+});

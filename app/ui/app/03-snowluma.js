@@ -247,6 +247,7 @@ async function loadSnowlumaPage({ quiet = false } = {}) {
       <div class="snowluma-page-card">
         <h2>SnowLuma（OneBot 网关）</h2>
 
+        <div class="snow-status-grid"><div class="snow-start-column">
         <!-- 一键启动区域（核心入口） -->
         ${!onebotConnected ? `
         <div class="quick-start-section" style="background:var(--bg);border:none;border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:var(--raise-sm)">
@@ -289,7 +290,7 @@ async function loadSnowlumaPage({ quiet = false } = {}) {
           </div>` : ''}
         </div>
 
-        <hr class="sl-sep">
+        </div><div class="snow-runtime-column">
 
         <!-- SnowLuma 状态 -->
         <div class="snowluma-qq-section">
@@ -321,6 +322,7 @@ async function loadSnowlumaPage({ quiet = false } = {}) {
             <span id="sl-hint" class="muted" style="font-size:12px"></span>
           </div>
         </div>
+        </div></div>
         <!-- 运行日志：可折叠。折叠态只渲染最近 5 行（见 slTrimLogTail 的说明） -->
         <div class="sl-log-block${slLogCollapsed('sl') ? ' sl-folded' : ''}" id="sl-log-block" data-log-which="sl">
           <div class="hint sl-log-head">

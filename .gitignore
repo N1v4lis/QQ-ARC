@@ -11,3 +11,5 @@
 *.bak-*
 Thumbs.db
 .DS_Store
+/_scratch/vendor-pages/
+/_scratch/official-price-test.json

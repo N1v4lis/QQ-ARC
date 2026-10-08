@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import vm from 'node:vm';
+import {resolveModelPrice,setRemotePrices,getRemotePriceRevision,modelLabel,splitModelLabel,UNKNOWN_VENDOR,isPeakHour,priceAt} from 'file:///E:/QQ%20Agent/resources/app/src/model-prices.js';
+const source=fs.readFileSync('E:/QQ Agent/resources/app/src/app.js','utf8');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'qqa-price-link-'));
+const day='2026-10-01';const at=new Date(day+'T12:00:00').getTime();
+let cfg={api:{useOfficialPrice:true},providers:[{id:'official',displayName:'OpenAI',baseURL:'https://api.openai.com/v1'}]};let reads=0;
+const archive=new Map([['fixture',{started:at,rows:[{model:'gpt-4.1',vendor:'OpenAI',at,chatKey:'group:123',promptTokens:1e6,completionTokens:1e6,cachedTokens:0,exact:true}],searchCount:2,toolCounts:{search:2}}]]);
+const context=vm.createContext({fs,path,process,Date,console,DATA_DIR:dir,getConfig:()=>cfg,getRemotePriceRevision,resolveModelPrice,modelLabel,splitModelLabel,UNKNOWN_VENDOR,isPeakHour,priceAt,usageReader:{read:async()=>{reads++;return archive;}},dayKeyOf:ts=>new Date(ts).toLocaleDateString('sv-SE'),resolveRange:()=>({mode:'window',start:at,end:at+1,label:'fixture'})});
+const snapshots=source.slice(source.indexOf('const USAGE_DAILY_FILE'),source.indexOf('/** 用配置解析价格'));
+const pricing=source.slice(source.indexOf('function priceOf('),source.indexOf('/** 主统计：'));
+vm.runInContext(snapshots+'\n'+pricing,context);
+vm.runInContext(`completedDayKeys=()=>['${day}'];`,context);
+const stats=()=>vm.runInContext('buildUsageStatsWithSnapshots({range:"fixture"})',context);
+try {
+ setRemotePrices({'gpt-4.1':{in:2,out:8,cached:.5,vendor:'openai',autoApply:true}});
+ let result=await stats();assert.equal(result.stats.totals.cost,10);assert.equal(reads,1);
+ await stats();assert.equal(reads,1,'unchanged pricing reuses daily snapshot');
+ const revision=getRemotePriceRevision();
+ setRemotePrices({'gpt-4.1':{in:2,out:8,cached:.5,vendor:'openai',autoApply:true,note:'new timestamp'}});
+ assert.equal(getRemotePriceRevision(),revision);await stats();assert.equal(reads,1);
+ setRemotePrices({'gpt-4.1':{in:4,out:16,cached:1,vendor:'openai',autoApply:true}});
+ result=await stats();assert.equal(result.stats.totals.cost,20);assert.equal(result.stats.days[0].cost,20);assert.equal(result.stats.chats[0].cost,20);assert.equal(result.stats.models[0].cost,20);assert.equal(reads,2);
+ cfg.api.modelPrices={'https://api.openai.com/v1：gpt-4.1':{in:7,out:13,cached:1}};
+ result=await stats();assert.equal(result.stats.totals.cost,20);assert.equal(reads,3);
+ cfg.api.modelPrices['https://api.openai.com/v1：gpt-4.1'].out=23;
+ result=await stats();assert.equal(result.stats.totals.cost,30);assert.equal(reads,4);
+ await stats();assert.equal(reads,4);
+ assert.ok(source.includes('getConfig().api, usagePricingRevision()'),'dashboard memory cache includes effective pricing');
+ console.log('隔离历史用量：官方改价、自定义改价同步总额/按天/按群/按模型；相同价格及仅来源备注更新不回算，通过。');
+} finally { fs.rmSync(dir,{recursive:true,force:true}); }

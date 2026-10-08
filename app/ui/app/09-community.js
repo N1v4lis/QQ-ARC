@@ -233,7 +233,7 @@ function createTierBar({ mount, dual = false, low = 100, high = 10, onChange = n
  * 用法：renderChatSection 渲染 `<div id="ac-editor"></div>` 占位，
  *      bindSettingsEvents 每次重渲染后调 mountActiveConfigEditor(root) 挂载。
  */
-function mountActiveConfigEditor(root) {
+function mountActiveConfigEditor(root, { groupId = '' } = {}) {
   const clampNum = (v, fb) => { const n = Number(v); return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : fb; };
   const c = state.config || {};
   const st = c.store || {};
@@ -255,7 +255,7 @@ function mountActiveConfigEditor(root) {
   const stripInternal = (m) => Object.fromEntries(Object.entries(m || {}).filter(([k]) => !String(k).startsWith('__')));
   const dGroupPos = stripInternal(st.groupSliderPos);
   const dGroupPeak = stripInternal(st.groupPeakPos);
-  let activeGid = '';
+  let activeGid = groupId;
 
   // 峰谷时段字段与各档条数等已收进「峰谷设置」「档位参数与持续参与」两个模态框
   // （打开按钮见下方 ac-right），主编辑器只留滑条 / 分群。
@@ -290,20 +290,11 @@ function mountActiveConfigEditor(root) {
           <span class="hint ac-target" id="ac-target"></span>
         </div>
       </div>
-      <div class="ac-right">
-          <div id="ac-group-area"${unified0 ? ' style="display:none"' : ''}>
-            <div class="field"><label>选择要单独设置的群聊（来自白名单，点击切换）</label>
-              <div class="ac-group-buttons" id="ac-group-buttons"></div></div>
-            <div style="margin-top:6px">
-              <button class="btn btn-small btn-danger" id="tier-group-clear-btn" type="button">清除所选群的单独设置</button>
-            </div>
-          </div>
-      </div>
-      <div class="field" style="display:flex;gap:8px;align-items:center;margin-top:12px">
-        <button class="btn" id="ac-cancel">取消</button>
-        <button class="btn btn-primary" id="ac-save">保存</button>
-        <span class="hint">改动先落在草稿里：「保存」整体提交，「取消」放弃未保存的改动。</span>
-      </div>`;
+      ${groupId ? `<label class="switch persona-tier-inherit"><input type="checkbox" id="persona-tier-own" ${dGroupPos[groupId] !== undefined || dGroupPeak[groupId] !== undefined ? 'checked' : ''} /><span class="track"><span class="thumb"></span></span><span>单独设置当前群聊（关闭则沿用默认档位）</span></label>` : ''}
+      ${groupId ? '' : `<div class="field" style="display:flex;gap:8px;align-items:center;margin-top:12px">
+        <button class="btn" id="ac-cancel">取消</button><button class="btn btn-primary" id="ac-save">保存</button>
+        <span class="hint">默认档位；群聊的单独配置请到「人设 → 身份与模型设置」。修改后点击保存。</span>
+      </div>`}`;
   const overlay = root;
 
   // 「峰谷时段 / 档位参数 / 统一设置」三件套在折叠卡头部（setCard 的 extra 插槽），
@@ -312,7 +303,7 @@ function mountActiveConfigEditor(root) {
   const ctrl = (sel) => headCard?.querySelector(sel) || overlay.querySelector(sel);
   // 「统一设置」开关：开 = 统一全部群（unifiedTier=true），关 = 每个群单独设置。
   const chkUnified = ctrl('#ac-unifiedtier');
-  const unifiedNow = () => (chkUnified ? chkUnified.checked !== false : unified0);
+  const unifiedNow = () => !groupId || overlay.querySelector('#persona-tier-own')?.checked !== true;
   // 峰谷开关在「峰谷时段」组合按钮内部（文本右侧）：勾选状态即草稿状态，
   // 主滑条的双珠形态据此切换（所见即所得）。
   const chkPeak = ctrl('#ac-peak-enabled');
@@ -362,7 +353,7 @@ function mountActiveConfigEditor(root) {
       mo.disconnect();
     }
   });
-  mo.observe(document.body, { childList: true });
+  mo.observe(document.body, { childList: true, subtree: true });
 
   const allowGroupIds = () => (c.allow?.groups || []).map(String);
   // 已不在白名单的群不再显示（2026-09-25 用户反馈：没必要占按钮位）——
@@ -373,7 +364,7 @@ function mountActiveConfigEditor(root) {
     const box = overlay.querySelector('#ac-group-buttons');
     if (!box) return;
     const ids = allowGroupIds();
-    if (!ids.includes(activeGid)) activeGid = ids[0] || '';   // 编辑目标失效时回退到第一个白名单群
+    if (!groupId && !ids.includes(activeGid)) activeGid = ids[0] || '';   // 编辑目标失效时回退到第一个白名单群
     box.innerHTML = ids.length
       ? ids.map((id) => {
         const title = groupDisplayName(id);
@@ -413,6 +404,7 @@ function mountActiveConfigEditor(root) {
       valEl.textContent = (peakTier >= 1 && peakTier !== tier)
         ? `峰 ${tierSummary(v.high)} / 谷 ${tierSummary(v.low)}`
         : tierSummary(v.low);
+      valEl.title = valEl.textContent;
     }
   }
   function setNote(html) { if (noteEl) noteEl.innerHTML = html; }
@@ -441,7 +433,7 @@ function mountActiveConfigEditor(root) {
     }
     if (!vsl) return;
     const none = !unified && !activeGid;   // 分群模式但白名单为空：滑条只读
-    vsl.setDisabled(none);
+    vsl.setDisabled(none || (groupId && unified));
     vsl.setDual(peakOn);
     const t = currentTargets();
     if (peakOn) {
@@ -486,6 +478,7 @@ function mountActiveConfigEditor(root) {
   }
   // 「统一设置」/「峰谷」开关：改动即时反映到滑条形态与显隐
   chkUnified?.addEventListener('change', () => applyQuadrantUI());
+  overlay.querySelector('#persona-tier-own')?.addEventListener('change', () => applyQuadrantUI());
   chkPeak?.addEventListener('change', () => applyQuadrantUI());
 
   // 快捷档位预设胶囊已按需求移除（统一全部群开关保留）；
@@ -508,8 +501,17 @@ function mountActiveConfigEditor(root) {
   // ── 统一保存：主编辑器与两个模态框共用（extra 携带模态框字段）──
   // 语义：无论从哪里保存，当前草稿 + extra 一起整体提交 —— 不会出现
   // "模态框保存把滑条上未保存的拖动丢掉"的割裂。
+  root.__storePatch = (latest = state.config) => {
+    if (!groupId) return null;
+    const previous = latest?.store || {};
+    const positions = {...(previous.groupSliderPos || {})}, peaks = {...(previous.groupPeakPos || {})};
+    if (unifiedNow()) { delete positions[groupId]; delete peaks[groupId]; }
+    else if (peakOnNow()) { peaks[groupId] = dGroupPeak[groupId] || {peak:dPeak.peakPos,valley:dPeak.valleyPos}; }
+    else { positions[groupId] = dGroupPos[groupId] ?? dContextPos; }
+    return {...(!unifiedNow() ? {unifiedTier:false} : {}), groupSliderPos:{__replace__:positions}, groupPeakPos:{__replace__:peaks}};
+  };
   async function saveAll(extra = {}) {
-    const storePatch = { unifiedTier: unifiedNow() };
+    const storePatch = { unifiedTier: chkUnified ? chkUnified.checked : unified0 };
     // 峰谷：enabled 来自「峰谷设置」按钮上的开关（extra 可覆盖），
     // 时段来自「峰谷设置」模态框（extra）或沿用已存配置；两颗珠的位置来自草稿。
     const psNow = state.config?.store?.peakSchedule || {};

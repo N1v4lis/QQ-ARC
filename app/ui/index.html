@@ -439,6 +439,7 @@
        不依赖后面的导航脚本，但必须在页面图标已存在之后才起作用（DOMContentLoaded 保证）。 -->
   <script defer src="/shell/03-mc-icons.js?v=ui2"></script>
   <script defer src="/shell/04-wine-fox.js?v=0.4.2"></script>
+  <script defer src="/shell/06-fox-settings-helper.js"></script>
   <!-- 个性化：配色覆盖（10）与实际生效的动效开关（11）。
        都要早于 app/06+07（渲染/接线设置页时就要能读到 window.qqaColors / qqaMotion）。 -->
   <script defer src="/shell/10-personalize.js?v=ui2"></script>
@@ -462,6 +463,7 @@
        必须在 06-settings-render.js 之后：后者的 renderSettingsSection()
        会调用这里的 renderThemeSection()（裸标识符，走词法查找）。 -->
   <script defer src="/app/14-theme-section.js?v=ui2"></script>
+  <script defer src="/app/15-official-prices.js"></script>
   <script defer src="/app/11-init.js?v=ui2"></script>
   <script defer src="/shell/99-shell-boot.js?v=ui2"></script>
 

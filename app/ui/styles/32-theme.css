@@ -391,77 +391,20 @@ html[data-skin='minecraft'] select {
 html[data-skin='minecraft'] input::placeholder,
 html[data-skin='minecraft'] textarea::placeholder { color: #7a7a7a; }
 
-/* 内容区背景：MC 皮肤下允许铺背景图（透明度由 --mc-bg-opacity 控制）。
-   只在 data-mc-bg='on' 且已选到图时生效 —— 没有图就不画，避免出现一层灰。
-   `--mc-bg-image` 由 02-mc-theme.js 写到根元素（选了哪张就写哪张的 url）。
-
-   ⚠️ 只把图画在 #layout 上是**看不见的**：
-      .q-main 里的卡片、以及 #q-shell 的底色都是不透明的，
-      它们会把图完全盖住（实测浅色/深色截图里都看不到背景）。
-      所以还要做两件事才让"背景图"这个功能真正成立：
-        ① 把承载内容的"面"（shell / 主区 / 卡片 / 侧栏 / 工具栏）调成半透明；
-        ② 深色模式下让图**压暗**（multiply 混合），否则亮图会把暗色界面顶花。 */
-html[data-skin='minecraft'][data-mc-bg='on'] {
-  /* ⚠️ 遮罩厚度由 JS 算好写进来（--mc-mask = 1 − 透明度），不在这里用 calc。
-     理由见 02-mc-theme.js 的 applyToDocument：
-     getComputedStyle 不求解含 var 的 calc() 自定义属性，会原样返回字符串，
-     使"透明度方向"无法验证 —— 而这里确实踩过一次反向。
-     「透明度 35%」= 图可见度 35% = 同色遮罩盖 65%。 */
-  --mc-mask: 0.65;
-  /* 承载内容的"面"的透出程度：让底下的图能被看见。
-     0.62 是试出来的平衡点：
-       · 再低（0.45 试过）→ 图从卡片里透出来，浅色模式下数字/标签的对比度
-         被背景的明暗斑块干扰，"信息可辨"这条守不住（实测截图里卡片内能看到背景纹理）；
-       · 再高（0.8）→ 表面几乎不透，只有卡片之间的缝隙能看到图，
-         "背景图"这个功能就形同虚设。
-     固定值而非跟透明度联动：它控制"界面自身让多少"，用户调的是"图有多少"，
-     两者相乘才是最终可见度。给固定值让"调透明度"的效果线性可预期。 */
-  --mc-surface-alpha: 0.62;
-}
-
-/* ── 把各个"面"变半透明 ──────────────────────────────────────────────────
-   这几条是背景图能否被看见的关键，不是装饰。
-   用 `:where()` 把特指度压到最低（0），这样任何既有规则都能覆盖它 ——
-   避免"皮肤把某个地方弄花了却很难改回去"。 */
-html[data-skin='minecraft'][data-mc-bg='on'] :where(#q-shell, .q-main, #layout, .q-body, .q-sidebar, .q-tb-status, .view, #topbar.q-titlebar) {
-  background-color: color-mix(in srgb, var(--q-bg-1) calc(var(--mc-surface-alpha) * 100%), transparent);
-}
-html[data-skin='minecraft'][data-mc-bg='on'] :where(.setcard, .dash-card, .dash-box, .market-card, .list-pane, .settings-sidebar, .q-side-foot) {
-  background-color: color-mix(in srgb, var(--q-bg-1) calc(var(--mc-surface-alpha) * 100%), transparent);
-}
-/* 正文底（.dash-pane 等）本来是最深的那层，也让它透 */
-html[data-skin='minecraft'][data-mc-bg='on'] :where(.dash-pane) {
-  background-color: color-mix(in srgb, var(--q-bg-base) 30%, transparent);
-}
-
-html[data-skin='minecraft'][data-mc-bg='on'] #layout,
-html[data-skin='minecraft'][data-mc-bg='on'] .q-main {
-  background-image: var(--mc-bg-image, none);
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-/* 背景图之上叠一层同色半透明遮罩：这样"图可见"与"字可读"能同时成立。
-   用 linear-gradient 叠而不是 background-color：
-   background-color 会被 background-image 盖住（图片在上层），
-   而 gradient 是"图层"，可以和图片按顺序叠。 */
-html[data-skin='minecraft'][data-mc-bg='on'][data-theme='light'] #layout,
-html[data-skin='minecraft'][data-mc-bg='on'][data-theme='light'] .q-main {
-  background-image:
-    linear-gradient(rgba(216, 216, 216, var(--mc-mask)), rgba(216, 216, 216, var(--mc-mask))),
-    var(--mc-bg-image, none);
-}
-/* 深色模式：图必须**压暗**，否则一张明亮的日间截图会把暗色界面顶得发花。
-   multiply 让图与底色相乘 → 亮的变暗、暗的仍暗，整张图落进暗色调里。 */
-html[data-skin='minecraft'][data-mc-bg='on'][data-theme='dark'] #layout,
-html[data-skin='minecraft'][data-mc-bg='on'][data-theme='dark'] .q-main {
-  background-image:
-    linear-gradient(rgba(22, 22, 24, var(--mc-mask)), rgba(22, 22, 24, var(--mc-mask))),
-    var(--mc-bg-image, none);
-  background-blend-mode: multiply, normal;
-  background-color: rgba(22, 22, 24, 0.75);
-}
+/* 单层图片由可见度直接控制，不叠加重复图片或反向遮罩。 */
+html[data-skin='minecraft'][data-mc-bg='on'] #q-shell { position: relative; isolation: isolate; background: transparent; }
+html[data-skin='minecraft'][data-mc-bg='on'] #layout > .view { background: transparent; }
+html[data-skin='minecraft'][data-mc-bg='on'] #settings-form { background: transparent; }
+html[data-skin='minecraft'][data-mc-bg='on'] #q-shell::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--mc-bg-image) center / cover no-repeat; opacity: var(--mc-bg-opacity, .35); }
+html[data-skin='minecraft'][data-mc-bg='on'] :is(.q-main,#layout,.q-body,.q-sidebar,.view,.settings-sidebar,.q-side-foot,.persona-desk,.persona-edit-surface,.persona-editor-pane,.usage-pane,.dash-pane,.snowluma-pane,.detail-pane,.list-head,.persona-writing-room) { background: transparent; }
+html[data-skin='minecraft'][data-mc-bg='on'] :is(.setcard,.dash-box,.market-card,.list-pane,.settings-runstate) { background: color-mix(in srgb,var(--q-bg-1) 88%,transparent); }
+.mc-audio-controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:8px 32px; margin:8px 0 12px; }
+#card-mc .mc-audio-controls :is(.checkbox-row,.switch) { margin:0; padding:0; border-bottom:0; min-height:64px; box-sizing:border-box; align-items:center; }
+#card-mc .th-field:has(.mc-channel-volume) { display:grid; grid-template-columns: 180px minmax(140px,280px) minmax(120px,1fr); gap:16px; align-items:center; }
+.mc-channel-volume { display:flex; gap:10px; align-items:center; min-width:0; }
+.mc-channel-volume input { width:100%; min-width:0; }
+.mc-channel-volume span { min-width:42px; }
+@media(max-width:1000px) { #card-mc .th-field:has(.mc-channel-volume) { grid-template-columns:140px minmax(0,1fr); } .mc-channel-volume { grid-column:2; } }
 
 /* 字体：MC 皮肤默认用打包进来的字体（见本文件顶部的 @font-face）。 */
 html[data-skin='minecraft'][data-mc-font='on'] body {
@@ -692,3 +635,41 @@ html[data-skin='minecraft'] input[type='range']:focus-visible::-webkit-slider-th
 /* 滚动条也方块化（MC 里没有圆角滚动条） */
 html[data-skin='minecraft'] * { scrollbar-color: #8f8f8f #c6c6c6; }
 html[data-skin='minecraft'][data-theme='dark'] * { scrollbar-color: #565656 #26262a; }
+
+/* 标题栏与状态栏接续同一张壁纸；不让高特异性标题样式遮挡。 */
+html[data-skin='minecraft'][data-mc-bg='on'] #topbar.q-titlebar,
+html[data-skin='minecraft'][data-mc-bg='on'] .q-body > .q-tb-status,
+html[data-skin='minecraft'][data-mc-bg='on'] #view-persona .persona-writing-room { background: transparent; }
+
+/* 会话行的图标独立于32px信息卡图标：固定20px占位，18px像素图。 */
+html[data-skin='minecraft'] :is(.t-ico,.tool-ico,.tool-icon) { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: 0 0 20px; line-height: 0; vertical-align: middle; }
+html[data-skin='minecraft'] :is(.t-ico,.tool-ico,.tool-icon) svg { display: block; width: 18px; height: 18px; }
+/* 总音量与三路音量的读数列、滑条右端共用同一条对齐线。 */
+#card-mc .mc-channel-volume { display: grid; grid-template-columns: minmax(0,1fr) 52px; gap: 12px; }
+#card-mc .mc-channel-volume span { min-width: 0; width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
+#card-mc .th-field:has(#mc-sfx-volume) { gap: 12px; }
+#card-mc input[type='range'] { margin: 0; min-width: 0; }
+/* 卡头控制区固定独立一行，摘要不会因峰谷文案增长挤落。 */
+html[data-skin='minecraft'] #card-active-config > .setcard-head { display: grid; grid-template-columns: 32px minmax(0,1fr) 180px 16px; gap: 8px 12px; }
+html[data-skin='minecraft'] #card-active-config .ac-head-controls { grid-column: 1 / -1; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+html[data-skin='minecraft'] #card-active-config .ac-head-div { display: none; }
+html[data-skin='minecraft'] #card-active-config .ac-peak-btn { display: inline-flex; align-items: center; gap: 12px; height: 64px; padding: 0 8px; white-space: nowrap; }
+html[data-skin='minecraft'] #card-active-config .sc-val { grid-column: 3; grid-row: 1; width: 180px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-skin='minecraft'] #card-active-config .chev-r { grid-column: 4; grid-row: 1; }
+@media(max-width:700px) { html[data-skin='minecraft'] #card-active-config > .setcard-head { grid-template-columns: 32px minmax(0,1fr) 120px 16px; } html[data-skin='minecraft'] #card-active-config .sc-val { width:120px; } }
+
+html[data-skin='minecraft'] #ac-editor .tier-read { min-height: 52px; }
+
+/* 活跃卡摘要与卡体重复，删除摘要；闭合时不暴露任何控制区。 */
+#card-active-config > .setcard-head .sc-val { display: none; }
+#card-active-config:not(.open) .ac-head-controls, html[data-skin='minecraft'] #card-active-config:not(.open) .ac-head-controls { display: none; }
+html[data-skin='minecraft'] #card-active-config > .setcard-head { grid-template-columns: 32px minmax(0,1fr) 16px; }
+html[data-skin='minecraft'] #card-active-config .chev-r { grid-column: 3; }
+
+/* Catalogue filters are compact checkboxes, not setting levers. */
+html[data-skin='minecraft'] .official-vendor-options input[type='checkbox'] {
+  appearance:auto; -webkit-appearance:auto; width:14px; height:14px; min-width:14px; flex:0 0 14px;
+  position:static; border:initial; background:initial; box-shadow:none; vertical-align:middle;
+}
+html[data-skin='minecraft'] .official-vendor-options input[type='checkbox']::before,
+html[data-skin='minecraft'] .official-vendor-options input[type='checkbox']::after { content:none; display:none; }

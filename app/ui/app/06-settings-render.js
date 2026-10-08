@@ -12,6 +12,19 @@ function visionBadge(providerId, model) {
   return t('unk', '无法判定');
 }
 
+function modelInputCapabilities(providerId,model) {
+  const r=(state.visionResults||{})[`${providerId}|||${model}`]||{};
+  const p=(state.providers||[]).find(p=>p.id===providerId);
+  const caps=p?.modelCapabilities?.[model]||{};
+  const image=r.verdict==='vision'?true:r.verdict==='no-vision'?false:caps.image;
+  const video=typeof r.video==='boolean'?r.video:caps.video;
+  const label=v=>v===true?'支持':v===false?'不支持':'未知';
+  return `图片：${label(image)} · 视频：${label(video)}`;
+}
+function modelInputCapabilityHtml(providerId,model) {
+  return `<span class="model-input-capabilities">${esc(modelInputCapabilities(providerId,model))}</span>`;
+}
+
 /** 左右开关（.switch）：设置页统一勾选形态。 */
 function switchHtml(id, checked, label, extra = '') {
   return `<label class="switch"${extra ? ` ${extra}` : ''}>
@@ -35,12 +48,12 @@ function visionVerdictOf(providerId, model) {
 
 
 function renderSettingsSidebar() {
+  if (state.settingsSection === 'search') state.settingsSection = 'api';
   const s = state.status;
   const sidebar = $('#settings-sidebar');
   if (!sidebar) return;
   const menu = [
-    ['api', '模型 API'],
-    ['search', '搜索服务'],
+    ['api', 'API与搜索'],
     ['memory', '记忆'],
     ['allow', '聊天白名单'],
     ['chat', '聊天设置'],
@@ -102,7 +115,7 @@ function openSettingsSection(section) {
   try {
     if (typeof flushSettingsSaves === 'function') flushSettingsSaves();
     switchTab('settings');
-    state.settingsSection = section || 'api';
+    state.settingsSection = section === 'search' ? 'api' : (section || 'api');
     renderSettingsSidebar();
     renderSettings();
     uiEnter($('#settings-form'));
@@ -314,7 +327,7 @@ function renderSettingsSection(c) {
   const sec = state.tab === 'persona' ? 'persona' : (state.settingsSection === 'persona' ? 'api' : state.settingsSection || 'api');
   const sections = {
     api: () => renderApiSection(c),
-    search: () => renderSearchSection(c),
+    search: () => renderApiSection(c),
     memory: () => renderMemorySettingsSection(c),
     persona: () => renderPersonaSection(c),
     allow: () => renderAllowSection(c),
@@ -331,76 +344,29 @@ function renderSettingsSection(c) {
     ${render()}`;
 }
 function renderApiSection(c) {
-  const currentProvider = (state.providers || []).find((p) => p.id === c.api.provider);
-  const currentModelDisplay = (currentProvider?.modelNames || {})[c.api.model] || c.api.model;
-  // 专用模型的显示名：跨提供商选择时也能读出目录名（找不到就显示裸 id）
-  const displayOf = (modelId) => {
-    const m = String(modelId || '').trim();
-    if (!m) return '';
-    for (const p of (state.providers || [])) {
-      if ((p.modelNames || {})[m]) return `${p.modelNames[m]}`;
-    }
-    return m;
-  };
-  const visionModelDisplay = displayOf(c.api.visionModel);
-  const videoModelDisplay = displayOf(c.api.videoModel);
-  const sc = (typeof setCard === 'function') ? setCard : (o) => `<div class="setcard">${o.body}</div>`;
+  const provider = (state.providers || []).find(p => p.id === c.api.provider);
+  const modelName = provider?.modelNames?.[c.api.model] || c.api.model || '尚未选择模型';
   return `
-    <h3 id="settings-api">模型 API</h3>
-    <p class="setsub">选渠道、配降级、算成本 —— 常用项内联，低频项点开折叠卡</p>
-    ${sc({
-      id: 'card-api-model',
-      icon: '🔑',
-      title: '模型与渠道',
-      sub: '提供商 / 模型 / BaseURL',
-      val: esc(c.api.model || '未选模型'),
-      open: true,
-      body: `
-    <div class="field">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" id="open-model-config-btn">⚙ 模型配置</button>
-        <button class="btn" id="open-model-manage-btn">🗂 模型管理</button>
-      </div>
-      <div class="hint" id="provider-hint" style="margin-top:6px">${currentProvider ? `当前：${esc(currentProvider.displayName)} · ${esc(c.api.model || '未选模型')} @ ${esc(currentProvider.baseURL)}${currentProvider.hasKey ? ' · 已保存 API Key（不显示）' : ' · 未保存 API Key'}` : '尚未选择模型'}</div>
-      <div class="hint" id="model-vision-hint" style="margin-top:6px"></div>
-      <input type="hidden" id="cfg-provider" value="${esc(c.api.provider || '')}" />
-      <input type="hidden" id="cfg-model" value="${esc(c.api.model || '')}" />
-      <input type="hidden" id="cfg-baseurl-value" value="${esc(c.api.baseUrl)}" />
-    </div>`
-    })}
-    ${sc({
-      id: 'card-api-fallback',
-      icon: '🔄',
-      gray: true,
-      title: '备选模型（故障自动降级）',
-      sub: '主模型失败后按顺序重试 · 留空不启用',
-      body: `
-    <div id="fallback-model-rows"></div>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="btn btn-small" id="add-fallback-row-btn">＋ 添加备选模型</button>
-    </div>`
-    })}
-    ${sc({
-      id: 'card-api-bychat-moved',
-      icon: '💬',
-      gray: true,
-      title: '按会话选模型',
-      sub: '已并入「人设」页 · 每个群/私聊可单独指定',
-      body: `<div class="hint">这一项搬到了 <b>人设</b> 设置页：分会话模式里每个会话一行（人设 + 模型），未单独设置时跟随上方主模型。</div>`
-    })}
-    ${sc({
-      id: 'card-api-price',
-      icon: '💰',
-      gray: true,
-      title: '成本核算',
-      sub: '官方价表 / 当前单价 / 批量自定义',
-      body: `
-    <div class="checkbox-row">${switchHtml('cfg-useofficialprice', c.api.useOfficialPrice !== false, '用内置官方价格表估算（按模型 id 自动匹配；走中转站请关掉）')}</div>
+    <div class="api-workspace" data-settings-flat>
+      <header class="api-page-head"><div><h3 id="settings-api">API与搜索</h3><p class="setsub">配置模型连接与联网搜索，管理备选顺序和使用成本。</p></div></header>
+      <section class="api-current" aria-labelledby="api-current-title">
+        <div class="api-current-top"><div><span class="api-eyebrow">当前主模型</span><h2 id="api-current-title">${modelLogoHtml(c.api.model)}${esc(modelName)}</h2></div></div>
+
+        <div id="provider-hint" class="hint" hidden>${provider ? `${esc(provider.displayName)} · ${esc(c.api.model || '')}` : '尚未选择模型'}</div>
+        <div class="api-model-flags"><span class="api-endpoint-status">${esc(classifyEndpoint(c.api.baseUrl || provider?.baseURL,c.api.model).reason)}</span><div class="api-vision" id="model-vision-hint"></div></div>
+        <div class="api-model-workspace"><section class="api-inline-directory"><h4>提供商与模型目录</h4><div id="api-model-directory"></div></section><section class="api-inline-config"><h4>模型配置</h4><p class="model-config-description">选择默认模型，单独配置请到人设细分配置。</p><div id="api-model-config"></div></section></div>
+        <input type="hidden" id="cfg-provider" value="${esc(c.api.provider || '')}" />
+        <input type="hidden" id="cfg-model" value="${esc(c.api.model || '')}" />
+        <input type="hidden" id="cfg-baseurl-value" value="${esc(c.api.baseUrl || '')}" />
+      </section>
+      <div class="api-workspace-columns">
+        <section class="api-cost" aria-labelledby="api-cost-title"><header class="api-section-head"><h4 id="api-cost-title">成本核算</h4><span>单价单位：元 / 百万 Token</span></header>
+    <div class="checkbox-row">${switchHtml('cfg-useofficialprice', c.api.useOfficialPrice !== false, '官方直连自动匹配价格；中转站使用自定义单价')}</div>
 
     <div class="field" style="margin-top:6px"><label>远程价格表</label>
       <div style="display:flex;align-items:center;gap:8px">
-        <span class="muted">官网统一价格表</span>
-        <button class="btn btn-small" id="price-feed-refresh-btn" title="从官网拉取最新价格表">拉取价格表</button>
+        <span class="muted">10 家官方来源</span>
+        <button type="button" class="btn btn-small" id="price-feed-refresh-btn" title="从各厂商官方文档拉取价格">拉取价格表</button><button type="button" class="btn btn-small" id="official-price-catalogue-btn">查看价格目录</button>
       </div>
       <div class="hint" id="price-feed-status" style="margin-top:4px"></div>
     </div>
@@ -424,8 +390,14 @@ function renderApiSection(c) {
     <div style="display:flex;gap:8px;margin:8px 0">
       <button class="btn btn-small" id="batch-price-btn">批量自定义价格编辑</button>
       <span class="muted" style="font-size:12px;align-self:center">为多个模型分别设定单价</span>
-    </div>`
-    })}`;
+    </div>
+        </section>
+        <section class="api-fallback" aria-labelledby="api-fallback-title"><header class="api-section-head"><h4 id="api-fallback-title">故障备选顺序</h4></header><p class="hint">主模型失败后，按这里的顺序重试。留空则不启用。</p>
+          <div id="fallback-model-rows"></div><button type="button" class="btn" id="add-fallback-row-btn">＋ 添加备选模型</button>
+        </section>
+      </div>
+      <section class="api-search-workspace" aria-labelledby="settings-search">${renderSearchSection(c)}</section>
+    </div>`;
 }
 
 
@@ -681,7 +653,7 @@ function renderPersonaSection(c) {
       <input type="hidden" id="cfg-persona-pick" value="${esc(templateName)}" /><span id="persona-pick-hint" class="hidden"></span>
       <div class="persona-writing-room">
       <nav class="persona-editor-rail" aria-label="编辑内容">
-        ${[['role','角色正文','TA 是谁'],['rules','附加规则','TA 如何回应'],['model','身份与其他设置','称呼与其他设置']].map(([id,name,note]) => `<button type="button" data-persona-panel="${id}" class="${panel===id?'active':''}" aria-pressed="${panel===id}"><span>${name}</span><small>${note}</small></button>`).join('')}
+        ${[['role','角色正文','TA 是谁'],['rules','附加规则','TA 如何回应'],['model','身份与模型设置','称呼、模型与活跃档位']].map(([id,name,note]) => `<button type="button" data-persona-panel="${id}" class="${panel===id?'active':''}" aria-pressed="${panel===id}"><span>${name}</span><small>${note}</small></button>`).join('')}
         <p class="persona-rail-note">${global?'这套人设作为所有会话的默认。':'为左侧选中的对象编辑；空白字段沿用默认人设。'}</p>
       </nav>
       <div class="persona-edit-surface">
@@ -696,6 +668,7 @@ function renderPersonaSection(c) {
         <header class="persona-page-heading"><h3>身份</h3><p>调整角色的称呼、展示名、参与度。</p></header>
         <h3>角色行为</h3><div class="field-row">${global?`<div class="field"><label for="cfg-botname">机器人名字</label><input id="cfg-botname" value="${esc(per.botName || '')}" /></div><div class="field"><label for="cfg-selfnick">群内展示名</label><input id="cfg-selfnick" value="${esc(per.selfNickname || '')}" /></div>`:''}<div class="field"><label for="cfg-participation">参与度</label><select id="cfg-participation">${global?'':'<option value="">沿用默认</option>'}${[['low','安静型'],['medium','普通群友'],['high','活跃型']].map(([id,name])=>`<option value="${id}" ${per.participation===id?'selected':''}>${name}</option>`).join('')}</select></div></div>
         ${global?'':`<h3>模型</h3><div class="field"><label for="cfg-persona-chat-model">当前会话</label><select id="cfg-persona-chat-model">${modelOptions}</select></div>`}
+        ${target.startsWith('group:')?`<h3>活跃档位</h3><p class="hint">为当前群聊设置响应档位；峰谷时段沿用聊天设置。</p><div id="persona-active-editor"></div>`:''}
       </div>
       </div></div>
     </section>
@@ -1268,7 +1241,7 @@ return `
       id: 'card-active-config',
       icon: '⚡',
       title: '活跃设置',
-      sub: '响应档位 / 峰谷',
+      sub: '默认档位 / 峰谷；群聊单独档位请到人设配置',
       val: tierSummary(sliderToTierUI_tierToSlider(st)),
       // 卡头插槽：竖分割线 + 三件套（峰谷时段 / 档位参数 / 统一设置），
       // 紧贴标题块左侧排布，与右上角档位摘要之间留白。
@@ -1378,6 +1351,7 @@ function renderPersonalizeSection(c) {
 
   const current = api.current();
   const groups = api.GROUPS || [];
+  const colorsSupported = api.supportsCustomColors();
   const changedCount = Object.keys(current).length;
 
   const rowHtml = (item) => {
@@ -1441,25 +1415,8 @@ function renderPersonalizeSection(c) {
       深浅两套主题都会同步生效；想只改一套，可在输入框里填 <code>var(--s-)</code> 之外的具体颜色。
     </p>
 
-${document.documentElement.dataset.skin==='minecraft'?`    <div class="setcard fold open" id="card-motion">
-      <div class="setcard-head fold-head">
-        <div class="sc-ico">✨</div>
-        <div class="sc-tt"><h4>动效</h4><div class="sc-sub">界面过渡、视图切换、主题扩散等动画的总开关</div></div>
-        <span class="sc-val">${motionOn ? '已开启' : '已关闭'}</span>
-        <span class="chev-r">›</span>
-      </div>
-      <div class="setcard-body fold-body"><div class="fold-inner">
-        <div class="checkbox-row">
-          <input type="checkbox" id="cfg-motion-on" ${motionOn ? 'checked' : ''} />
-          <label for="cfg-motion-on">启用动效（关闭后所有动画与过渡立即停止）</label>
-        </div>
-        ${sysReduced ? '<div class="hint" style="color:var(--q-warn)">⚠️ 系统当前开启了「减弱动态效果」，即使这里打开也不会播放动画（无障碍设置优先）。</div>' : ''}
-        <div class="hint">关闭动效不会影响功能，只是所有过渡变成瞬时切换。</div>
-      </div></div>
-    </div>
-
-`:''}
-    <div class="setcard fold open" id="card-colors">
+    <div class="setcard fold open${colorsSupported ? '' : ' pz-locked'}" id="card-colors" ${colorsSupported ? '' : 'data-colors-disabled="true"'}>
+      ${colorsSupported ? '' : '<div class="pz-lock-note" role="status">当前主题不支持自定义配色</div>'}
       <div class="setcard-head fold-head">
         <div class="sc-ico">🎨</div>
         <div class="sc-tt">
@@ -1470,7 +1427,7 @@ ${document.documentElement.dataset.skin==='minecraft'?`    <div class="setcard f
         <span class="chev-r">›</span>
       </div>
       <div class="setcard-body fold-body"><div class="fold-inner">
-        <div class="pz-toolbar">
+        <fieldset class="pz-controls" ${colorsSupported ? '' : 'disabled'}><div class="pz-toolbar">
           <button type="button" class="btn btn-small" id="pz-reset-all" ${changedCount ? '' : 'disabled'}>全部恢复默认</button>
           <button type="button" class="btn btn-small" id="pz-copy-css" ${changedCount ? '' : 'disabled'}>复制配色 CSS</button>
           <span class="hint" id="pz-status"></span>
@@ -1480,6 +1437,7 @@ ${document.documentElement.dataset.skin==='minecraft'?`    <div class="setcard f
             <div class="pz-group-title">${esc(g)}</div>
             ${(api.ITEMS || []).filter((it) => it.group === g).map(rowHtml).join('')}
           </div>`).join('')}
+        </fieldset>
       </div></div>
     </div>`;
 }
@@ -1571,14 +1529,14 @@ function renderOnebotSection(c) {
     <div id="snowluma-page" class="snowluma-pane snowluma-pane-embedded"></div>
 
     <h4 style="margin:18px 0 8px">连接配置</h4>
+    <div class="onebot-connect-grid"><div class="onebot-directory">
     <div class="field"><label>SnowLuma 程序目录（留空 = 自动使用项目内 snowluma/ 文件夹）</label>
       <div style="display:flex;gap:8px">
         <input type="text" id="cfg-snowlumadir" value="${esc(c.snowluma.dir || '')}" style="flex:1" />
         <button class="btn btn-small" id="open-snowluma-btn">打开文件夹</button>
       </div>
       <div class="hint" id="snowluma-hint"></div></div>
-    <div class="checkbox-row"><input type="checkbox" id="cfg-snowlumalaunch" ${c.snowluma.autoLaunch ? 'checked' : ''} />
-      <label for="cfg-snowlumalaunch">QQ Agent 启动时自动拉起 SnowLuma（未运行时）</label></div>
+    </div><div class="onebot-connect-fields">
     <div class="field-row">
       <div class="field"><label>WebSocket 地址（收消息）</label><input type="text" id="cfg-wsurl" value="${esc(c.snowluma.wsUrl)}" /></div>
       <div class="field"><label>HTTP 地址（发消息）</label><input type="text" id="cfg-httpurl" value="${esc(c.snowluma.httpUrl)}" /></div>
@@ -1593,6 +1551,7 @@ function renderOnebotSection(c) {
           <button class="btn btn-small" id="cfg-obhttptoken-toggle" type="button">显示</button>
         </div></div>
     </div>
+    </div></div>
     <div class="hint">改完 OneBot 地址需要重启应用生效；模型/人设/白名单即时生效。</div>`;
 }
 
@@ -2129,28 +2088,12 @@ function renderAdvancedAccountTable() {
 
 function renderAdvancedSection(c) {
   const sc = (typeof setCard === 'function') ? setCard : (o) => `<div class="setcard">${o.body}</div>`;
-  const autoLaunch = c.snowluma?.autoLaunch === true;
   const hookAuto = c.snowluma?.hookAutoLoad === true;
   const snowDir = String(c.snowluma?.dir || '');
   return `
     <h3>进阶</h3>
     <div class="hint" style="margin-bottom:12px">偏底层/少用的开关放这里。改动即时生效（与其它设置一样自动保存）。</div>
     ${sc({id:'card-advanced-persona-history',icon:'📜',title:'人设',sub:'保存记录的保留时间与数量',body:`<div class="field-row"><div class="field"><label for="cfg-persona-history-days">保存多少天后自动删除记录</label><input type="number" id="cfg-persona-history-days" min="1" max="7" value="${personaHistoryPolicy(c).days}" /></div><div class="field"><label for="cfg-persona-history-limit">最高保存多少条记录</label><input type="number" id="cfg-persona-history-limit" min="1" max="20" value="${personaHistoryPolicy(c).limit}" /></div></div><p class="hint">默认保留1天、最多5条；最长7天、最多20条。程序启动时检查并清理过期记录。</p>`})}
-    ${sc({
-      id: 'card-advanced-autolaunch',
-      icon: '🚀',
-      title: '启动时自动拉起 SnowLuma',
-      sub: 'QQ Agent 启动时，若 SnowLuma 没在运行就自动拉起它',
-      body: `
-      <div class="checkbox-row">
-        <input type="checkbox" id="cfg-snowluma-autolaunch" ${autoLaunch ? 'checked' : ''} />
-        <label for="cfg-snowluma-autolaunch">应用启动时自动拉起 SnowLuma（未运行时）</label>
-      </div>
-      <div class="hint" style="margin-top:8px">
-        打开后：QQ Agent 启动即检查 SnowLuma，未运行就自动拉起（等价于手动点 SnowLuma 页签的「启动」）。
-        当前状态：<b>${autoLaunch ? '自动' : '手动'}</b>${snowDir ? ` · 目录：<code>${esc(snowDir)}</code>` : ''}
-      </div>`
-    })}
     ${sc({
       id: 'card-advanced-hook',
       icon: '💉',

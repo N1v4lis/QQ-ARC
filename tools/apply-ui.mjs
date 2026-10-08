@@ -16,6 +16,7 @@
 //   node tools/apply-ui.mjs --rollback <ts> 回滚到某次备份
 //   node tools/apply-ui.mjs --list          列出备份
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -175,6 +176,8 @@ if (problems.length) {
   process.exit(2);
 }
 console.log('✔ 校验通过（关键文件齐全、新 UI 标记存在、老控制台完好）');
+// Every forward deployment keeps the local client aligned with the release VERSION.
+execFileSync(process.execPath, [path.join(HERE, 'patch-host-version.mjs')], { stdio:'inherit', windowsHide:true });
 console.log('\n下一步：重启 QQ Agent 才会生效。');
 console.log('  · 环境变量 QQ_AGENT_UI_DIR 需要指向 ui-next（electron/main.js 已内置默认值）');
 console.log('  · 想切回老控制台：在 electron/main.js 里去掉该默认值，或改指回 ui/');

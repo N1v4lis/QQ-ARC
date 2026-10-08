@@ -12,8 +12,10 @@
 // "延迟执行队列"，按文档顺序执行 —— 所以本文件一定先于 00-core.js 运行。
 import { TIER_SLIDER_BANDS, sliderToTier, tierToSlider } from '/vendor/tier-slider.js';
 import { matchPriceTable } from '/vendor/price-match.js';
+import { VENDORS, classifyEndpoint, applicablePrice, modelLogoHtml, modelPriceKey, legacyModelPriceKey } from '/vendor/model-vendors.js';
 
 window.TIER_SLIDER_BANDS = TIER_SLIDER_BANDS;
 window.sliderToTier = sliderToTier;
 window.tierToSlider = tierToSlider;
 window.matchPriceTable = matchPriceTable;
+Object.assign(window,{MODEL_VENDORS:VENDORS,classifyEndpoint,applicablePrice,modelLogoHtml,modelPriceKey,legacyModelPriceKey});

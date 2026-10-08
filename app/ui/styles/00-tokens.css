@@ -400,7 +400,7 @@ body {
 /* 键盘可达性：所有可交互元素保留可见焦点环（鼠标点击不显示） */
 :focus-visible {
   outline: 2px solid var(--q-accent);
-  outline-offset: 1px;
+  outline-offset: -2px;
   border-radius: var(--q-r-xs);
 }
 

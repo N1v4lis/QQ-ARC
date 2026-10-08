@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import {withPage} from './cdp.mjs';
+await withPage({url:'http://127.0.0.1:3210/',width:1360,height:900},async p=>{
+ await p.waitFor('!!state.config && !document.getElementById("loading-overlay")',{timeout:60000});
+ await p.eval(`qqaSkin.set('minecraft');switchTab('dashboard')`);await p.waitFor('qqaWineFox.state().loaded',{timeout:20000});
+ await p.eval(`qqaWineFox.set({x:280,y:470});(()=>{const h=qqaWineFox.helper(),r=document.getElementById('wine-fox-pet').getBoundingClientRect();for(let y=r.top+20;y<r.bottom;y+=12)for(let x=r.left+20;x<r.right;x+=12)if(h.helperHit({clientX:x,clientY:y})){document.body.dispatchEvent(new MouseEvent('contextmenu',{clientX:x,clientY:y,bubbles:true,cancelable:true}));return;}throw Error('酒狐命中点不存在');})()`);
+ await new Promise(r=>setTimeout(r,250));
+ const initial=await p.eval(`(()=>{const d=document.querySelector('.fox-helper-dialog').getBoundingClientRect(),r=document.getElementById('wine-fox-pet').getBoundingClientRect();return {gap:d.left-r.right,dy:Math.abs(d.top-r.top),manual:!!document.querySelector('.fox-helper-manual'),focus:document.activeElement.matches('[data-fox-message]')};})()`);
+ assert.ok(initial.gap>=11&&initial.gap<=13);assert.ok(initial.dy<=1);assert.equal(initial.manual,false);assert.equal(initial.focus,true);
+ await p.screenshot('shots/final/fox-dashboard-dialog-position.png');
+ await p.eval(`qqaWineFox.set({x:1000,y:100})`);
+ await p.waitFor(`(()=>{const d=document.querySelector('.fox-helper-dialog').getBoundingClientRect(),r=document.getElementById('wine-fox-pet').getBoundingClientRect();return d.right<=r.left-11&&Math.abs(d.top-r.top)<=1;})()`);
+ await p.eval(`qqaWineFox.set({x:0,y:52})`);
+ await p.waitFor(`document.querySelector('.fox-helper-dialog').getBoundingClientRect().left>200`);
+ await p.send('Emulation.setDeviceMetricsOverride',{width:640,height:480,deviceScaleFactor:1,mobile:false});await new Promise(r=>setTimeout(r,200));
+ assert.equal(await p.eval(`(()=>{const r=document.querySelector('.fox-helper-dialog').getBoundingClientRect();return r.left>=7&&r.top>=47&&r.right<=innerWidth-7&&r.bottom<=innerHeight-7;})()`),true);
+ await p.eval(`document.querySelector('[data-close]').click()`);assert.equal(await p.eval(`qqaFoxSettingsHelper.state().open`),false);
+ assert.equal(await p.eval(`qqaWineFox.helper().state().helperBusy`),false);
+ console.log('酒狐对话框：仪表盘真实命中右键、贴近宠物、无手动入口、左右边界、跟随移动、窗口缩放及关闭通过。');
+});

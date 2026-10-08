@@ -167,6 +167,8 @@ function bindSettingsEvents(c) {
   let undoBtn = null;
 
   function markDirty(el) {
+    // MC controls persist locally; do not trigger unrelated backend config saves.
+    if (el?.matches?.('[data-mc],#mc-motion-on')) return;
     if (el?.matches?.('[data-persona-filter]')) return;
     if (state.tab === 'persona' && el?.matches?.('#cfg-persona-name,#cfg-roletext,#cfg-customrules,#cfg-sysprompt,#cfg-botname,#cfg-selfnick,#cfg-participation,#cfg-persona-chat-model')) {
       const target = state.personaTarget || 'global';
@@ -188,7 +190,7 @@ function bindSettingsEvents(c) {
 
   function showUndoBtn() {
     // 独立人设页只保留自动保存，不提供整份设置快照撤销及其确认弹窗。
-    if (state.tab === 'persona') return;
+    if (state.tab === 'persona' || state.settingsSection === 'api') return;
     /**
      * ⚠️ 这里原来只判 `if (undoBtn) return` —— 有个隐性 bug：
      *    `renderSettings()` 会**整体重建 `#settings-form` 的 innerHTML**，
@@ -589,6 +591,8 @@ function bindSettingsEvents(c) {
   // 每次重渲染后原地挂载；旧挂载的滑条监听由其 MutationObserver 随节点摘除自动销毁。
   const acRoot = $('#ac-editor');
   if (acRoot) mountActiveConfigEditor(acRoot);
+  const personaActiveRoot = $('#persona-active-editor');
+  if (personaActiveRoot) mountActiveConfigEditor(personaActiveRoot, {groupId:(state.personaTarget || '').slice(6)});
 
   // ── 屏蔽名单 ──
   $('#blocklist-btn')?.addEventListener('click', () => openBlocklistModal());
@@ -630,6 +634,7 @@ function bindSettingsEvents(c) {
 
   // ── 远程价格表：状态展示 + 立即拉取 ──
   renderPriceFeedStatus();
+  $('#official-price-catalogue-btn')?.addEventListener('click',openOfficialPriceCatalogue);
   $('#price-feed-refresh-btn')?.addEventListener('click', async () => {
     const statusEl = $('#price-feed-status');
     if (statusEl) statusEl.textContent = '正在拉取官网价格表…';
@@ -638,6 +643,7 @@ function bindSettingsEvents(c) {
       state.modelPrices = { prices: r.prices, current: r.current, remote: r.remote };
       renderPriceFeedStatus();
       refreshModelPriceCard();   // 价格可能变了，当前模型卡片跟着刷
+      invalidatePriceViews();
     } catch (e) {
       if (statusEl) statusEl.textContent = `拉取失败：${e.message}`;
     }
@@ -829,7 +835,7 @@ function bindSettingsEvents(c) {
       right.innerHTML = p.models.map((m) => `
         <div class="mm-model" data-model="${esc(m)}">
           <span class="mm-check">${m === currentModel ? '✓' : ''}</span>
-          <span>${esc(names[m] || m)}</span>
+          <span>${modelLogoHtml(m)}${esc(names[m] || m)}</span>
           <span class="muted" style="font-size:11px">${esc(m)}</span>
         </div>`).join('') || '<div class="muted" style="padding:10px">该提供商下没有模型</div>';
       right.querySelectorAll('.mm-model').forEach((el) => {
@@ -862,12 +868,12 @@ function bindSettingsEvents(c) {
         <tr><th style="width:88%">备选模型（点击选择；提供商随模型自动确定）</th><th></th></tr>
         ${fallbackRows.map((row, i) => `
           <tr>
-            <td><input type="text" class="fb-model-pick" data-i="${i}" readonly placeholder="点击选择模型" data-model="${esc(row.model || '')}" data-provider="${esc(row.provider || '')}" value="${esc(row.model ? (provNameOf(row.provider) ? `${provNameOf(row.provider)} · ${row.model}` : row.model) : '')}" style="cursor:pointer" /></td>
+            <td><div class="model-name-with-logo">${modelLogoHtml(row.model)}<select class="fb-model-pick" data-i="${i}" data-model="${esc(row.model||'')}" data-provider="${esc(row.provider||'')}" aria-label="备选模型"><option value="">选择模型</option>${(state.providers||[]).map(p=>`<optgroup label="${esc(p.displayName||p.id)}">${(p.models||[]).map(m=>`<option value="${esc(p.id+'|||'+m)}" ${row.provider===p.id&&row.model===m?'selected':''}>${esc(p.modelNames?.[m]||m)}</option>`).join('')}</optgroup>`).join('')}</select></div></td>
             <td style="width:56px;text-align:right"><button class="btn btn-small btn-danger fb-del" data-i="${i}" ${fallbackRows.length <= 1 ? 'disabled' : ''}>删除</button></td>
           </tr>`).join('')}
       </table>`;
     box.querySelectorAll('.fb-model-pick').forEach((el) => {
-      el.addEventListener('click', () => { openFallbackModelPicker(Number(el.dataset.i)); });
+      el.addEventListener('change',()=>{const [provider='',model='']=el.value.split('|||');fallbackRows[Number(el.dataset.i)]={provider,model};el.dataset.provider=provider;el.dataset.model=model;$('#fallback-model-rows')?.dispatchEvent(new Event('input',{bubbles:true}));});
     });
     box.querySelectorAll('.fb-del').forEach((el) => {
       el.addEventListener('click', () => {
@@ -892,8 +898,8 @@ function bindSettingsEvents(c) {
   // 全部收进「模型配置」（mc-* 字段，弹窗内部自带绑定）；删除模型/手动添加
   // 提供商收进「模型管理」。Key 的显示/清除都已搬进「模型配置」弹窗
   // （mc-apikey-toggle / mc-apikey-clear，弹窗内自带绑定），旧绑定全部删除。
-  $('#open-model-config-btn')?.addEventListener('click', () => openModelConfigModal());
-  $('#open-model-manage-btn')?.addEventListener('click', () => openModelManageModal());
+  if($('#api-model-config'))openModelConfigModal($('#api-model-config'));
+  if($('#api-model-directory'))openModelManageModal($('#api-model-directory'));
   // 拿当前 API Key 的真实值：如果输入框里是用户刚输入的新 Key（非掩码非空），优先用；否则向后端取
   // 2026-09-19（M9 清理）：唯一调用点已随「模型配置」弹窗改版删除（弹窗内自带取 Key
   // 逻辑），此函数成为死代码且引用不存在的 #cfg-apikey —— 一并删除。
@@ -966,7 +972,7 @@ function bindSettingsEvents(c) {
         // 高亮模型配置入口按钮（2026-09-18 改版后 Base URL 不再是页面输入框，
         // 引导用户进「模型配置」弹窗；旧 #cfg-baseurl 已不存在）
         setTimeout(() => {
-          const input = $('#open-model-config-btn');
+          const input = $('#mc-model-pick');
           if (input) {
             input.focus();
             input.style.boxShadow = '0 0 0 3px var(--accent)';
@@ -998,12 +1004,7 @@ function bindSettingsEvents(c) {
   function syncVisionSwitch(pid, model) {
     const vhint = $('#model-vision-hint');
     if (!vhint) return;
-    const r = (state.visionResults || {})[`${pid || ''}|||${model || ''}`];
-    if (r && (r.verdict === 'vision' || r.verdict === 'no-vision')) {
-      vhint.textContent = r.verdict === 'vision' ? '✅ 当前模型支持图片输入' : '🚫 当前模型不支持图片输入';
-    } else {
-      vhint.textContent = '';
-    }
+    vhint.textContent = modelInputCapabilities(pid,model);
   }
   syncVisionSwitch(c.api.provider, c.api.model);
 
@@ -1103,7 +1104,7 @@ function bindSettingsEvents(c) {
       $('#persona-pick-hint').textContent = `删除失败：${e.message}`;
     }
   });
-  
+
   syncPersonaButtons(false);   // 初始装填不播动画（重渲染后是全新节点）
   $('#cfg-roletext')?.addEventListener('input', () => syncPersonaButtons(false));
   $('#cfg-persona-name')?.addEventListener('input', () => syncPersonaButtons(false));
@@ -1148,6 +1149,10 @@ function bindSettingsEvents(c) {
       if(fields.includes('roleText'))revision.templateRef=selectedTemplate?{id:selectedTemplate.id,owner:selectedTemplate.owner || '',name:editor.name,builtin:!!selectedTemplate.builtin}:null;
       const previous=target==='global'?latest.persona:(latest.personaByChat?.[target] || {});
       const patch=target==='global'?{persona:{...previous,...revision}}:{personaByChat:{__replace__:{...(latest.personaByChat || {}),[target]:{...previous,...revision}}}};
+      if(scope==='model' || scope==='all'){
+        const activePatch=$('#persona-active-editor')?.__storePatch?.(latest);
+        if(activePatch)patch.store=activePatch;
+      }
       if(fields.includes('modelChoice')){
         const byChat={...(latest.api?.apiByChat?.byChat || {})};
         if(editor.modelChoice){const [provider,model]=JSON.parse(editor.modelChoice);byChat[target]={provider,model};}else delete byChat[target];

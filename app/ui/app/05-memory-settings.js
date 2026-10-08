@@ -425,6 +425,13 @@ async function loadSettings({navigation=false}={}) {
   try{return await settingsLoadPromise;}finally{settingsLoadPromise=null;}
 }
 async function loadSettingsData() {
+  const preserve=state.tab==='settings'&&state.settingsSection==='api';
+  const preserveAccount=state.config?.account;
+  const mediaSnapshot=preserve?$('#api-model-config')?.__mediaSnapshot?.():null;
+  const scrollSelectors=['.settings-pane','#settings-form','#api-model-directory','#api-model-config > .model-modal-body'];
+  const scrollPositions=preserve?scrollSelectors.map(selector=>({selector,top:$(selector)?.scrollTop||0})):[];
+  const checkedModel=preserve?$('#mg-right input[name="mg-model"]:checked')?.value:null;
+
   const [cfg, tplData, provData, visionData, priceData, toolsData, skillsData] = await Promise.all([
     api('/api/config'),
     api('/api/persona-templates').catch(() => ({ templates: [] })),
@@ -451,137 +458,51 @@ async function loadSettingsData() {
   refreshPromptPreview(cfg);
   settingsLoadedAt=Date.now();
   if(['settings','persona'].includes(state.tab))renderSettings();
+  if(preserve&&state.settingsSection==='api'&&state.config?.account===preserveAccount){
+    if(mediaSnapshot)$('#api-model-config')?.__restoreMedia?.(mediaSnapshot);
+    scrollPositions.forEach(({selector,top})=>{const el=$(selector);if(el)el.scrollTop=top;});
+    if(checkedModel)$$('#mg-right input[name="mg-model"]').forEach(el=>{el.checked=el.value===checkedModel;});
+  }
 }
 
 /** 设置页「远程价格表」状态行：来源（在线/缓存/内置）、时间、条目数、错误。 */
 function renderPriceFeedStatus() {
-  const el = $('#price-feed-status');
-  if (!el) return;
-  const r = state.modelPrices?.remote;
-  if (!r || !r.enabled) {
-    el.textContent = '官网价格表暂未启用，当前使用内置表；点击“拉取价格表”即可立即重试。';
-    return;
-  }
-  const when = r.fetchedAt ? fmtTime(r.fetchedAt) : '-';
-  const droppedTxt = r.dropped ? `，${r.dropped} 条不合格被丢弃` : '';
-  if (r.ok && r.source === 'remote') {
-    el.textContent = `远程表生效中：${r.count} 条覆盖内置表 · 上次拉取 ${when}${droppedTxt}`;
-  } else if (!r.ok && r.source === 'cache') {
-    el.textContent = `服务器暂时拉不到（${r.error || '未知错误'}），正在用上次缓存的远程表（${r.count} 条）· ${when}`;
-  } else if (!r.ok) {
-    el.textContent = `拉取失败（${r.error || '未知错误'}），暂用内置表 · ${when}`;
-  } else {
-    el.textContent = `已应用本地缓存（${r.count} 条），正在拉取最新…`;
-  }
+  const el=$('#price-feed-status');if(!el)return;
+  const r=state.modelPrices?.remote;
+  if(!r?.sources){el.textContent='官方来源正在初始化，点击拉取可重试。';return;}
+  const sources=Object.values(r.sources),ok=sources.filter(s=>s.ok).length;
+  el.textContent=`${ok}/10 家已获取 · ${r.count||0} 个模型 · 更新 ${r.fetchedAt?fmtTime(r.fetchedAt):'尚未拉取'}${ok<10?' · 部分来源失败，保留可用缓存':''}`;
+  el.title=sources.map(s=>`${s.name}：${s.ok?s.count+' 个模型':s.error||'未获取'}`).join('\n');
 }
 
-/**
- * 刷新「当前模型单价」卡片。
- *
- * ── 规则（只跟开关绑定，绝不依赖保存状态）──
- *   开关开 → 展示内置官方价，输入框**只读**
- *            匹配不到就是 0，提示关掉开关自填
- *   开关关 → 输入框**可编辑**，优先该模型的自定义价，没设则用全局兜底
- *
- * 匹配判断在本地用 state.modelPrices.prices 直接算，
- * 不读 state.modelPrices.current —— 那是后端按「当时请求的模型」算的，
- * 切换模型后若不重新请求就会拿到旧值。
- */
-/**
- * 在内置价格表里匹配模型（前端版）。
- *
- * 前端是无模块单文件，拿不到 src/model-prices.js 的导出，所以这里实现一份
- * 与后端 matchPriceTable 完全相同的逻辑：精确 → 去前缀 → 最长前缀匹配。
- * 用本地数据算而不是读 state.modelPrices.current —— 后者是后端按
- * 「当时请求的模型」算的，切换模型后不重新请求就会拿到旧值。
- */
+/** 当前连接的站点自定义价优先；只有验证适用的官方单价才锁定。 */
 function refreshModelPriceCard() {
-  const modelEl = $('#pc-model');
-  const noteEl = $('#pc-note');
-  const inEl = $('#cfg-price-in');
-  const outEl = $('#cfg-price-out');
-  const cachedEl = $('#cfg-price-cached');
-  if (!modelEl) return;
-
-  const cfg = state.config || {};
-  const api = cfg.api || {};
-
-  // 实时值：优先界面控件，退回已保存配置
-  const box = $('#cfg-useofficialprice');
-  const modelInput = $('#cfg-model');
-  const useOfficial = box ? box.checked : (api.useOfficialPrice !== false);
-  const model = String((modelInput ? modelInput.value : api.model) || '').trim();
-
-  modelEl.textContent = model || '（未选择模型）';
-
-  if (!model) {
-    [inEl, outEl, cachedEl].forEach((el) => { if (el) { el.value = 0; el.disabled = true; } });
-    if (noteEl) noteEl.textContent = '先在上方选择一个模型，才能查看/设定它的单价。';
-    return;
-  }
-
-  let shown, locked, sourceTxt;
-
-  // 优先级与后端 resolveModelPrice 一致：模型级自定义价命中 > 官方表（开关开）
-  // > 全局兜底。曾经开关开时只查官方表 —— 已存自定义价 + 开关开 → 界面显示
-  // 官方价、成本看板按自定义价计费，显示与计费两张皮。
-  const customEntry = (api.modelPrices || {})[model];
-  const hasCustom = !!(customEntry && (Number(customEntry.in) || Number(customEntry.out)));
-
-  if (hasCustom) {
-    locked = true;   // 与后端口径对齐：自定义价命中时 locked = useOfficial
-    shown = {
-      in: Number(customEntry.in) || 0,
-      out: Number(customEntry.out) || 0,
-      cached: customEntry.cached == null ? Number(customEntry.in) || 0 : Number(customEntry.cached) || 0
-    };
-    sourceTxt = '正在使用你为该模型设定的单价（优先于官方价格表）。要改请先清除自定义单价。';
-  } else if (useOfficial) {
-    locked = true;
-    const official = matchPriceTable(model, state.modelPrices?.prices || []);
-    if (official) {
-      shown = {
-        in: official.in ?? 0,
-        out: official.out ?? 0,
-        cached: official.cached == null ? official.in : official.cached
-      };
-      const tag = official.src === 'official' ? '厂商官方定价页直取' : '二手折算，仅供参考';
-      sourceTxt = `内置官方价格表已匹配到「${official.id}」（${tag}）。开关开启时只读 —— 要自定义请关闭上方开关。`;
-      if (official.peak) {
-        sourceTxt += `　该模型分时段计价（高峰 ${official.peak.in}/${official.peak.out}/${official.peak.cached}）。`;
-      }
-      if (official.image) {
-        sourceTxt += '　支持图片输入：' + (official.image.mode === 'capped'
-          ? `每张封顶 ${official.image.maxTokensPerImage} token`
-          : official.image.mode === 'pixel'
-            ? `每张 = 宽×高/${official.image.divisor}+${official.image.base} token`
-            : '换算规则待补');
-      }
-    } else {
-      shown = { in: 0, out: 0, cached: 0 };
-      sourceTxt = '';
-    }
-  } else {
-    locked = false;
-    shown = {
-      in: Number(api.priceInputPerM) || 0,
-      out: Number(api.priceOutputPerM) || 0,
-      cached: Number(api.priceCachedPerM) || Number(api.priceInputPerM) || 0
-    };
-    sourceTxt = '已关闭官方价格表，可在此填写该模型的单价（也可在「批量自定义价格编辑」里为多个模型分别设定）。';
-  }
-
-  if (inEl) { inEl.value = shown.in ?? 0; inEl.disabled = locked; }
-  if (outEl) { outEl.value = shown.out ?? 0; outEl.disabled = locked; }
-  if (cachedEl) { cachedEl.value = shown.cached ?? 0; cachedEl.disabled = locked; }
-  const card = $('#model-price-card');
-  if (card) {
-    card.classList.toggle('locked', locked);
-    // 官方价开启且无自定义价命中时整卡置灰：视觉上明确「这里不可改」；
-    // 命中自定义价时锁定状态由 locked 表达，不额外置灰混淆来源
-    card.classList.toggle('pc-official-on', useOfficial === true && !hasCustom);
-  }
-  if (noteEl) noteEl.textContent = sourceTxt;
+  const modelEl=$('#pc-model'),noteEl=$('#pc-note');if(!modelEl)return;
+  const fields=[$('#cfg-price-in'),$('#cfg-price-out'),$('#cfg-price-cached')];
+  const api=state.config?.api||{},model=String($('#cfg-model')?.value||api.model||'').trim();
+  const officialOn=$('#cfg-useofficialprice')?.checked??(api.useOfficialPrice!==false);
+  modelEl.innerHTML=modelLogoHtml(model)+esc(model||'（未选择模型）');
+  const endpoint=currentPriceEndpoint(model),p=officialModelRecord(model);
+  const price=matchPriceTable(model,state.modelPrices?.prices||[]);
+  const scoped=modelPriceKey(model,{...api,provider:$('#cfg-provider')?.value||api.provider},state.providers||[]);
+  const custom=(api.modelPrices||{})[scoped]||(api.modelPrices||{})[legacyModelPriceKey(model,api,state.providers||[])]||(api.modelPrices||{})[model];
+  const hasCustom=custom&&[custom.in,custom.out].some(x=>Number(x)>0);
+  let shown={in:api.priceInputPerM||0,out:api.priceOutputPerM||0,cached:api.priceCachedPerM||api.priceInputPerM||0},locked=false,note='';
+  if(!model){shown={};locked=true;note='先选择模型。';}
+  else if(hasCustom){shown=custom;note=(api.modelPrices?.[scoped]?'当前站点':'通用模型')+'自定义价格优先生效，可直接修改。';}
+  else if(officialOn&&applicablePrice(price,endpoint)){
+    shown=price;locked=true;note=`官方来源已匹配 ${price.id}。${price.note||''}`;
+  }else if(!endpoint.official||!endpoint.priceEligible){
+    if(officialOn)shown={};
+    note=endpoint.reason+'。官方参考价不用于此连接计费，请填写当前站点单价。';
+  }else if(officialOn){
+    shown={};
+    note=p?'该模型存在分档、峰谷或其他计费条件，未自动套用单一价格。查看价格目录后可填写适用单价。':'暂无适用的官方单价，未估算费用；可填写自定义价格。';
+  }else note='自动价格已关闭，请填写当前连接适用单价。';
+  fields.forEach((el,i)=>{if(el){const value=shown[['in','out','cached'][i]];el.value=value==null?'':Number(Number(value).toFixed(6));el.disabled=locked;}});
+  $('#model-price-card')?.classList.toggle('locked',locked);
+  $('#model-price-card')?.classList.toggle('pc-official-on',locked&&!!model);
+  if(noteEl)noteEl.textContent=note;
 }
 
 /**
@@ -665,7 +586,7 @@ function openBatchPriceModal() {
     const offTitle = off ? `官方价：输入 ${off.in} / 输出 ${off.out} / 缓存 ${off.cached ?? '—'}（元/百万）` : '官方价格表未收录';
     return `
       <tr data-model="${esc(m)}">
-        <td title="${esc(offTitle)}">${esc(p.names[m] || m)}<div class="muted" style="font-size:11px">${esc(m)}</div></td>
+        <td title="${esc(offTitle)}">${modelLogoHtml(m)}${esc(p.names[m] || m)}<div class="muted" style="font-size:11px">${esc(m)}</div></td>
         <td><input type="number" step="0.01" min="0" class="bp-in" value="${esc(c.in ?? '')}" placeholder="${off ? off.in : 0}" /></td>
         <td><input type="number" step="0.01" min="0" class="bp-out" value="${esc(c.out ?? '')}" placeholder="${off ? off.out : 0}" /></td>
         <td><input type="number" step="0.01" min="0" class="bp-cached" value="${esc(c.cached ?? '')}" placeholder="${off ? (off.cached ?? 0) : 0}" /></td>
@@ -734,6 +655,7 @@ function openBatchPriceModal() {
       state.config = state.config || {};
       state.config.api = state.config.api || {};
       state.config.api.modelPrices = next;
+      invalidatePriceViews();
       closeModelModal(overlay);
       refreshModelPriceCard();
       // 2026-09-19（M9 清理）：旧 #provider-action-hint 元素已随改版消失，写它会在

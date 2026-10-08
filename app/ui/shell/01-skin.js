@@ -51,6 +51,7 @@
       desc: 'QQ Agent 原生外观：扁平、克制、跟随亮暗',
       icon: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="2.6" y="3.4" width="14.8" height="13.2" rx="2.2"/><path d="M2.6 7.6h14.8"/></svg>',
       /** 是否需要二级设置（Minecraft 有：音效/背景/字体） */
+      customColors: true,
       hasSub: false
     },
     minecraft: {
@@ -58,6 +59,7 @@
       name: 'Minecraft',
       desc: '像素风界面：方块边框、拉杆开关、交互音效与游戏背景图',
       icon: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.4 17 6.2v7.6L10 17.6 3 13.8V6.2z"/><path d="M3 6.2l7 3.8 7-3.8M10 10v7.6"/></svg>',
+      customColors: false,
       hasSub: true
     }
   };

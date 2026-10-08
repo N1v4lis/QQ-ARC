@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {resolveModelPrice,setRemotePrices} from 'file:///E:/QQ%20Agent/resources/app/src/model-prices.js';
+import {modelPriceKey} from '../app/ui/vendor/model-vendors.js';
+setRemotePrices({'gpt-4.1':{in:2,out:8,cached:.5,vendor:'openai',autoApply:true}});
+const cfg=baseUrl=>({api:{model:'gpt-4.1',baseUrl,useOfficialPrice:true}});
+assert.equal(resolveModelPrice('gpt-4.1',cfg('https://api.openai.com/v1')).source,'official');
+assert.equal(resolveModelPrice('gpt-4.1',cfg('https://relay.example/v1')).source,'unmatched');
+assert.equal(resolveModelPrice('gpt-4.1',cfg('https://api.openai.com.evil.test/v1')).source,'unmatched');
+assert.equal(resolveModelPrice('gpt-4.1',cfg('https://open.bigmodel.cn/api/paas/v4')).source,'unmatched');
+const a=cfg('https://relay-a.example/v1'),b=cfg('https://relay-b.example/v1');
+const modelPrices={[modelPriceKey('gpt-4.1',a.api)]:{in:12,out:24},[modelPriceKey('gpt-4.1',b.api)]:{in:30,out:60},'gpt-4.1':{in:1,out:2}};
+a.api.modelPrices=modelPrices;b.api.modelPrices=modelPrices;
+assert.equal(resolveModelPrice('gpt-4.1',a).in,12);assert.equal(resolveModelPrice('gpt-4.1',b).in,30);
+assert.equal(resolveModelPrice('gpt-4.1',{api:{...cfg('https://relay-c.example/v1').api,modelPrices}}).in,1);
+console.log('真实宿主官方价门禁、近似域名/跨品牌拒绝、不同站点独立价格及旧通用自定义兼容通过。');

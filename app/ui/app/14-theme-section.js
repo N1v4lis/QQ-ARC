@@ -229,14 +229,13 @@ function renderMinecraftSubSettings() {
         <!-- ── 音效 ─────────────────────────────────────────────────── -->
         <div class="pz-group th-sub">
           <div class="pz-group-title">互动音效</div>
-
-          <div class="checkbox-row">
+          <div class="mc-audio-controls"><div class="checkbox-row">
             <input type="checkbox" id="mc-sfx-on" data-mc="sfxOn" ${st.sfxOn ? 'checked' : ''} />
             <label for="mc-sfx-on">启用互动音效（总开关）</label>
-          </div>
+          </div><label class="switch"><input type="checkbox" id="mc-motion-on" ${window.qqaMotion?.isOn() !== false ? 'checked' : ''}/><span class="track"><span class="thumb"></span></span><span>界面动效</span></label></div>
 
           <div class="th-field">
-            <label class="th-field-label" for="mc-sfx-volume">音量</label>
+            <label class="th-field-label" for="mc-sfx-volume">总音量</label>
             <input type="range" id="mc-sfx-volume" data-mc="sfxVolume" min="0" max="100" step="1"
                    value="${pct}" class="th-range" />
             <span class="th-field-val" data-mc-out="sfxVolume">${pct}%</span>
@@ -250,6 +249,7 @@ function renderMinecraftSubSettings() {
             <select id="mc-sfx-click" data-mc="clickSfx" class="th-select">
               ${sfxOptions(st.clickSfx, USES.click, false)}
             </select>
+            <div class="mc-channel-volume"><input type="range" aria-label="点击音音量" data-mc="clickVolume" min="0" max="100" value="${Math.round((st.clickVolume ?? 1)*100)}"/><span data-mc-out="clickVolume">${Math.round((st.clickVolume ?? 1)*100)}%</span></div>
           </div>
 
           <!-- 开关音：需求"开关功能采用拉杆…活塞推出/收回的音效（每种音效用户在二级菜单内自行选择）"
@@ -259,6 +259,7 @@ function renderMinecraftSubSettings() {
             <select id="mc-sfx-toggle" data-mc="toggleSfx" class="th-select">
               ${sfxOptions(st.toggleSfx, USES.toggle, false)}
             </select>
+            <div class="mc-channel-volume"><input type="range" aria-label="开关音音量" data-mc="toggleVolume" min="0" max="100" value="${Math.round((st.toggleVolume ?? 1)*100)}"/><span data-mc-out="toggleVolume">${Math.round((st.toggleVolume ?? 1)*100)}%</span></div>
           </div>
 
           <!-- 滑条音：需求"滑条默认不开启（使用）音效" → 默认 off -->
@@ -267,6 +268,7 @@ function renderMinecraftSubSettings() {
             <select id="mc-sfx-slider" data-mc="sliderSfx" class="th-select">
               ${sfxOptions(st.sliderSfx, USES.slider, true, 'off')}
             </select>
+            <div class="mc-channel-volume"><input type="range" aria-label="滑条音音量" data-mc="sliderVolume" min="0" max="100" value="${Math.round((st.sliderVolume ?? 1)*100)}"/><span data-mc-out="sliderVolume">${Math.round((st.sliderVolume ?? 1)*100)}%</span></div>
           </div>
         </div>
 
@@ -280,7 +282,7 @@ function renderMinecraftSubSettings() {
           </div>
 
           <div class="th-field">
-            <label class="th-field-label" for="mc-bg-opacity">透明度<small>越低越不影响读字</small></label>
+            <label class="th-field-label" for="mc-bg-opacity">背景可见度<small>0% 隐藏，100% 完整显示</small></label>
             <input type="range" id="mc-bg-opacity" data-mc="bgOpacity" min="0" max="100" step="1"
                    value="${bgPct}" class="th-range" />
             <span class="th-field-val" data-mc-out="bgOpacity">${bgPct}%</span>
@@ -376,6 +378,7 @@ function bindThemeSectionEvents() {
     });
   });
 
+  document.getElementById('mc-motion-on')?.addEventListener('change',e=>window.qqaMotion?.setPref(e.target.checked?'on':'off'));
   if (!mc) return;   // 没有 MC 运行时就到此为止（默认皮肤不需要下面这些）
 
   // ── Minecraft 二级设置 ────────────────────────────────────────────────
@@ -386,7 +389,7 @@ function bindThemeSectionEvents() {
   function syncOutputs(prefs) {
     document.querySelectorAll('#settings-form [data-mc-out]').forEach((el) => {
       const k = el.dataset.mcOut;
-      if (k === 'sfxVolume' || k === 'bgOpacity') el.textContent = `${Math.round((Number(prefs[k]) || 0) * 100)}%`;
+      if (k.endsWith('Volume') || k === 'bgOpacity') el.textContent = `${Math.round((Number(prefs[k]) || 0) * 100)}%`;
     });
     document.querySelectorAll('#settings-form [data-bg-index]').forEach((el) => {
       const on = Number(el.dataset.bgIndex) === Number(prefs.bgIndex);
@@ -414,7 +417,7 @@ function bindThemeSectionEvents() {
         // 选完立刻试听：用户改了音效却听不到，等于没法选。
         // 开关类用 'on' 方向试听（能听到"开启"那一半）；滑条类用无方向播放。
         if (typeof mc.play === 'function') {
-          mc.play(el.value === 'off' ? 'menu' : el.value, key === 'toggleSfx' ? 'on' : null);
+          mc.play(el.value === 'off' ? 'menu' : el.value, key === 'toggleSfx' ? 'on' : null,key==='toggleSfx'?'toggle':key==='sliderSfx'?'slider':'click');
         }
         void prefs;
       });
@@ -423,6 +426,7 @@ function bindThemeSectionEvents() {
       el.addEventListener('input', () => {
         const out = document.querySelector(`#settings-form [data-mc-out="${key}"]`);
         if (out) out.textContent = `${el.value}%`;
+        if(key==='bgOpacity')document.documentElement.style.setProperty('--mc-bg-opacity',String(Number(el.value)/100));
       });
       el.addEventListener('change', () => {
         // 音量键存 0..1，透明度键也存 0..1（界面上是 0..100）
@@ -430,10 +434,10 @@ function bindThemeSectionEvents() {
         const prefs = mc.write({ [key]: v });
         syncOutputs(prefs);
         // 音量滑条试听点击音；透明度滑条用**滑条音**（默认 off 即不响）
-        if (key === 'sfxVolume') {
-          if (typeof mc.play === 'function') mc.play(prefs.clickSfx);
+        if (key.endsWith('Volume')) {
+          if (typeof mc.play === 'function') mc.play(prefs[key==='toggleVolume'?'toggleSfx':key==='sliderVolume'?'sliderSfx':'clickSfx'],key==='toggleVolume'?'on':null,key==='toggleVolume'?'toggle':key==='sliderVolume'?'slider':'click');
         } else if (typeof mc.play === 'function') {
-          mc.play(prefs.sliderSfx);
+          mc.play(prefs.sliderSfx,null,'slider');
         }
       });
     }
@@ -544,7 +548,7 @@ function renderBgChoices(cur) {
   }
   return list.map((bg, i) => `
     <button type="button" class="th-bg${i === cur ? ' is-on' : ''}" data-bg-index="${i}"
-            role="radio" aria-checked="${i === cur ? 'true' : 'false'}" title="${esc(bg.name || ('背景 ' + (i + 1)))}">
-      <img src="${esc(bg.thumb || bg.url)}" alt="${esc(bg.name || '')}" loading="lazy" />
+            role="radio" aria-checked="${i === cur ? 'true' : 'false'}" aria-label="背景 ${i + 1}">
+      <img src="${esc(bg.thumb || bg.url)}" alt="" loading="lazy" />
     </button>`).join('');
 }

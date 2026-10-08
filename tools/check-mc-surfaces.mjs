@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {withPage} from './cdp.mjs';
+await withPage({url:'http://127.0.0.1:3210/',width:1360,height:900,initScripts:[`
+window.qqAgentShell={controls:{minimize(){},'toggle-maximize'(){},close(){}},windowState:async()=>({maximized:false})};
+window.soundStarts=0;const start=AudioBufferSourceNode.prototype.start;AudioBufferSourceNode.prototype.start=function(...a){window.soundStarts++;return start.apply(this,a)};
+const original=fetch;window.fetch=(i,o)=>{const url=typeof i==='string'?i:i.url;if(url.includes('/api/config')&&o?.method==='POST')return Promise.resolve(new Response(JSON.stringify({ok:true}),{headers:{'content-type':'application/json'}}));return original(i,o)};
+`]},async p=>{
+ await p.waitFor('!!state.config && !document.getElementById("loading-overlay")',{timeout:60000});
+ await p.eval(`qqaSkin.apply('default');qqaColors.setColor('--q-bg-base','#abcdef');qqaSkin.apply('minecraft');qqaMcTheme.write({bgOn:true,bgOpacity:.7,sfxOn:true});switchTab('usage')`);
+ await new Promise(r=>setTimeout(r,450));
+ for(const selector of ['#q-shell','#topbar','.q-body > .q-tb-status','#layout','#usage-page'])assert.equal(await p.eval(`getComputedStyle(document.querySelector('${selector}')).backgroundColor`),'rgba(0, 0, 0, 0)',selector);
+ assert.equal(await p.eval(`document.documentElement.style.getPropertyValue('--q-bg-base')`),'');
+ await p.waitFor('!!document.querySelector("#usage-page .usage-table")',{timeout:60000});
+ await p.screenshot('shots/final/mc-transparent-usage-light.png');
+ await p.eval(`applyTheme('dark');switchTab('dashboard')`);await new Promise(r=>setTimeout(r,350));
+ assert.equal(await p.eval(`getComputedStyle(document.querySelector('.dash-pane')).backgroundColor`),'rgba(0, 0, 0, 0)');
+ await p.screenshot('shots/final/mc-transparent-dashboard-dark.png');
+ await p.eval(`openSettingsSection('personal')`);await p.waitFor('!!document.querySelector("#card-colors")');
+ assert.equal(await p.eval(`document.querySelector('#card-colors').dataset.colorsDisabled === 'true'`),true);
+ assert.equal(await p.eval(`document.querySelector('.pz-picker').matches(':disabled')`),true);
+ assert.equal(await p.eval(`getComputedStyle(document.querySelector('#card-colors .setcard-body'),'::after').backgroundColor`),'rgba(128, 128, 128, 0.22)');
+ await p.eval(`qqaColors.setColor('--q-bg-base','#ff0000')`);
+ assert.equal(await p.eval(`qqaColors.current()['--q-bg-base']`),'#abcdef');
+ await p.screenshot('shots/final/mc-colors-disabled.png');
+ await p.eval(`qqaSkin.apply('default')`);
+ assert.equal(await p.eval(`document.querySelector('#card-colors').dataset.colorsDisabled === 'true'`),false);
+ assert.equal(await p.eval(`document.documentElement.style.getPropertyValue('--q-bg-base')`),'#abcdef');
+ await p.eval(`qqaColors.resetAll();qqaSkin.apply('minecraft');qqaMcTheme.loadSfx()`);
+ const sounds=await p.eval(`(()=>{window.soundStarts=0;for(const b of document.querySelectorAll('[data-qwin]'))b.querySelector('svg').dispatchEvent(new MouseEvent('click',{bubbles:true}));const silent=window.soundStarts;const b=document.createElement('button');document.body.append(b);b.click();b.remove();return {silent,normal:window.soundStarts};})()`);
+ assert.equal(sounds.silent,0);assert.ok(sounds.normal>0,'normal clicks still play');
+ console.log('MC亮暗页底/标题栏透明、整卡配色遮罩及禁用、默认配色恢复、窗口按钮静音且正常按钮保留音效通过。');
+});

@@ -43,7 +43,7 @@
   }
   function set(patch){prefs=clean({...prefs,...patch});save();return reconcile();}
   function home(){prefs={...prefs,x:null,y:null};save();instance?.configure(prefs);notify();}
-  window.qqaWineFox={KEY,read:()=>({...prefs}),set,home,state,syncControls};
+  window.qqaWineFox={helper:()=>instance,KEY,read:()=>({...prefs}),set,home,state,syncControls};
   document.addEventListener('change',e=>{const el=e.target;if(!el.matches?.('[data-wine-fox-pref]'))return;
     const key=el.dataset.wineFoxPref;set({[key]:el.type==='checkbox'?el.checked:['size','expression'].includes(key)?Number(el.value):el.value});});
   document.addEventListener('click',e=>{if(e.target.closest?.('[data-wine-fox-home]'))home();});

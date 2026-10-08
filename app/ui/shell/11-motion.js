@@ -4,7 +4,7 @@
 
 (function motionRuntime() {
   const root = document.documentElement;
-  const KEY = 'qqa-motion';
+  const KEY = 'qqa-mc-motion';
 
   function getPref() {
     if(root.dataset.skin!=='minecraft')return 'on';

@@ -75,7 +75,10 @@
   }
 
   /** 把一组覆盖值应用到 <html>（空值 = 移除该覆盖，回落默认）。 */
+  function supportsCustomColors() { return window.qqaSkin?.META[root.dataset.skin || 'default']?.customColors === true; }
+
   function apply(map) {
+    if (!supportsCustomColors()) map = {};
     const clean = {};
     for (const [k, v] of Object.entries(map || {})) {
       if (!byVar.has(k)) continue;                 // 只认白名单里的变量，避免写入任意 CSS
@@ -94,7 +97,7 @@
 
   /** 设为某个值（写 localStorage + 立即生效）。 */
   function setColor(varName, value) {
-    if (!byVar.has(varName)) return;
+    if (!supportsCustomColors() || !byVar.has(varName)) return;
     const map = readAll();
     const v = String(value || '').trim();
     if (!v) delete map[varName]; else map[varName] = v;
@@ -109,6 +112,7 @@
 
   /** 恢复全部默认。 */
   function resetAll() {
+    if (!supportsCustomColors()) return;
     apply({});
     writeAll({});
     try { window.dispatchEvent(new CustomEvent('qqa-colors-change', { detail: { resetAll: true } })); } catch { /* 老环境 */ }
@@ -135,9 +139,17 @@
 
   // 启动即应用（必须在首屏之前尽量早，index.html 里紧随主题脚本之后加载）
   apply(readAll());
+  window.addEventListener('qqa-skin-change', () => {
+    apply(readAll());
+    if (document.getElementById('card-colors') && typeof state !== 'undefined' && state.tab === 'settings' && state.settingsSection === 'personal') {
+      document.getElementById('settings-form').innerHTML = renderPersonalizeSection(state.config);
+      if (typeof enhanceConcept2UI === 'function') enhanceConcept2UI(document.getElementById('settings-form'));
+      bindPersonalizePanel();
+    }
+  });
 
   window.qqaColors = {
     ITEMS, GROUPS, KEY,
-    apply, setColor, resetOne, resetAll, current, toCssText, readAll
+    supportsCustomColors, apply, setColor, resetOne, resetAll, current, toCssText, readAll
   };
 })();

@@ -24,6 +24,7 @@
   const DEFAULTS = {
     sfxOn: true,
     sfxVolume: 0.6,
+    clickVolume: 1, toggleVolume: 1, sliderVolume: 1,
     clickSfx: 'menu',
     toggleSfx: 'lever',
     sliderSfx: 'off',
@@ -41,7 +42,7 @@
    *   上限锁 0.6：再高就会明显吃掉文字对比度，那时用户自己调高即可，
    *   不该由默认值替他做这个牺牲。
    */
-  const BG_OPACITY_MAX = 0.6;
+  const BG_OPACITY_MAX = 1;
 
   /**
    * 背景素材清单。
@@ -50,11 +51,10 @@
    * 列表里放 5 张 1920×1080 会让打开设置页时多拉 500KB。
    */
   const BACKGROUNDS = [
-    { file: 'plains-dawn.png', name: '平原日出', url: '/assets/mc/bg/plains-dawn.png', thumb: '/assets/mc/bg/plains-dawn.thumb.png' },
-    { file: 'night-stars.png', name: '夜晚星空', url: '/assets/mc/bg/night-stars.png', thumb: '/assets/mc/bg/night-stars.thumb.png' },
-    { file: 'cave-torch.png', name: '洞穴火把', url: '/assets/mc/bg/cave-torch.png', thumb: '/assets/mc/bg/cave-torch.thumb.png' },
-    { file: 'forest-lake.png', name: '森林湖泊', url: '/assets/mc/bg/forest-lake.png', thumb: '/assets/mc/bg/forest-lake.thumb.png' },
-    { file: 'mesa-canyon.png', name: '台地峡谷', url: '/assets/mc/bg/mesa-canyon.png', thumb: '/assets/mc/bg/mesa-canyon.thumb.png' }
+
+    {url:'/assets/mc/bg/wallpaper-1.png',thumb:'/assets/mc/bg/wallpaper-1.png'},
+    {url:'/assets/mc/bg/wallpaper-2.png',thumb:'/assets/mc/bg/wallpaper-2.png'},
+    {url:'/assets/mc/bg/wallpaper-3.png',thumb:'/assets/mc/bg/wallpaper-3.png'}
   ];
 
   /**
@@ -129,7 +129,7 @@
       }
     }
     // 夹取：音量 0..1、透明度 0..上限、背景序号 0..清单长度-1
-    out.sfxVolume = Math.min(1, Math.max(0, out.sfxVolume));
+    for(const key of ['sfxVolume','clickVolume','toggleVolume','sliderVolume'])out[key]=Math.min(1,Math.max(0,out[key]));
     out.bgOpacity = Math.min(BG_OPACITY_MAX, Math.max(0, out.bgOpacity));
     const maxBg = Math.max(1, BACKGROUNDS.length) - 1;
     out.bgIndex = Math.min(maxBg, Math.max(0, Math.round(out.bgIndex)));
@@ -173,12 +173,6 @@
     const p = prefs || read();
     const root = document.documentElement;
     try {
-      // ⚠️ 遮罩厚度在这里算好再写，**不要**让 CSS 写 `calc(1 - var(--x))`。
-      //    原因：getComputedStyle 对 `calc()` 里含 var 的**自定义属性**不做数值求解，
-      //    会原样返回字符串（实测读到的是 "calc(1 - 0.2)"）。
-      //    那会让"透明度方向对不对"这件事变得不可验证 —— 而这里恰恰踩过一次反向。
-      //    写成具体数字后，--mc-mask 是一个真实的数，CSS 与验证都读得到。
-      root.style.setProperty('--mc-mask', String(Math.max(0, Math.min(1, 1 - p.bgOpacity))));
       root.style.setProperty('--mc-bg-opacity', String(p.bgOpacity));
       root.style.setProperty('--mc-sfx-volume', String(p.sfxVolume));
       root.setAttribute('data-mc-sfx', p.sfxOn ? 'on' : 'off');
@@ -313,7 +307,7 @@
    *    之后的点击就正常了。这是为何不返回 false 装作没这回事：
    *    解锁失败是真实状态，调用方（和测试）需要能看出来。
    */
-  function play(name, dir) {
+  function play(name, dir, channel = dir ? 'toggle' : 'click') {
     if (!name || name === 'off') return false;
     const prefs = read();
     if (!prefs.sfxOn) return false;
@@ -332,7 +326,7 @@
       const src = c.createBufferSource();
       src.buffer = buf;
       const g = c.createGain();
-      g.gain.value = Math.max(0, Math.min(1, prefs.sfxVolume));
+      g.gain.value = Math.max(0, Math.min(1, prefs.sfxVolume * (prefs[channel+'Volume'] ?? 1)));
       src.connect(g);
       g.connect(c.destination);
       src.start();
@@ -356,7 +350,7 @@
     const t = e.target;
     if (!t || !t.closest) return;
     // 滑条 / 复选框 / 下拉 / 文本输入：交给各自的音效，不叠加点击音
-    if (t.closest('#q-side-toggle, [data-persona-left="templates"], .switch, input[type="range"], input[type="checkbox"], select, input[type="text"], textarea')) return;
+    if (t.closest('#q-winctl, [data-qwin], #card-colors[data-colors-disabled="true"] .setcard-body, #q-side-toggle, [data-persona-left="templates"], .switch, input[type="range"], input[type="checkbox"], select, input[type="text"], textarea')) return;
     const el = t.closest(CLICKABLE);
     if (!el) return;
     if (el.disabled || el.getAttribute('aria-disabled') === 'true') return;

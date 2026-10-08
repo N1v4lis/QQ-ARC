@@ -266,7 +266,13 @@ function openPersonaCreateModal() {
  * 模型目录 / Base URL / API Key / 图片视频专用模型 / 图片视频开关 / 视频理解方式。
  * 保存按钮 = 把这些字段 PATCH 到 /api/config（掩码 Key 不回传，与主页面同语义）。
  */
-function openModelConfigModal() {
+// Use the same form and bindings in the page or a dialog.
+function modelInlineShell(mount,{body,foot}) {
+  mount.innerHTML=`<div class="model-modal-body${/^\s*<div class="model-modal-left"/.test(String(body))?' row':''}">${body}</div><div class="model-inline-foot">${foot||''}</div>`;
+  return mount;
+}
+
+function openModelConfigModal(mount = null) {
   const c = state.config || {};
   const currentProvider = (state.providers || []).find((p) => p.id === c.api?.provider);
   const displayOf = (modelId) => {
@@ -277,15 +283,16 @@ function openModelConfigModal() {
     }
     return m;
   };
-  const overlay = modelModalShell({
+  const overlay = (mount ? options=>modelInlineShell(mount,options) : modelModalShell)({
     head: '模型配置',
     body: `
-      <div class="field"><label>模型目录（点击选择）</label>
+      <div class="field"><label>${mount ? "选择模型" : "模型目录（点击选择）"}</label>
         <div style="display:flex;gap:8px">
-          <input type="text" id="mc-model-pick" readonly placeholder="点击选择模型" value="${esc(currentProvider ? ((currentProvider.modelNames || {})[c.api.model] || c.api.model || '') : '')}" style="flex:1;cursor:pointer" />
+          ${mount ? `<select id="mc-model-pick" aria-label="选择模型" style="flex:1"><option value="">选择模型</option>${(state.providers||[]).map(p=>`<optgroup label="${esc(p.displayName||p.id)}">${(p.models||[]).map(m=>`<option value="${esc(p.id+'|||'+m)}" ${p.id===c.api?.provider&&m===c.api?.model?'selected':''}>${esc(p.modelNames?.[m]||m)} · ${esc(modelInputCapabilities(p.id,m))}</option>`).join('')}</optgroup>`).join('')}</select>` : `<input type="text" id="mc-model-pick" readonly placeholder="点击选择模型" value="${esc(currentProvider ? ((currentProvider.modelNames||{})[c.api.model]||c.api.model||'') : '')}" style="flex:1;cursor:pointer">` }
           <button class="btn btn-small" id="mc-test-btn">测试连通性</button>
         </div>
         <div class="hint" id="mc-test-result" style="margin-top:4px"></div></div>
+      ${mount ? `<input type="hidden" id="mc-baseurl" value="${esc(c.api?.baseUrl || '')}"><input type="hidden" id="mc-apikey" value="">` : `
       <div class="field-row">
         <div class="field"><label>当前 Base URL</label>
           <input type="text" id="mc-baseurl" readonly value="${esc(c.api?.baseUrl || '')}" /></div>
@@ -296,11 +303,12 @@ function openModelConfigModal() {
             <button class="btn btn-small btn-danger" id="mc-apikey-clear" type="button" title="清除已保存的 API Key（留空保存并不会清除，必须点这个按钮）">清除</button>
           </div></div>
       </div>
-      <div class="checkbox-row"><input type="checkbox" id="mc-vision" ${c.api?.vision !== false ? 'checked' : ''} />
-        <label for="mc-vision">图片输入（关闭则移除看图工具）</label>
-        <span id="mc-vision-hint" class="muted" style="font-size:12px;align-self:center"></span></div>
-      <div class="checkbox-row"><input type="checkbox" id="mc-video" ${c.api?.video === true ? 'checked' : ''} />
-        <label for="mc-video">视频输入（GIF 转视频发给模型）</label></div>
+      `}
+      <div class="mc-input-toggles">
+        ${switchHtml('mc-vision', c.api?.vision !== false, '图片输入')}
+        <span id="mc-vision-hint" class="muted"></span>
+        ${switchHtml('mc-video', c.api?.video === true, '视频输入')}
+      </div>
       <div class="field-row">
         <div class="field"><label>图片输入专用模型（留空用主模型）</label>
           <div style="display:flex;gap:8px">
@@ -323,9 +331,11 @@ function openModelConfigModal() {
           ].map(([v, l]) => `<option value="${v}" ${(c.api?.videoMode || 'auto') === v ? 'selected' : ''}>${l}</option>`).join('')}
         </select></div>`,
     foot: `<button class="btn" id="mc-scan-btn" title="逐个真实请求模型探测图片输入能力，结果回填目录徽标">扫描图片能力</button>
-           <button class="btn" id="mc-cancel">取消</button>
+           ${mount ? '' : '<button class="btn" id="mc-cancel">取消</button>'}
            <button class="btn btn-primary" id="mc-save">保存</button>`
   });
+
+  const selectedProviderId = () => overlay.querySelector('#mc-picked')?.value.split('|||')[0] || c.api?.provider;
 
   // 视觉能力扫描：POST /api/vision/scan（202 异步），进度经 SSE vision-scan
   // 事件写 #mc-vision-hint（02-sse-sessions.js 监听），完成后监听器自动刷新
@@ -347,6 +357,7 @@ function openModelConfigModal() {
 
   // 模型选择：复用主模型选择器语义，但选完只写本弹窗的表单（不立即 POST）
   overlay.querySelector('#mc-model-pick').addEventListener('click', () => {
+    if(mount)return;
     const providers = state.providers || [];
     if (!providers.length) { alert('模型目录为空：请先用「模型管理」添加提供商。'); return; }
     const pickOverlay = modelModalShell({
@@ -362,7 +373,7 @@ function openModelConfigModal() {
     const renderLeft = () => {
       pl.innerHTML = providers.map((p) =>
         `<div class="mm-prov ${p.id === activePid ? 'active' : ''}" data-pid="${esc(p.id)}">${esc(p.displayName || p.id)}</div>`).join('');
-      pl.querySelectorAll('.mm-prov').forEach((el) => el.addEventListener('click', () => { activePid = el.dataset.pid; renderLeft(); renderRight(); }));
+      pl.querySelectorAll('.mm-prov').forEach((el) => el.addEventListener('click', () => { activePid = el.dataset.pid; state.modelManageProvider=activePid; renderLeft(); renderRight(); }));
     };
     const renderRight = () => {
       const p = providers.find((x) => x.id === activePid);
@@ -370,11 +381,15 @@ function openModelConfigModal() {
       const names = p.modelNames || {};
       pr.innerHTML = p.models.map((m) => `
         <div class="mm-model" data-model="${esc(m)}">
-          <span>${esc(names[m] || m)}</span>${visionBadge(activePid, m)}
+          <span>${modelLogoHtml(m)}${esc(names[m] || m)}</span>${visionBadge(activePid, m)}
           <span class="muted" style="font-size:11px">${esc(m)}</span>
         </div>`).join('') || '<div class="muted" style="padding:10px">该提供商下没有模型</div>';
       pr.querySelectorAll('.mm-model').forEach((el) => el.addEventListener('click', () => {
-        overlay.querySelector('#mc-model-pick').value = (names[el.dataset.model] || el.dataset.model);
+        if(selectedProviderId()!==activePid){
+          const keyField=overlay.querySelector('#mc-apikey');keyField.type=mount?'hidden':'password';keyField.value=mount?'':(p.hasKey?'******':'');
+          if(!mount)overlay.querySelector('#mc-apikey-toggle').textContent='显示';
+        }
+        overlay.querySelector('#mc-model-pick').value = mount ? (p.displayName || p.id) : (names[el.dataset.model] || el.dataset.model);
         overlay.querySelector('#mc-picked').value = `${activePid}|||${el.dataset.model}`;
         overlay.querySelector('#mc-baseurl').value = p.baseURL || '';
         closeModelModal(pickOverlay);
@@ -389,7 +404,29 @@ function openModelConfigModal() {
   hidden.type = 'hidden';
   hidden.id = 'mc-picked';
   overlay.querySelector('.model-modal-body').appendChild(hidden);
-
+  let mediaKey=JSON.stringify([c.api?.provider||'',c.api?.model||'']);
+  const mediaDrafts={...(c.api?.modelMediaProfiles||{})};
+  const readMedia=()=>({vision:overlay.querySelector('#mc-vision').checked,video:overlay.querySelector('#mc-video').checked,visionModel:overlay.querySelector('#mc-vision-model-pick').value===''?'':(overlay.querySelector('#mc-vision-model-pick').dataset.model??c.api?.visionModel??''),videoModel:overlay.querySelector('#mc-video-model-pick').value===''?'':(overlay.querySelector('#mc-video-model-pick').dataset.model??c.api?.videoModel??''),videoMode:overlay.querySelector('#mc-video-mode').value});
+  const applyMedia=profile=>{
+    overlay.querySelector('#mc-vision').checked=profile.vision!==false;
+    overlay.querySelector('#mc-video').checked=profile.video===true;
+    overlay.querySelector('#mc-video-mode').value=profile.videoMode||'auto';
+    for(const which of ['vision','video']){const el=overlay.querySelector('#mc-'+which+'-model-pick');el.dataset.model=profile[which+'Model']||'';el.value=displayOf(profile[which+'Model']);}
+  };
+  mediaDrafts[mediaKey]??={vision:c.api?.vision!==false,video:c.api?.video===true,visionModel:c.api?.visionModel||'',videoModel:c.api?.videoModel||'',videoMode:c.api?.videoMode||'auto'};
+  if(mount){
+    applyMedia(mediaDrafts[mediaKey]);
+    mount.__mediaSnapshot=()=>{mediaDrafts[mediaKey]=readMedia();return {key:mediaKey,drafts:structuredClone(mediaDrafts),picked:hidden.value};};
+    mount.__restoreMedia=snapshot=>{const selected=JSON.parse(snapshot.key).join('|||');if(![...overlay.querySelector('#mc-model-pick').options].some(o=>o.value===selected))return;Object.assign(mediaDrafts,snapshot.drafts);mediaKey=snapshot.key;hidden.value=snapshot.picked;const [pid,model]=JSON.parse(mediaKey);overlay.querySelector('#mc-model-pick').value=pid+'|||'+model;overlay.querySelector('#mc-baseurl').value=(state.providers||[]).find(p=>p.id===pid)?.baseURL||'';applyMedia(mediaDrafts[mediaKey]);};
+    overlay.querySelector('#mc-model-pick').addEventListener('change',e=>{
+      mediaDrafts[mediaKey]=readMedia();const value=e.target.value;
+      if(!value){e.target.value=JSON.parse(mediaKey).join('|||');return;}
+      hidden.value=value;const [pid,model]=value.split('|||');mediaKey=JSON.stringify([pid,model]);
+      const provider=(state.providers||[]).find(p=>p.id===pid);
+      overlay.querySelector('#mc-baseurl').value=provider?.baseURL||'';overlay.querySelector('#mc-apikey').value='';
+      applyMedia(mediaDrafts[mediaKey]||{vision:true,video:false,visionModel:'',videoModel:'',videoMode:'auto'});
+    });
+  }
   // 专用模型选择（写隐藏字段，保存时带走）
   const pickSpecial = (which) => {
     const providers = state.providers || [];
@@ -408,7 +445,7 @@ function openModelConfigModal() {
     const renderLeft = () => {
       pl.innerHTML = providers.map((p) =>
         `<div class="mm-prov ${p.id === activePid ? 'active' : ''}" data-pid="${esc(p.id)}">${esc(p.displayName || p.id)}</div>`).join('');
-      pl.querySelectorAll('.mm-prov').forEach((el) => el.addEventListener('click', () => { activePid = el.dataset.pid; renderLeft(); renderRight(); }));
+      pl.querySelectorAll('.mm-prov').forEach((el) => el.addEventListener('click', () => { activePid = el.dataset.pid; state.modelManageProvider=activePid; renderLeft(); renderRight(); }));
     };
     const renderRight = () => {
       const p = providers.find((x) => x.id === activePid);
@@ -416,7 +453,7 @@ function openModelConfigModal() {
       const names = p.modelNames || {};
       pr.innerHTML = p.models.map((m) => `
         <div class="mm-model" data-model="${esc(m)}">
-          <span>${esc(names[m] || m)}</span>${visionBadge(activePid, m)}
+          <span>${modelLogoHtml(m)}${esc(names[m] || m)}</span>${visionBadge(activePid, m)}
           <span class="muted" style="font-size:11px">${esc(m)}</span>
         </div>`).join('') || '<div class="muted" style="padding:10px">该提供商下没有模型</div>';
       pr.querySelectorAll('.mm-model').forEach((el) => el.addEventListener('click', () => {
@@ -441,13 +478,13 @@ function openModelConfigModal() {
   });
 
   // Key 显示/清除：与主页面同款（fetchRealKey 走 /api/providers/key）
-  overlay.querySelector('#mc-apikey-toggle').addEventListener('click', async () => {
+  overlay.querySelector('#mc-apikey-toggle')?.addEventListener('click', async () => {
     const input = overlay.querySelector('#mc-apikey');
     const btn = overlay.querySelector('#mc-apikey-toggle');
     const show = input.type === 'password';
     if (show) {
       try {
-        const pid = c.api?.provider;
+        const pid = selectedProviderId();
         const r = pid ? await api(`/api/providers/key?providerId=${encodeURIComponent(pid)}`) : await api('/api/api-key');
         input.type = 'text';
         input.value = String(r.apiKey || '（无）');
@@ -459,10 +496,10 @@ function openModelConfigModal() {
       btn.textContent = '显示';
     }
   });
-  overlay.querySelector('#mc-apikey-clear').addEventListener('click', async () => {
+  overlay.querySelector('#mc-apikey-clear')?.addEventListener('click', async () => {
     if (!(await uiConfirm('确定清除已保存的 API Key？'))) return;
     try {
-      const pid = c.api?.provider;
+      const pid = selectedProviderId();
       if (pid) {
         await api('/api/providers/set-key', { method: 'POST', body: JSON.stringify({ providerId: pid, apiKey: '' }) });
       } else {
@@ -501,7 +538,7 @@ function openModelConfigModal() {
     btn.textContent = '测试连通性';
   });
 
-  overlay.querySelector('#mc-cancel').addEventListener('click', () => closeModelModal(overlay));
+  overlay.querySelector('#mc-cancel')?.addEventListener('click', () => mount ? loadSettings() : closeModelModal(overlay));
   overlay.querySelector('#mc-save').addEventListener('click', async () => {
     const patch = {
       vision: overlay.querySelector('#mc-vision').checked,
@@ -526,9 +563,11 @@ function openModelConfigModal() {
     // Key：只在用户输入了非掩码明文时才回传（掩码/留空 = 保持）
     const raw = (overlay.querySelector('#mc-apikey').value || '').trim();
     if (raw && raw !== '******') patch.apiKey = raw;
+    if(mount){mediaDrafts[mediaKey]=readMedia();patch.modelMediaProfiles=mediaDrafts;Object.assign(patch,mediaDrafts[mediaKey]);}
     try {
       await api('/api/config', { method: 'POST', body: JSON.stringify({ api: patch }) });
-      closeModelModal(overlay);
+      if(!mount)closeModelModal(overlay);
+      invalidatePriceViews();
       loadSettings();
     } catch (e) {
       alert(`保存失败：${e.message}`);
@@ -558,7 +597,7 @@ function openModelPicker() {
     left.innerHTML = providers.map((p) =>
       `<div class="mm-prov ${p.id === activePid ? 'active' : ''}" data-pid="${esc(p.id)}">${esc(p.displayName || p.id)}</div>`).join('');
     left.querySelectorAll('.mm-prov').forEach((el) => {
-      el.addEventListener('click', () => { activePid = el.dataset.pid; renderLeft(); renderRight(); });
+      el.addEventListener('click', () => { activePid = el.dataset.pid; state.modelManageProvider=activePid; renderLeft(); renderRight(); });
     });
   }
   function renderRight() {
@@ -568,7 +607,7 @@ function openModelPicker() {
     right.innerHTML = p.models.map((m) => `
       <div class="mm-model" data-pid="${esc(p.id)}" data-model="${esc(m)}">
         <span class="mm-check">${m === state.config?.api?.model && p.id === current ? '✓' : ''}</span>
-        <span>${esc(names[m] || m)}</span>${visionBadge(p.id, m)}
+        <span>${modelLogoHtml(m)}${esc(names[m] || m)}</span>${visionBadge(p.id, m)}
         <span class="muted" style="font-size:11px">${esc(m)}</span>
       </div>`).join('') || '<div class="muted" style="padding:10px">该提供商下没有模型</div>';
     right.querySelectorAll('.mm-model').forEach((el) => {
@@ -637,7 +676,7 @@ function openMemoryModelPicker() {
     left.innerHTML = providers.map((p) =>
       `<div class="mm-prov ${p.id === activePid ? 'active' : ''}" data-pid="${esc(p.id)}">${esc(p.displayName || p.id)}</div>`).join('');
     left.querySelectorAll('.mm-prov').forEach((el) => {
-      el.addEventListener('click', () => { activePid = el.dataset.pid; renderLeft(); renderRight(); });
+      el.addEventListener('click', () => { activePid = el.dataset.pid; state.modelManageProvider=activePid; renderLeft(); renderRight(); });
     });
   }
   function renderRight() {
@@ -647,7 +686,7 @@ function openMemoryModelPicker() {
     right.innerHTML = p.models.map((m) => `
       <div class="mm-model" data-pid="${esc(p.id)}" data-model="${esc(m)}">
         <span class="mm-check">${m === currentModel && p.id === currentProvider ? '✓' : ''}</span>
-        <span>${esc(names[m] || m)}</span>
+        <span>${modelLogoHtml(m)}${esc(names[m] || m)}</span>
         <span class="muted" style="font-size:11px">${esc(m)}</span>
       </div>`).join('') || '<div class="muted" style="padding:10px">该提供商下没有模型</div>';
     right.querySelectorAll('.mm-model').forEach((el) => {
@@ -754,7 +793,7 @@ function openModelAddModal(baseUrl, apiKey, remoteModels, knownProviderId, onApp
     return `
       <label class="mm-model">
         <input type="checkbox" class="ma-check" value="${esc(m)}" ${added ? 'checked disabled' : ''} />
-        <span class="mm-model-text">${esc(modelPart)}</span>
+        <span class="mm-model-text">${modelLogoHtml(modelPart)}${esc(modelPart)}</span>
         ${added ? '<span class="muted" style="font-size:11px">已添加</span>' : ''}
       </label>`;
   };
@@ -850,18 +889,18 @@ function openModelAddModal(baseUrl, apiKey, remoteModels, knownProviderId, onApp
  *        拉取模型列表 / 删除模型按钮。
  * 替代了页面上原来的「删除模型 / 提供商」按钮和「手动添加提供商」整块表单。
  */
-function openModelManageModal() {
-  const overlay = modelModalShell({
+function openModelManageModal(mount = null) {
+  const overlay = (mount ? options=>modelInlineShell(mount,options) : modelModalShell)({
     head: '模型管理',
     body: `
       <div class="model-modal-left" id="mg-left"></div>
       <div class="model-modal-right" id="mg-right"></div>`,
-    foot: `<button class="btn" id="mg-close">关闭</button>`
+    foot: `${mount?'':'<button class="btn" id="mg-close">关闭</button>'}`
   });
   const left = overlay.querySelector('#mg-left');
   const right = overlay.querySelector('#mg-right');
   const cfgProvider = String(state.config?.api?.provider || '');
-  let activePid = cfgProvider || (state.providers || [])[0]?.id || '';
+  let activePid = (state.providers||[]).some(p=>p.id===state.modelManageProvider) ? state.modelManageProvider : (cfgProvider || (state.providers || [])[0]?.id || '');
 
   // 刷新（2026-09-26）：必须**先 loadSettings 再重渲染** —— 直接 renderLeft()
   // 会读到旧的 state.providers，表现为"刚添加的提供商不显示，动一下模态框才出来"。
@@ -875,7 +914,7 @@ function openModelManageModal() {
   function renderLeft() {
     const providers = state.providers || [];
     left.innerHTML = `
-      <div style="padding:6px 0 8px;display:flex;gap:6px;flex-wrap:wrap">
+      <div class="mg-provider-actions">
         <button class="btn btn-small" id="mg-add-prov">＋ 添加提供商</button>
         <button class="btn btn-small btn-danger" id="mg-del-prov">删除提供商</button>
       </div>
@@ -884,7 +923,7 @@ function openModelManageModal() {
           ${esc(p.displayName || p.id)}${p.id === cfgProvider ? ' <span class="muted" style="font-size:11px">（当前）</span>' : ''}
         </div>`).join('') || '<div class="muted" style="padding:10px;font-size:12px">还没有提供商，点上方「添加提供商」。</div>'}`;
     left.querySelectorAll('.mm-prov').forEach((el) => {
-      el.addEventListener('click', () => { activePid = el.dataset.pid; renderLeft(); renderRight(); });
+      el.addEventListener('click', () => { activePid = el.dataset.pid; state.modelManageProvider=activePid; renderLeft(); renderRight(); });
     });
     // 添加提供商：弹子模态框（Base URL + Key → 拉取/勾选模型 → POST /api/providers）
     left.querySelector('#mg-add-prov').addEventListener('click', () => {
@@ -918,9 +957,9 @@ function openModelManageModal() {
         <input type="text" id="mg-baseurl" value="${esc(p.baseURL || '')}" readonly style="width:100%" /></div>
       <div class="field"><label>API Key</label>
         <div style="display:flex;gap:8px">
-          <input type="password" id="mg-apikey" value="${esc(p.hasKey ? '******' : '')}" readonly placeholder="${p.hasKey ? '' : '（未保存）'}" style="flex:1" />
+          <input type="password" id="mg-apikey" value="${esc(p.hasKey ? '******' : '')}" autocomplete="new-password" placeholder="${p.hasKey ? '' : '（未保存）'}" style="flex:1" />
           <button class="btn btn-small" id="mg-apikey-toggle" type="button">显示</button>
-          <button class="btn btn-small btn-danger" id="mg-apikey-clear" type="button" title="清除已保存的 API Key">清除密钥</button>
+          <button class="btn btn-small" id="mg-apikey-save" type="button">保存密钥</button><button class="btn btn-small btn-danger" id="mg-apikey-clear" type="button" title="清除已保存的 API Key">清除密钥</button>
         </div></div>
       <div class="field"><label>模型（${(p.models || []).length} 个）</label>
         <div style="display:flex;gap:6px;margin-bottom:6px">
@@ -932,8 +971,9 @@ function openModelManageModal() {
           ${(p.models || []).map((m) => `
             <label class="mm-model" style="cursor:pointer">
               <input type="radio" name="mg-model" value="${esc(m)}" />
-              <span style="flex:1">${esc(names[m] || m)}</span>
-              <span class="muted" style="font-size:11px">${esc(m)}</span>
+              <span style="flex:1">${modelLogoHtml(m)}${esc(names[m] || m)}</span>
+              ${modelInputCapabilityHtml(p.id,m)}
+              ${names[m]&&names[m]!==m?`<span class="muted model-id-detail">${esc(m)}</span>`:''}
             </label>`).join('') || '<div class="muted" style="padding:10px">该提供商下没有模型：点「＋ 添加模型」手动加，或「拉取模型列表」自动拉取。</div>'}
         </div></div>`;
 
@@ -946,7 +986,7 @@ function openModelManageModal() {
         const r = await api(`/api/providers/key?providerId=${encodeURIComponent(p.id)}`);
         if (show) {
           input.type = 'text';
-          input.value = String(r.apiKey || '（无）');
+          input.value = String(r.apiKey || '');
           btn.textContent = '隐藏';
         } else {
           input.type = 'password';
@@ -956,6 +996,15 @@ function openModelManageModal() {
       } catch (e) {
         alert(`读取密钥失败：${e.message}`);
       }
+    });
+    right.querySelector('#mg-apikey-save').addEventListener('click', async () => {
+      const value=right.querySelector('#mg-apikey').value.trim();
+      if(!value||value==='******')return;
+      const btn=right.querySelector('#mg-apikey-save');btn.disabled=true;
+      try {
+        await api('/api/providers/set-key',{method:'POST',body:JSON.stringify({providerId:p.id,apiKey:value})});
+        await refresh();
+      }catch(e){alert(`保存密钥失败：${e.message}`);}finally{btn.disabled=false;}
     });
     // Key 清除
     right.querySelector('#mg-apikey-clear').addEventListener('click', async () => {
@@ -1015,7 +1064,7 @@ function openModelManageModal() {
 
   renderLeft();
   renderRight();
-  overlay.querySelector('#mg-close').addEventListener('click', () => closeModelModal(overlay));
+  overlay.querySelector('#mg-close')?.addEventListener('click', () => mount ? loadSettings() : closeModelModal(overlay));
 }
 
 /**
@@ -1297,16 +1346,16 @@ async function saveConfig({ quiet = false } = {}) {
     const curModel = String(($('#cfg-model')?.value ?? c.api?.model) || '').trim();
     const officialOn = ($('#cfg-useofficialprice')?.checked) ?? (c.api?.useOfficialPrice !== false);
     if (curModel) {
-      const isLocked = officialOn;   // 锁定只跟开关绑定
+      const isLocked = $('#cfg-price-in')?.disabled ?? officialOn;
       if (!isLocked) {
         const nextMap = { ...(c.api?.modelPrices || {}) };
         const i = Number(val('#cfg-price-in', 0)) || 0;
         const o = Number(val('#cfg-price-out', 0)) || 0;
         const ca = Number(val('#cfg-price-cached', 0)) || 0;
         if (i || o || ca) {
-          nextMap[curModel] = { in: i, out: o, cached: ca || i };
+          nextMap[modelPriceKey(curModel,patch.api,state.providers||[])] = { in: i, out: o, cached: ca || i };
         } else {
-          delete nextMap[curModel];   // 全 0 = 清除自定义，回落到官方表
+          delete nextMap[modelPriceKey(curModel,patch.api,state.providers||[])];
         }
         // 同样需要整体替换，否则 delete 掉的那一项会在合并时复活
         patch.api.modelPrices = { __replace__: nextMap };
@@ -1318,7 +1367,7 @@ async function saveConfig({ quiet = false } = {}) {
     // 旧配置，那种情况现在也走弹窗。
   }
 
-  if (sec === 'search') {
+  if (sec === 'search' || sec === 'api') {
     // 搜索 API Key：****** = 保持原 Key 不变；明文或新输入才更新
     const enteredDsKey = val('#cfg-ds-searchkey', '').trim();
     const enteredZhipuKey = val('#cfg-zhipu-key', '').trim();
@@ -1422,7 +1471,7 @@ async function saveConfig({ quiet = false } = {}) {
     // 启动时自动拉起 SnowLuma（全局设置，写进 snowluma.autoLaunch）
     patch.snowluma = {
       ...(c.snowluma || {}),
-      autoLaunch: chk('#cfg-snowluma-autolaunch', c.snowluma?.autoLaunch === true),
+      autoLaunch: true,
       hookAutoLoad: chk('#cfg-snowluma-hookautoload', c.snowluma?.hookAutoLoad === true)
     };
   }
@@ -1527,7 +1576,7 @@ async function saveConfig({ quiet = false } = {}) {
     const enteredHttpToken = val('#cfg-obhttptoken', '').trim();
     patch.snowluma = {
       dir: val('#cfg-snowlumadir', c.snowluma?.dir || '').trim(),
-      autoLaunch: chk('#cfg-snowlumalaunch', !!c.snowluma?.autoLaunch),
+      autoLaunch: true,
       wsUrl: val('#cfg-wsurl', c.snowluma?.wsUrl || '').trim(),
       httpUrl: val('#cfg-httpurl', c.snowluma?.httpUrl || '').trim(),
       ...(enteredWsToken && enteredWsToken !== '******' ? { accessToken: enteredWsToken } : {}),
@@ -1557,6 +1606,7 @@ async function saveConfig({ quiet = false } = {}) {
   const useKeepalive = bodyStr.length < 60_000;
   const data = await api('/api/config', { method: 'POST', body: bodyStr, ...(useKeepalive ? { keepalive: true } : {}) });
   state.config = {...data.config,account:state.config?.account};
+  if(patch.api)invalidatePriceViews();
   prunePersonaHistory(state.config);
   if (!quiet) {
     // 顶栏标签是「人设/模型设置」入口：只刷新 title 里的模型名，别覆盖入口文字

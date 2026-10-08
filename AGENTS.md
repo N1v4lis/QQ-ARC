@@ -47,3 +47,39 @@
 - 2026-10-08最新：用户要求桌面端主题选择加入跟随系统，恢复亮/暗/auto三项，覆盖旧仅两档要求。auto随Windows应用颜色模式实时更新，顶栏仍直接亮暗切换，本地独立页同步支持auto。
 
 - 2026-10-08最新：本轮版本0.4.4.5，用户明确授权push及Release。右上主题左键亮暗翻转、右键三档菜单，auto显示系统图标；标题及Beta品牌QQ Agent ARCFØX，MC适配。
+
+- 2026-10-08最新：MC动效开关在主题设置互动音效旁，qqa-mc-motion默认on，默认皮肤仍固定on。点击/开关/滑条音量独立乘总音量，背景仅用户三张wallpaper-1/2/3.png且不显示名称，单层0–100%可见度；gen-mc-bg已改为原图复制。OneBot密排左右布局，SnowLuma启动自动拉起固定启用，部署需patch-host-snow-autolaunch.mjs（保留异步与已有端口检测）。未经新授权不自动push。
+
+- 2026-10-08最新酒狐助手：右键自然语言对话，接入当前账号主模型API，后台校验有限控件JSON计划，前台沿既有走跑飞/开卡/拉杆动作提交原input/change。密钥仅宿主保存，MC主题八项设置跨页可用，其他开关/数字取当前设置页；手动指定入口已移除。部署需patch-host-fox-assistant.mjs后重启。音效总开关和动效拉杆同行左对齐、64px等高，窄窗换行。定点检查check-fox-language与check-fox-settings-helper，不自动push。
+
+- 2026-10-08最新：助手开关保持真实拉杆位置/尺寸，前景克隆覆盖酒狐手部，原input不移出表单，45%接触时提交；结束/取消恢复视觉。生气/呆住直接按状态本地拒绝，保留情绪，不调用模型API。见check-fox-work-refusal定点验证，不恢复56项。
+
+- 2026-10-08最新酒狐助手：改用fox-local-intent.mjs有限本地解析，无模型API；离屏渲染建立跨页开关/数值目录，执行仍走原控件动画及保存。未知/条件/越界需求不执行；移除旧宿主模型路由，patch-host-fox-assistant.mjs现在仅清理旧接口。覆盖前述主模型入口。见docs/WINE-FOX-INTERACTION.md，不自动push。
+
+- 2026-10-08最新主题：MC背景开启时各页面内部底层及标题/状态栏透明，保留控件卡片可读性。META.customColors明确能力，默认支持、MC不支持、未知主题默认禁用；配色整卡灰遮罩inert/disabled，原配色保留并切回恢复。窗口控制按钮不播MC点击音。见THEME-SYSTEM，不自动push。
+
+- 2026-10-08最新：不支持配色仍允许卡头展开/收回，仅内部控件禁用，覆盖整卡inert。MC会话工具图标18px/20px占位，音量右端和读数列对齐；活跃卡头控制组独立一行，峰谷按钮64px占位，峰谷摘要固定宽度不推移正文。定点check-mc-control-alignment，不自动push。
+
+- 2026-10-08最新：模型API采用data-settings-flat常显工作区，不使用setcard或autoFold；删除按会话模型迁移说明，保留原配置管理/价格/备选ID契约。活跃卡头重复摘要删除，闭合控制组必须隐藏。check-api-workspace定点，不自动push。
+
+- 2026-10-08最新：搜索服务并入API与搜索，菜单仅api，旧search入口归一api；同页保存同时写api/webSearch，酒狐搜索导航指api。部署价格表timer补丁，保存同配置不停止周期更新。新的价格来源待用户指定，不自行添加。
+
+- 2026-10-08：API与搜索收紧留白；接入用户指定10家官方公开价格及本地品牌Logo，实测494个价格ID。官方URL严格匹配，其他地区及条件/非Token计费只保留参考，禁止中转自动套用。站点URL＋模型隔离当前页自定义价，旧通用价保留；24小时更新、失败3小时重试及缓存。部署 tools/patch-host-official-prices.mjs 后重启。见 docs/OFFICIAL-MODEL-PRICES.md，仅本地，不自动push。
+
+- 2026-10-08：官方价格目录厂商按钮用于筛选，官网来源链接独立显示；Dashboard/用量缓存与历史日快照绑定有效远程/自定义价格版本，改价按需重算，不变价复用。部署最新 patch-host-official-prices.mjs 后重启；验证 check-price-usage-link 和 check-official-prices-ui，不自动push。
+
+- 2026-10-08：官方价格筛选升级多选，与下拉复选框同步，无选中即全部。模型与连接及提供商/模型管理全部嵌入 api-current 常显区域，删除两原入口按钮；复用同一表单绑定，嵌入形态取消重载而不移除容器，切提供商同步密钥上下文。check-api-inline-multiselect 与现有 API 定点检查覆盖，不自动push。
+
+- 2026-10-08：API区域两栏对调，左侧提供商/模型管理，右侧模型选用与图片视频设置；提供商选用字段按提供商名称展示；嵌入表单不再显示重复URL/密钥，密钥编辑保存集中管理区域。API页不再生成整页撤销按钮；其他页不变。定点check-api-inline-multiselect验证。
+
+- 2026-10-08：API上下两组栏位统一等宽、20px间距及1150px单列断点；上方两栏限高独立滚动，overscroll contain防止边界带动整页，右栏操作按钮固定。提供商按钮与Base URL首行对齐。check-api-column-scroll真实滚轮验证两皮肤、未来内容限高及边界隔离。
+
+- 2026-10-08：上方栏位高度按当前内容自动适配，最大620px再独立滚动，覆盖之前固定限高要求；当前配置两皮肤均不截断/不出现多余内滚条，未来内容仍有滚动边界隔离。添加/删除提供商按钮同宽，图片/视频输入使用右对齐switch（MC保持主题拉杆），见check-api-column-scroll。
+
+- 2026-10-08：主模型使用按提供商分组的原生下拉单选，值保持pid|||model，保存及测试端点跟随选中提供商。图片/视频开关同排右对齐且只保留简短标签。顶部、管理模型条目、下拉选项共用modelInputCapabilities：图片读检测结果，视频只读明确能力数据，无依据显示未知，不能从开关或模型名推断。check-api-inline-multiselect与check-api-column-scroll验证两皮肤。
+
+- 2026-10-08：模型配置按api.modelMediaProfiles[JSON.stringify([provider,model])]保存图片/视频开关、专用模型、视频理解方式。切换保存草稿并加载独立配置，旧全局媒体值只迁入当前模型；保存同时提交活跃运行值与档案。设置重载保留提供商、媒体草稿及滚动位置，同账号且模型仍存在才恢复。取消按钮移除；备选改为原生分组下拉，保留data-model/provider保存契约；对齐输入框与列表，focus内描边防裁切。check-api-model-profiles覆盖两皮肤与模拟保存重载。
+
+- 2026-10-08：所有文本输入/下拉/textarea焦点描边和光效内绘防滚动边界裁切；按钮/开关等焦点环内收。人设入口身份与模型设置，当前群活跃档位复用控制器，身份/全部保存提交当前群地图并保留其他群；继承清除该群两张图，独立启用unifiedTier=false。聊天设置只编辑默认档位，原分群选择及清除按钮迁出。check-persona-tier-focus使用模拟写入验证两皮肤及设置页控件。
+
+- 2026-10-08（用户本轮）：授权完整整理上次push以来改动，发布0.4.5并push GitHub；从本轮起每次部署由apply-ui --apply自动执行patch-host-version，VERSION与本机客户端package版本保持同步。未来上传仍需新的明确授权，本次不扩大为持续自动push。

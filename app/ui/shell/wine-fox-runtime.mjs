@@ -16,6 +16,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
   const brain=new FoxBehavior();
   let dazedVoices=[],angryVoices=[],behaviorTimer=0,nextAutoAt=Infinity,actionEndAt=Infinity,homePoint=null,returning=null,loopPolicy={};
   let inertia=null,injury=null;
+  let helperBusy=false,helperPending=new Set();
   let travel=null,motionKind='base',pressTimer=0,menuOpen=false,faceYaw=0,facePitch=0,faceUntil=0;
   const menu=document.createElement('div');menu.className='wine-fox-menu';menu.hidden=true;menu.setAttribute('role','menu');menu.setAttribute('aria-label','酒狐互动动作');document.body.append(menu);
   const natural=()=>prefs.animation==='natural';
@@ -78,7 +79,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
     root.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.skeleton)skeletons.add(o.skeleton);for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[]){materials.add(m);for(const v of Object.values(m))if(v?.isTexture)textures.add(v);}});
     for(const t of textures){t.dispose();t.source?.data?.close?.();}for(const g of geometries)g.dispose();for(const m of materials)m.dispose();for(const s of skeletons)s.dispose();}
   function cancelFrame(){clearTimeout(frameTimer);cancelAnimationFrame(raf);frameTimer=0;raf=0;}
-  function dispose(){if(disposed)return;disposed=true;stopVoice();cancelFrame();clearTimeout(behaviorTimer);clearTimeout(pressTimer);thoughts.dispose();menu.remove();for(const remove of listeners)remove();
+  function dispose(){endHelper();if(disposed)return;disposed=true;stopVoice();cancelFrame();clearTimeout(behaviorTimer);clearTimeout(pressTimer);thoughts.dispose();menu.remove();for(const remove of listeners)remove();
     if(drag&&canvas.hasPointerCapture(drag.id))canvas.releasePointerCapture(drag.id);drag=null;
     mixer?.stopAllAction();if(model)mixer?.uncacheRoot(model);freeModel(model);renderer?.dispose();renderer?.forceContextLoss();host.remove();}
   function activeMode(now=performance.now()){return injury?6:brain.mood==='angry'?2:brain.mood==='dazed'?6:/^extra\d+$/i.test(currentName)&&['happy','menu'].includes(interaction)?-1:interaction==='happy'?1:prefs.expression;}
@@ -93,7 +94,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
   function tick(now){raf=0;if(disposed||suspended||contextLost)return;const dt=Math.max(0,Math.min((now-lastAt)/1000,.1));lastAt=now;
     if(!menuOpen&&(!prefs.paused||interaction))mixer.update(dt);
     if(inertia){const r=host.getBoundingClientRect(),result=stepThrow([r.left,r.top],inertia.velocity,dt,[[0,Math.max(0,innerWidth-r.width)],[Math.min(52,Math.max(0,innerHeight-r.height)),Math.max(52,innerHeight-r.height)]]);place(...result.position);inertia.velocity=result.velocity;if(result.impact)startInjury();else if(Math.hypot(...result.velocity)<60){const d=inertia.drag;inertia=null;finishDrag(d);}}
-    if(returning||travel){const journey=returning||travel;const progress=Math.min(1,(now-journey.at)/journey.duration);place(THREE.MathUtils.lerp(journey.from[0],journey.to[0],progress),THREE.MathUtils.lerp(journey.from[1],journey.to[1],progress));if(progress>=1){const wasReturn=!!returning;returning=null;travel=null;persistPosition();if(wasReturn&&natural()&&brain.mood!=='normal')startMoodMotion();else restoreBase();}}
+    if(returning||travel){const journey=returning||travel;const progress=Math.min(1,(now-journey.at)/journey.duration);place(THREE.MathUtils.lerp(journey.from[0],journey.to[0],progress),THREE.MathUtils.lerp(journey.from[1],journey.to[1],progress));if(progress>=1){const wasReturn=!!returning;returning=null;travel=null;persistPosition();if(journey.resolve){faceOwner();play('idle');journey.resolve(true);}else if(wasReturn&&natural()&&brain.mood!=='normal')startMoodMotion();else restoreBase();}}
     if(!drag&&!inertia&&!returning&&!travel&&now>=faceUntil)faceOwner();
     const delta=Math.atan2(Math.sin(faceYaw-model.rotation.y),Math.cos(faceYaw-model.rotation.y)),blend=1-Math.exp(-dt*TURN_RATE);
     model.rotation.y+=delta*blend;model.rotation.x+=(facePitch-model.rotation.x)*blend;
@@ -101,7 +102,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
     pose(now);renderer.render(scene,camera);frames++;
     if((!prefs.paused&&!action.paused&&!menuOpen)||(interaction&&!(injury&&action.paused))||inertia||travel||returning||turning)schedule();}
   function play(name,once=false,forceRepeat=false){const clip=clips.find(c=>c.name===name&&name!=='jump')||clips.find(c=>c.name==='idle')||clips[0];
-    mixer.stopAllAction();action=mixer.clipAction(clip);action.reset();const lever=clip.name.startsWith('lever_');
+    mixer.stopAllAction();action=mixer.clipAction(clip);action.reset();const lever=clip.name.startsWith('lever_')&&!helperBusy;
     const repeat=!once&&!/^(death|extra[0134])$/.test(clip.name)&&(forceRepeat||loopPolicy[clip.name]==='repeat'||LOOP_ACTIONS.has(clip.name));
     action.setLoop(repeat?THREE.LoopRepeat:THREE.LoopOnce,repeat?Infinity:1);action.clampWhenFinished=true;action.play();currentName=clip.name;updateBubble();
     faceTracks=[];for(const track of clip.tracks){const parsed=THREE.PropertyBinding.parseTrackName(track.name),node=THREE.PropertyBinding.findNode(model,parsed.nodeName);
@@ -116,13 +117,48 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
   function resize(){const current=travel||returning?host.getBoundingClientRect():null;const height=Math.min(prefs.size,Math.max(120,innerHeight-60)),width=Math.min(height*.72,innerWidth);
     host.style.width=width+'px';host.style.height=height+'px';camera.left=-1.95*width/height;camera.right=1.95*width/height;camera.updateProjectionMatrix();
     renderer.setSize(width,height,false);if(current)place(current.left,current.top);else place();schedule(true);}
+
+  function beginHelper(){
+    if(disposed||suspended||injury||helperBusy||brain.mood!=='normal')return false;
+    closeMenu(false);stopTravel();returning=inertia=null;helperBusy=true;clearTimeout(behaviorTimer);acknowledge();brain.mood='normal';brain.touch(performance.now());interaction='helper';nextAutoAt=actionEndAt=Infinity;play('idle');return true;
+  }
+  function endHelper(){
+    if(!helperBusy)return;helperBusy=false;if(travel?.resolve){travel.resolve(false);travel=null;}
+    for(const cancel of helperPending)cancel();helperPending.clear();interaction='';if(!disposed){persistPosition();returnIdle();}
+  }
+  function helperMove(x,y,force){
+    if(!helperBusy||disposed||suspended)return Promise.resolve(false);
+    const r=host.getBoundingClientRect(),to=place(x,y);place(r.left,r.top);const distance=Math.hypot(to[0]-r.left,to[1]-r.top);
+    if(distance<4)return Promise.resolve(true);
+    const mode=force||(distance>520?'fly':distance>180?'run':'walk');play(mode,false,true);interaction='helper';motionKind='helper';faceDestination(to[0]-r.left,to[1]-r.top,mode==='fly');
+    return new Promise(resolve=>{travel={from:[r.left,r.top],to,at:performance.now(),duration:Math.max(300,distance/(mode==='fly'?640:mode==='run'?420:180)*1000),resolve};schedule(true);});
+  }
+  function helperGesture(name,contact,prepare){
+    if(!helperBusy||!clips.some(c=>c.name===name))return Promise.resolve(false);
+    faceOwner();play(name,true);mixer.update(0);interaction='helper';motionKind='helper';const duration=action.getClip().duration*1000;prepare?.();
+    return new Promise(resolve=>{let done=false;const timers=[];const finish=ok=>{if(done)return;done=true;timers.forEach(clearTimeout);helperPending.delete(cancel);resolve(ok);};const cancel=()=>finish(false);helperPending.add(cancel);
+      timers.push(setTimeout(()=>{if(!helperBusy){finish(false);return;}try{contact?.();}catch{finish(false);}},duration*.45));
+      timers.push(setTimeout(()=>finish(helperBusy&&!disposed&&!suspended),duration+60));schedule(true);
+    });
+  }
+  function helperAlign(x,y){
+    const node=model.getObjectByName('RightHandLocator')||model.getObjectByName('Lever_Control');if(!node)return [x,y];model.updateMatrixWorld(true);const v=node.getWorldPosition(new THREE.Vector3()).project(camera),r=host.getBoundingClientRect();
+    const screen=[r.left+(v.x+1)*r.width/2,r.top+(1-v.y)*r.height/2],pos=place(r.left+x-screen[0],r.top+y-screen[1]);
+    return [screen[0]+pos[0]-r.left,screen[1]+pos[1]-r.top];
+  }
+  function helperHand(){
+    const node=model.getObjectByName('RightHandLocator')||model.getObjectByName('Lever_Control');model.updateMatrixWorld(true);const v=node.getWorldPosition(new THREE.Vector3()).project(camera),r=host.getBoundingClientRect();return [r.left+(v.x+1)*r.width/2,r.top+(1-v.y)*r.height/2];
+  }
+  function helperTarget(x,y,name){
+    if(!helperBusy)return null;const r=host.getBoundingClientRect(),rotation=model.rotation.clone();model.rotation.set(0,0,0);play(name,true);mixer.update(action.getClip().duration*.45);const hand=helperHand(),target=place(r.left+x-hand[0],r.top+y-hand[1]);place(r.left,r.top);model.rotation.copy(rotation);play('idle');return target;
+  }
   function updateBubble(){
     syncThoughtCloud();const thought=brain.mood==='dazed'&&performance.now()>=thoughtResumeAt&&(MOOD_ACTIONS.dazed.includes(currentName)||drag||returning);
     if(thought){if(!bubble.classList.contains('wine-fox-thought')){bubble.classList.add('wine-fox-thought');const track=document.createElement('div');track.className='wine-fox-thought-track';track.setAttribute('aria-hidden','true');for(let i=0;i<2;i++){const text=document.createElement('span');text.textContent='ご主人様…　ご主人様…　';if(i)text.setAttribute('aria-hidden','true');track.append(text);}bubble.replaceChildren(track);bubble.setAttribute('aria-label','ご主人様…');}bubble.hidden=false;}
     else{bubble.classList.remove('wine-fox-thought');bubble.removeAttribute('aria-label');const text=brain.mood==='angry'?'💢':interaction==='happy'?'♪':'';if(bubble.textContent!==text)bubble.textContent=text;bubble.hidden=!text;}
   }
   function armBehavior(){
-    clearTimeout(behaviorTimer);if(disposed||suspended||contextLost)return;
+    clearTimeout(behaviorTimer);if(helperBusy)return;if(disposed||suspended||contextLost)return;
     const brainAt=injury?injury.until:loopHeld()&&brain.mood==='normal'?Infinity:natural()||brain.mood!=='normal'?brain.nextAt():Infinity;
     const motionAt=!injury&&!inertia&&!menuOpen&&!drag&&!returning&&(!prefs.paused||interaction)?actionEndAt:Infinity;
     const autoAt=natural()&&!prefs.paused&&!menuOpen&&!drag&&!returning&&!travel?nextAutoAt:Infinity;
@@ -137,6 +173,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
     else startMotion(prefs.animation,'manual');
   }
   function finishMotion(){
+    if(helperBusy)return;
     if(injury||inertia||drag||returning||travel||menuOpen||motionKind==='mood')return;
     actionEndAt=Infinity;
     if(/^extra[0134]$/.test(currentName)){returnIdle();return;}
@@ -162,6 +199,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
   }
   function moodPool(){return clips.map(c=>c.name).filter(name=>!['idle','gui','gui2','jump','death','attacked','game_lost','walk','run','fly','elytra_fly'].includes(name));}
   function advanceBehavior(){
+    if(helperBusy)return;
     behaviorTimer=0;const now=performance.now();if(disposed||suspended)return;
     if(injury){if(injury.expired(now))recoverInjury(true);else armBehavior();return;}
     if((drag||menuOpen)&&brain.mood==='normal')brain.touch(now);
@@ -198,7 +236,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
   }
   function setSuspended(value){suspended=!!value;host.hidden=suspended;cancelFrame();clearTimeout(behaviorTimer);lastAt=performance.now();
     thoughts.setPaused(suspended||prefs.paused);
-    if(suspended){inertia=null;clearThoughts();clearTimeout(pressTimer);closeMenu(false);stopTravel();stopVoice();const pending=drag;drag=null;if(pending&&canvas.hasPointerCapture(pending.id))canvas.releasePointerCapture(pending.id);if(returning){const pos=place(...returning.to);prefs={...prefs,x:pos[0],y:pos[1]};onPosition(...pos);}returning=null;if(!injury)interaction='';}
+    if(suspended){endHelper();inertia=null;clearThoughts();clearTimeout(pressTimer);closeMenu(false);stopTravel();stopVoice();const pending=drag;drag=null;if(pending&&canvas.hasPointerCapture(pending.id))canvas.releasePointerCapture(pending.id);if(returning){const pos=place(...returning.to);prefs={...prefs,x:pos[0],y:pos[1]};onPosition(...pos);}returning=null;if(!injury)interaction='';}
     else{advanceBehavior();schedule(true);}
   }
   function rayHit(e){const rect=canvas.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)return false;
@@ -207,7 +245,7 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
     const result=raycaster.intersectObjects(targets,false).some(hit=>{const o=hit.object;return !o.isSkinnedMesh||o.skeleton.bones.some(b=>!/^FaceMode_/.test(b.name)||b.scale.x>.5);});
     hitTests++;hitMs+=performance.now()-t;return result;}
   function blocked(e){return [...document.querySelectorAll('dialog[open],[role="dialog"],.modal,#loading-overlay,.qrcode-egg-overlay')].some(el=>el.getBoundingClientRect().width>0&&getComputedStyle(el).visibility!=='hidden');}
-  function down(e){if(menuOpen){if(menu.contains(e.target))return;closeMenu();}if(disposed||suspended||contextLost||e.button!==0||!e.isPrimary||blocked(e)||!rayHit(e))return;
+  function down(e){if(helperBusy)return;if(menuOpen){if(menu.contains(e.target))return;closeMenu();}if(disposed||suspended||contextLost||e.button!==0||!e.isPrimary||blocked(e)||!rayHit(e))return;
     inertia=null;stopTravel();const rect=host.getBoundingClientRect();drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:rect.left,top:rect.top,moved:false,moody:brain.mood!=='normal',samples:[{x:e.clientX,y:e.clientY,at:performance.now()}]};returning=null;if(!drag.moody)brain.touch(performance.now());else homePoint||=[rect.left,rect.top];
     suppressClick=null;clearTimeout(pressTimer);if(!injury)pressTimer=setTimeout(openMenu,550);canvas.setPointerCapture(e.pointerId);e.preventDefault();e.stopImmediatePropagation();}
   function move(e){if(!drag||drag.id!==e.pointerId||drag.menu||injury)return;e.preventDefault();e.stopImmediatePropagation();
@@ -268,6 +306,6 @@ export async function createWineFox(initial,{signal,onPosition,onAnimation,onDis
     listen(canvas,'keydown',e=>{if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();openMenu(true);}else if(['Enter',' '].includes(e.key)){e.preventDefault();greet();}else if(e.key.startsWith('Arrow')){acknowledge();e.preventDefault();const rect=host.getBoundingClientRect();const pos=place(rect.left+(e.key==='ArrowRight'?10:e.key==='ArrowLeft'?-10:0),rect.top+(e.key==='ArrowDown'?10:e.key==='ArrowUp'?-10:0));onPosition(...pos);prefs={...prefs,x:pos[0],y:pos[1]};}});
     listen(canvas,'webglcontextlost',e=>{e.preventDefault();contextLost=true;stopVoice();cancelFrame();bubble.hidden=false;bubble.textContent='请重新开启酒狐';onError('显示暂时中断，请重新开启酒狐。');});
     resize();homePoint=place();if(natural())returnIdle();else startMotion(prefs.animation,'manual');setSuspended(document.hidden);
-    return {configure,setSuspended,dispose,state:()=>({animations:clips.map(c=>c.name),visibleAnimations:visibleActions(clips.map(c=>c.name)),extraAnimations:clips.map(c=>c.name).filter(name=>/^extra[1-7]$/i.test(name)),menuOpen,natural:natural(),travel:travel?{animation:currentName,from:[...travel.from],to:[...travel.to]}:null,facingAngle:model.rotation.y,facingTarget:faceYaw,motionKind,happyAnimations:[...happyNames],interaction,voicePlaying,voiceName,voiceError,animation:currentName,expression:activeMode(),effectiveExpression:activeMode()<0?Number(faceBones.find(b=>b.scale.x>.5)?.name.slice(-1)):activeMode(),angry:brain.mood==='angry',mood:brain.mood,moodReason:brain.reason,idleAt:brain.idleAt,moodUntil:brain.until,injured:!!injury,injuryClicks:injury?.clicks||0,injuryUntil:injury?.until||0,inertia:!!inertia,thoughtCanvas:thoughts.state(),thoughtCount:thoughts.state().count,thoughtCapacity:512,thoughtNextAt,thoughtResumeAt,turnRate:TURN_RATE,nextAutoAt,actionEndAt,returning:!!returning,loopHeld:loopHeld(),actionDuration:action.getClip().duration,loop:action.loop,actionTime:action.time,homePoint:homePoint?[...homePoint]:null,bubble:!bubble.hidden?bubble.textContent:'',frames,hitTests,meanHitMs:hitTests?hitMs/hitTests:0,paused:prefs.paused,suspended,contextLost,position:[host.getBoundingClientRect().left,host.getBoundingClientRect().top],size:[canvas.width,canvas.height],drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,faceScales:faceBones.map(b=>({name:b.name,scale:b.scale.x})),leverVisible:leverMeshes.some(m=>m.visible)})};
+    return {configure,setSuspended,dispose,beginHelper,endHelper,helperMove,helperGesture,helperAlign,helperHand,helperTarget,helperHit:rayHit,state:()=>({helperBusy,animations:clips.map(c=>c.name),visibleAnimations:visibleActions(clips.map(c=>c.name)),extraAnimations:clips.map(c=>c.name).filter(name=>/^extra[1-7]$/i.test(name)),menuOpen,natural:natural(),travel:travel?{animation:currentName,from:[...travel.from],to:[...travel.to]}:null,facingAngle:model.rotation.y,facingTarget:faceYaw,motionKind,happyAnimations:[...happyNames],interaction,voicePlaying,voiceName,voiceError,animation:currentName,expression:activeMode(),effectiveExpression:activeMode()<0?Number(faceBones.find(b=>b.scale.x>.5)?.name.slice(-1)):activeMode(),angry:brain.mood==='angry',mood:brain.mood,moodReason:brain.reason,idleAt:brain.idleAt,moodUntil:brain.until,injured:!!injury,injuryClicks:injury?.clicks||0,injuryUntil:injury?.until||0,inertia:!!inertia,thoughtCanvas:thoughts.state(),thoughtCount:thoughts.state().count,thoughtCapacity:512,thoughtNextAt,thoughtResumeAt,turnRate:TURN_RATE,nextAutoAt,actionEndAt,returning:!!returning,loopHeld:loopHeld(),actionDuration:action.getClip().duration,loop:action.loop,actionTime:action.time,homePoint:homePoint?[...homePoint]:null,bubble:!bubble.hidden?bubble.textContent:'',frames,hitTests,meanHitMs:hitTests?hitMs/hitTests:0,paused:prefs.paused,suspended,contextLost,position:[host.getBoundingClientRect().left,host.getBoundingClientRect().top],size:[canvas.width,canvas.height],drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,faceScales:faceBones.map(b=>({name:b.name,scale:b.scale.x})),leverVisible:leverMeshes.some(m=>m.visible)})};
   }catch(e){dispose();throw e;}
 }

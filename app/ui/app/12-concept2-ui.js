@@ -148,7 +148,7 @@ function autoFoldSettings(root) {
       || document.getElementById('settings-form');
   if (!form) return;
   // 人设是独立列表/编辑页，不参与设置的信息卡收纳。
-  if (form.closest('#view-persona')) return;
+  if (form.closest('#view-persona') || form.querySelector('[data-settings-flat]')) return;
   // 已是折叠卡结构（显式 setCard）：只绑定交互
   if (form.querySelector(':scope > .setcard.fold, :scope > .setcard')) {
     bindSetcardFolds(form);

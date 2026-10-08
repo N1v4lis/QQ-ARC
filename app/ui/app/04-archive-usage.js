@@ -785,7 +785,7 @@ async function loadUsageView({ force = false } = {}) {
 
   try {
     const [stats, st] = await Promise.all([
-      api(`/api/usage/stats?range=${range}`),
+      api(`/api/usage/stats?range=${range}&fresh=1`),
       api('/api/status')
     ]);
     const prices = state.modelPrices || {};   // 启动时已加载，无需再请求

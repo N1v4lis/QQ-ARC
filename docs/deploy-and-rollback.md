@@ -74,3 +74,7 @@ node tools/inventory-classes.mjs               # 还有哪些 class 没有任何
 5. **`#tabs` / `#topbar` 是旧皮肤里未分层的 ID 选择器**：新版规则涉及这两个容器时必须自带 ID 前缀，
    或依赖 `layer(legacy)` 已经把它压下去。
 6. **`.q-side-foot` 是 `#tabs` 的兄弟，不是后代**：选择器写 `#tabs.q-side .q-side-foot …` 永远不匹配。
+
+## 版本同步（0.4.5起）
+
+工作区 VERSION 为 UI 与本机客户端的统一版本来源。每次 `node tools/apply-ui.mjs --apply` 校验成功后自动执行 `patch-host-version.mjs`，备份并更新安装目录的 package.json；重启后宿主版本接口及客户端读取新版本。预演和 UI 回滚不改客户端版本，回滚完整发布时需同步回滚 VERSION 后执行版本补丁并重启。EXE 安装包文件属性不随源码部署重打包。此机制不自动推送 GitHub。

@@ -672,3 +672,9 @@
    虽然特异性更低，但同一属性上很容易让人以为"新规则没生效"。
    现在读数样式只在 `.tier-read .tr-*` 一处定义，改起来不会两处打架。 */
 .has-custom, .has-extra { display: flex; align-items: center; gap: 8px; }
+
+/* OneBot 操作与状态密排，覆盖旧嵌入面板的卡片间距。 */
+.snowluma-pane-embedded .snow-status-grid .snowluma-qq-section { margin:0; padding:0; }
+.snowluma-pane-embedded .snow-status-grid .snowluma-state-row { margin:3px 0; padding:3px 0; }
+.snowluma-pane-embedded .snow-status-grid .snowluma-actions { gap:6px; margin:10px 0; }
+.snowluma-pane-embedded .snowluma-page-card > h2 { font-size:14px; margin:0 0 10px; }

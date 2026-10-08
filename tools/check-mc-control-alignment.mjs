@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';import {withPage} from './cdp.mjs';
+await withPage({url:'http://127.0.0.1:3210/',width:1360,height:900,initScripts:[`const f=fetch;window.fetch=(i,o)=>{if(typeof i==='string'&&i.includes('/api/config')&&o?.method==='POST')return Promise.resolve(new Response('{"ok":true}',{headers:{'content-type':'application/json'}}));return f(i,o)};`]},async p=>{
+ await p.waitFor('!!state.config && !document.getElementById("loading-overlay")',{timeout:60000});await p.eval(`qqaSkin.apply('minecraft');openSettingsSection('theme')`);await p.waitFor('!!document.querySelector("#mc-sfx-volume")');
+ await p.eval(`document.querySelector('#card-mc').classList.add('open')`);await new Promise(r=>setTimeout(r,250));
+ const align=await p.eval(`[...document.querySelectorAll('#mc-sfx-volume,.mc-channel-volume input')].map(e=>({right:e.getBoundingClientRect().right,label:e.parentElement.querySelector('[data-mc-out]').getBoundingClientRect().right}))`);
+ assert.equal(align.length,4);for(const r of align){assert.ok(Math.abs(r.right-align[0].right)<1,JSON.stringify(align));assert.ok(Math.abs(r.label-align[0].label)<1);}
+ await p.eval(`openSettingsSection('personal')`);await p.waitFor('!!document.querySelector("#card-colors")');
+ assert.equal(await p.eval(`document.querySelector('.pz-picker').matches(':disabled')`),true);
+ await p.eval(`document.querySelector('#card-colors .setcard-head').click()`);assert.equal(await p.eval(`document.querySelector('#card-colors').classList.contains('open')`),false);
+ await p.eval(`document.querySelector('#card-colors .setcard-head').click()`);assert.equal(await p.eval(`document.querySelector('#card-colors').classList.contains('open')`),true);
+ await p.eval(`openSettingsSection('chat')`);await p.waitFor('!!document.querySelector("#ac-peak-enabled")');await new Promise(r=>setTimeout(r,350));
+ const measure=()=>p.eval(`(()=>{const c=document.querySelector('#card-active-config'),b=c.getBoundingClientRect(),h=c.querySelector('.setcard-head').getBoundingClientRect(),tracks=[...c.querySelectorAll('.track')].map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,height:r.height}});return {cardHeight:b.height,save:c.querySelector('#ac-save').getBoundingClientRect().top,height:h.height,body:c.querySelector('.setcard-body').getBoundingClientRect().top,tracks};})()`);
+ const before=await measure();await p.eval(`const x=document.querySelector('#ac-peak-enabled');x.checked=!x.checked;x.dispatchEvent(new Event('change',{bubbles:true}))`);const after=await measure();assert.ok(Math.abs(before.height-after.height)<1);assert.ok(Math.abs(before.body-after.body)<1);assert.ok(Math.abs(before.cardHeight-after.cardHeight)<1);assert.ok(Math.abs(before.save-after.save)<1);for(const r of before.tracks)assert.equal(r.height,64);
+ await p.screenshot('shots/final/mc-active-aligned.png');
+ const icons=await p.eval(`(()=>{const d=document.createElement('details');d.className='tool-flow';d.innerHTML='<summary><span class="t-ico"><svg data-mc-icon="gear" viewBox="0 0 16 16"><rect width="16" height="16"/></svg></span><span>测试工具</span></summary>';document.querySelector('#ac-editor').append(d);const a=d.querySelector('summary').getBoundingClientRect(),b=d.querySelector('svg').getBoundingClientRect();d.remove();return {width:b.width,height:b.height,inBounds:b.top>=a.top&&b.bottom<=a.bottom};})()`);assert.equal(icons.width,18);assert.equal(icons.height,18);assert.equal(icons.inBounds,true);
+ console.log('会话图标尺寸/行内边界、四路音量右端/读数对齐、配色折叠、峰谷切换卡头/正文不跳动通过。');
+});

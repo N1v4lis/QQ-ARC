@@ -7,7 +7,7 @@
    root.dataset.skin=localStorage.getItem('qqa-skin')==='minecraft'?'minecraft':'default';
    const pref=localStorage.getItem('qqa-theme-pref')||localStorage.getItem('qqa-theme')||'auto';
    root.dataset.theme=pref==='auto'?(systemTheme.matches?'dark':'light'):(pref==='dark'?'dark':'light');
-   root.dataset.mcFont='on';root.dataset.motion=root.dataset.skin==='minecraft'&&localStorage.getItem('qqa-motion')==='off'?'off':'on';
+   root.dataset.mcFont='on';root.dataset.motion=root.dataset.skin==='minecraft'&&localStorage.getItem('qqa-mc-motion')==='off'?'off':'on';
    root.classList.toggle('dark',root.dataset.theme==='dark');root.classList.toggle('light',root.dataset.theme==='light');
   }catch{}
  }
