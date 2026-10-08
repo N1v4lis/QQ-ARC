@@ -21,3 +21,13 @@ Thumbs.db
 account-storage.sqlite*
 
 storage-v1-*.sqlite*
+
+/_scratch/rust-toolchain/
+/native/target/
+/native/.local/
+
+/_scratch/flutter-toolchain/
+/flutter/.dart_tool/
+/flutter/build/
+/flutter/windows/flutter/ephemeral/
+/flutter/.flutter-plugins*

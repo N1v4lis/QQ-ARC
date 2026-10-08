@@ -1,0 +1,52 @@
+name: Flutter and Rust migration checks
+
+on:
+  push:
+    branches: ["Rust+Slint"]
+    paths: ["native/**", "flutter/**", ".github/workflows/native.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal --component rustfmt
+      - name: Format
+        run: cargo +stable fmt --check
+      - name: Test
+        run: cargo +stable test --locked
+      - name: Build native executable
+        run: cargo +stable build --release --locked
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - name: Flutter dependencies
+        working-directory: flutter
+        run: flutter pub get
+      - name: Flutter analysis
+        working-directory: flutter
+        run: flutter analyze --no-pub
+      - name: Flutter tests
+        working-directory: flutter
+        run: flutter test --no-pub
+      - name: Build Flutter desktop
+        working-directory: flutter
+        run: flutter build windows --release --no-pub
+      - name: Bundle Rust core
+        working-directory: .
+        run: Copy-Item native/target/release/qqaf-native.exe flutter/build/windows/x64/runner/Release/qqaf-native.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qqaf-flutter-rust-windows-prototype
+          path: flutter/build/windows/x64/runner/Release/
+          if-no-files-found: error

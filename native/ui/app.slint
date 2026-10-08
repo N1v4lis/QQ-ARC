@@ -1,0 +1,97 @@
+import { Button, CheckBox, VerticalBox, HorizontalBox } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "QQAF · Rust + Slint 迁移原型";
+    width: 1000px;
+    height: 680px;
+    min-width: 760px;
+    min-height: 520px;
+    no-frame: true;
+    in-out property <bool> minecraft: false;
+    in-out property <bool> winefox-enabled: false;
+    in property <bool> winefox-available: false;
+    in property <string> gpu-status: "正在检测硬件 GPU…";
+    in-out property <string> operation-status: "原生 SQLite 已就绪";
+    callback change-theme(bool);
+    callback change-winefox(bool);
+    callback minimize();
+    callback maximize();
+    callback close();
+    callback move-window(float, float);
+    background: root.minecraft ? #eaf0e4 : #f7f8fa;
+
+    VerticalLayout {
+        spacing: 0;
+        Rectangle {
+            height: 48px;
+            background: root.minecraft ? #d4e1cc : #edf0f5;
+            HorizontalLayout {
+                padding: 10px;
+                Text { text: "QQ Agent ARCFØX"; font-size: 16px; font-weight: 700; vertical-alignment: center; }
+                Text { text: "架构迁移原型"; color: #64748b; vertical-alignment: center; }
+                Rectangle { horizontal-stretch: 1; }
+                Button { text: "—"; width: 40px; clicked => { root.minimize(); } }
+                Button { text: "□"; width: 40px; clicked => { root.maximize(); } }
+                Button { text: "×"; width: 40px; clicked => { root.close(); } }
+            }
+            TouchArea {
+                width: parent.width - 150px;
+                height: parent.height;
+                moved => {
+                    if self.pressed {
+                        root.move-window((self.mouse-x - self.pressed-x) / 1px, (self.mouse-y - self.pressed-y) / 1px);
+                    }
+                }
+            }
+        }
+        HorizontalLayout {
+            Rectangle {
+                width: 180px;
+                background: root.minecraft ? #dae7d2 : #edf0f5;
+                VerticalLayout {
+                    padding: 20px;
+                    spacing: 18px;
+                    Text { text: "迁移验证"; font-size: 20px; font-weight: 700; }
+                    Text { text: "原生桌面"; color: #2563eb; }
+                    Text { text: "账号存储"; color: #475569; }
+                    Text { text: "OneBot / SnowLuma"; color: #475569; }
+                    Text { text: "主题与酒狐"; color: #475569; }
+                    Rectangle { vertical-stretch: 1; }
+                    Text { text: "0.4.5a 归档保留"; color: #64748b; }
+                }
+            }
+            VerticalLayout {
+                padding: 32px;
+                spacing: 20px;
+                Text { text: "Rust + Slint"; font-size: 30px; font-weight: 700; }
+                Text { text: "独立原生界面 · 不依赖 Node、Electron 或 WebView"; color: #475569; wrap: word-wrap; }
+                Rectangle {
+                    background: #fff2d8;
+                    border-radius: 8px;
+                    VerticalLayout {
+                        padding: 16px;
+                        Text { text: "迁移尝试阶段"; font-weight: 700; }
+                        Text { text: "尚未接入实时聊天、模型请求及酒狐 3D。此原型不替代当前客户端，也不读取旧账号数据库。"; wrap: word-wrap; color: #76551c; }
+                    }
+                }
+                Text { text: "运行状态"; font-size: 18px; font-weight: 700; }
+                Text { text: root.operation-status; wrap: word-wrap; }
+                Text { text: root.gpu-status; color: #475569; wrap: word-wrap; }
+                CheckBox {
+                    text: "Minecraft 主题（配色验证）";
+                    checked <=> root.minecraft;
+                    toggled => { root.change-theme(self.checked); }
+                }
+                CheckBox {
+                    text: "启用酒狐";
+                    checked <=> root.winefox-enabled;
+                    enabled: root.minecraft && root.winefox-available;
+                    toggled => { root.change-winefox(self.checked); }
+                }
+                Text { text: "酒狐默认关闭；需要可用硬件 GPU 和已完成的原生 3D 模块。"; color: #64748b; wrap: word-wrap; }
+                Rectangle { vertical-stretch: 1; }
+                Text { text: "QQ 客户端由用户提供；QQ 接入仅面向 OneBot / SnowLuma。"; color: #64748b; wrap: word-wrap; }
+            }
+        }
+    }
+}
