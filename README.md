@@ -1,7 +1,20 @@
 # QQ Agent ARCFOX - A modern, beautifully designed QQ Agent.
 
 > 当前工作区：`E:\CodeX-YSM\QQ Agent Dev\qq-agent-ui-next`。
-> 当前 UI 版本：**0.4.4.5**；目标 GitHub 仓库：**QQARCFOX（私有）**。
+> 当前 UI 版本：**0.4.5**；目标 GitHub 仓库：**QQARCFOX（私有）**。
+
+## 版本路线图
+
+点击版本号即可直接进入对应 Milestone，查看完整计划与进度。
+
+| 版本 | 计划 |
+| --- | --- |
+| [0.4.7](https://github.com/N1v4lis/QQARCFOX/milestone/1) | 完成设置 UI 与功能重制：聊天白名单、聊天设置、桌面端、个性化、主题、OneBot（SnowLuma）、进阶、工具与技能。 |
+| [0.4.8](https://github.com/N1v4lis/QQARCFOX/milestone/2) | 多账号重做；插件与技能对接本机任意 Agent / Harness；GitHub 源自动检查更新。 |
+| [0.4.9](https://github.com/N1v4lis/QQARCFOX/milestone/3) | 用量界面重制；记忆与存档重做；会话功能及 UI 改进。 |
+| [0.5.0](https://github.com/N1v4lis/QQARCFOX/milestone/4) | 核心功能验收、UI 功能完备，发布正式 Release。 |
+
+[全部 Milestones](https://github.com/N1v4lis/QQARCFOX/milestones) · [最新发布 0.4.5](https://github.com/N1v4lis/QQARCFOX/releases/tag/v0.4.5) · [0.4.5 改动说明](docs/releases/0.4.5.md)
 
 0.4.4：所有账号固定共享人设模板库，主侧栏及市场入口动效/对齐重做，页面切换减少重复请求和重排；默认皮肤动效固定开启，本地独立页补齐亮暗/MC主题。本机QQA程序版本也为0.4.4，部署增加 `tools/patch-host-shared-personas.mjs` 与 `tools/patch-host-version.mjs`。详情见 [0.4.4发布说明](docs/releases/0.4.4.md)。
 
