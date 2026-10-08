@@ -25,7 +25,7 @@ class _QqafAppState extends State<QqafApp> {
   Map<String, dynamic> uiPrefs = {};
   List<dynamic> memories = [];
   final memory = TextEditingController();
-  String notice = '正在连接 Rust 核心…', answer = '';
+  String notice = '正在连接 Rust 核心…', answer = '', activeModel = '';
   final qq = TextEditingController(), ws = TextEditingController();
   final token = TextEditingController(), message = TextEditingController();
   final base = TextEditingController(), model = TextEditingController();
@@ -141,8 +141,16 @@ class _QqafAppState extends State<QqafApp> {
       List<String> items = [];
       List<Map<String, dynamic>> rows = [];
       Map<String, dynamic> nextUsage = {};
+      String nextModel = model.text;
       List<dynamic> nextMemories = [];
       if (id != null) {
+        final config = await widget.core.request(
+          '/config',
+          query: {'account': id},
+        );
+        if (config is Map && config['api'] is Map) {
+          nextModel = '${config['api']['model'] ?? ''}';
+        }
         items = List<String>.from(
           await widget.core.request('/chats', query: {'account': id}) as List,
         );
@@ -173,6 +181,7 @@ class _QqafAppState extends State<QqafApp> {
         chats = items;
         messages = rows;
         usage = nextUsage;
+        activeModel = nextModel;
         memories = nextMemories;
       });
     } catch (_) {
@@ -256,7 +265,7 @@ class _QqafAppState extends State<QqafApp> {
           minecraft: minecraft,
           busy: busy,
           notice: notice,
-          model: model.text.isEmpty ? '未配置' : model.text,
+          model: activeModel.isEmpty ? '未配置' : activeModel,
           refresh: () => unawaited(perform(updateMessages)),
           select: (id) {
             playSound('menu', 'click');

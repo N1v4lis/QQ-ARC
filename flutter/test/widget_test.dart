@@ -25,6 +25,10 @@ class FakeCore implements CoreApi {
         return {'theme': 'light', 'skin': minecraft ? 'minecraft' : 'default'};
       case '/accounts':
         return <String>['123'];
+      case '/config':
+        return {
+          'api': {'model': 'workspace-model'},
+        };
       case '/model/config':
         return {
           'base_url': 'https://example.invalid/v1',
@@ -88,6 +92,7 @@ void main() {
     );
     await tester.tap(find.text('设置'));
     await tester.pumpAndSettle();
+    expect(find.text('模型：workspace-model'), findsOneWidget);
     await tester.tap(find.text('主题'));
     await tester.pumpAndSettle();
     final pet = tester.widget<SwitchListTile>(

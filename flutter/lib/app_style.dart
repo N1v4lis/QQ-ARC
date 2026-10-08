@@ -25,7 +25,17 @@ class SettingSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (Theme.of(context).extension<SkinStyle>()?.minecraft != true) {
-      return Switch(value: value, onChanged: onChanged);
+      return SizedBox(
+        width: 40,
+        height: 24,
+        child: FittedBox(
+          child: Switch(
+            value: value,
+            onChanged: onChanged,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+      );
     }
     return Semantics(
       button: true,
@@ -287,6 +297,9 @@ ThemeData appTheme({
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 32),
+        side: BorderSide(
+          color: dark ? const Color(0x33ffffff) : const Color(0x1a000000),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: radius),
       ),
