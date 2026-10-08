@@ -7,8 +7,11 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,env:{...process.env,GIT_TERMINAL_PROMPT:'0'}}).trim();
 const versionArg=process.argv.indexOf('--version');
+const titleArg=process.argv.indexOf('--title');
+const releaseTitle=titleArg<0?null:process.argv[titleArg+1];
+if(titleArg>=0&&!releaseTitle)throw Error('Missing release title');
 const version=versionArg<0?fs.readFileSync(path.join(root,'VERSION'),'utf8').trim():process.argv[versionArg+1],tag='v'+version;
-if(!/^\d+\.\d+\.\d+(?:\.\d+)?(?:-OLD)?$/.test(version || ''))throw Error('Unexpected version');
+if(!/^\d+\.\d+\.\d+(?:\.\d+)?(?:[a-z])?(?:-OLD)?$/.test(version || ''))throw Error('Unexpected version');
 if(git('status','--porcelain'))throw Error('Commit all release files first');
 if(git('remote','get-url','origin')!=='https://github.com/N1v4lis/QQARCFOX.git')throw Error('Unexpected release repository');
 const head=git('rev-parse','HEAD');if(git('rev-parse',tag+'^{commit}')!==head)throw Error('Tag is not the release commit');
@@ -25,7 +28,7 @@ execFileSync('git',['archive','--format=zip','--prefix=QQARCFOX-'+version+'/','-
 const hash=crypto.createHash('sha256');for await(const chunk of fs.createReadStream(file))hash.update(chunk);const digest=hash.digest('hex');
 const checksum=file+'.sha256';fs.writeFileSync(checksum,digest+'  '+name+'\n');console.log('Packaged '+name+' ('+fs.statSync(file).size+' bytes)');
 let release;const response=await fetch(base+'/releases/tags/'+tag,{headers});
-if(response.status===404)release=await api('/releases',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tag_name:tag,target_commitish:head,name:version,draft:true,prerelease:false,body:fs.readFileSync(path.join(root,'docs/releases/'+version+'.md'),'utf8')})});
+if(response.status===404)release=await api('/releases',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tag_name:tag,target_commitish:head,name:releaseTitle || version,draft:true,prerelease:false,body:fs.readFileSync(path.join(root,'docs/releases/'+version+'.md'),'utf8')})});
 else if(response.ok)release=await response.json();else throw Error('Cannot inspect release');
 for(const assetFile of [file,checksum]){
  const assetName=path.basename(assetFile),existing=release.assets.find(a=>a.name===assetName);if(existing){if(existing.size!==fs.statSync(assetFile).size)throw Error('Existing asset size mismatch');continue;}

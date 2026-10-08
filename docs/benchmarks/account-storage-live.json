@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-09",
+  "runtime": "Installed Electron 33.4.11 / Node 20.18.3 / ABI 130",
+  "migratedAccounts": 2,
+  "originalImportDocuments": 3821,
+  "changedSinceOriginalImport": 1,
+  "verifiedUpgradeRecords": 3822,
+  "upgradeExact": true,
+  "legacyMiB": 330.0601167678833,
+  "backupPhysicalMiB": 330.1621026992798,
+  "schema": 2,
+  "v1UpgradeBackupMiB": 152.890625,
+  "auxiliaryBackupMiB": 1.7842903137207031,
+  "databaseMiB": 192.26171875,
+  "walAndShmMiB": 0.36510467529296875,
+  "driverMiB": 14.370468139648438,
+  "sqliteQuickCheck": "ok",
+  "dashboardHistoricalTotals": "historical totals preserved; live changes since baseline",
+  "newCallsSinceBaseline": 6
+}

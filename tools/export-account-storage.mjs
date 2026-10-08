@@ -1,0 +1,6 @@
+import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';
+import {openDatabase,listPaths,readRecord} from '../app/server/account-db-core.mjs';
+export function exportAccount(root,out){root=path.resolve(root);out=path.resolve(out);if(fs.existsSync(out))throw Error('Export destination must be a new directory');if(out===root||out.startsWith(root+path.sep))throw Error('Export outside the source account directory');const db=openDatabase(root,{readonly:true,migrate:false});let count=0;
+ try{db.transaction(()=>{const rows=listPaths(db);for(const {path:relative} of rows){const file=path.resolve(out,relative);if(!file.startsWith(out+path.sep))throw Error('Invalid stored path');fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify(readRecord(db,relative)));count++;}})();}finally{db.close();}return count;
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){const arg=name=>{const i=process.argv.indexOf(name);if(i<0||!process.argv[i+1])throw Error('Required: --root ACCOUNT_DIRECTORY --out NEW_EXPORT_DIRECTORY');return process.argv[i+1];};console.log('Exported '+exportAccount(arg('--root'),arg('--out'))+' JSON documents from a consistent read snapshot.');}

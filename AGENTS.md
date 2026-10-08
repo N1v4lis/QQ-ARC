@@ -83,3 +83,9 @@
 - 2026-10-08：所有文本输入/下拉/textarea焦点描边和光效内绘防滚动边界裁切；按钮/开关等焦点环内收。人设入口身份与模型设置，当前群活跃档位复用控制器，身份/全部保存提交当前群地图并保留其他群；继承清除该群两张图，独立启用unifiedTier=false。聊天设置只编辑默认档位，原分群选择及清除按钮迁出。check-persona-tier-focus使用模拟写入验证两皮肤及设置页控件。
 
 - 2026-10-08（用户本轮）：授权完整整理上次push以来改动，发布0.4.5并push GitHub；从本轮起每次部署由apply-ui --apply自动执行patch-host-version，VERSION与本机客户端package版本保持同步。未来上传仍需新的明确授权，本次不扩大为持续自动push。
+
+- 2026-10-09：账号存储改为 SQLite WAL + 每账号独立 Worker；消息行增量，存档/MemoryStore 文档压缩，用量 Worker 只读。后端独立 storage-runtime/package-lock 锁定驱动，UI 无构建约定不变。新驱动用 setup-storage-runtime，部署用 patch-host-account-storage 并重启，原数据备份保留；不得直接恢复旧快照覆盖迁移后新增数据，回退先 export-account-storage。用户本轮仅授权实现与性能比较，不自动 push、升级版本或宣称已减少 Token。说明及实测见 docs/ACCOUNT-STORAGE.md；默认四项静态检查外仅运行存储定点验证。
+
+- 2026-10-09最新：用户明确要求 JSON 兼容仅官方版迁移；正常消息/存档/记忆/用量改原生 SQL 字段与记录对象，媒体/回复关联表，不做 JSON 文档或 Base64 往返。复杂响应及异常 UTF-16 用二进制保存，长上下文快照单字符串压缩。v1 升级保留完整 SQLite 快照；分页/摘要/用量计数直查 SQL。覆写前述压缩 JSON 文档方案。安装版升级前 3822 条记录一致，内存峰值与全量冷读尚未改善，不声称低占用或减少 Token。见 ACCOUNT-STORAGE；继续仅静态四项和存储定点检查，不自动 push/升版本。
+
+- 2026-10-09：用户明确授权当前状态 push 与 Release 0.4.5a，标题及说明为“架构迁移前归档”；同步客户端版本。当前仍为 Electron／Node／Three.js，原生 SQL 属于底层增量，不宣称 Rust／Slint 迁移或 0.4.6 已完成。此授权不延伸到后续自动上传。版本工具允许指定的字母后缀。

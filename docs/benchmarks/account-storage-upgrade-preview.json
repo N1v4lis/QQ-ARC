@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-09",
+  "fixture": "Consistent copies of existing v1 databases; no content or account identifiers",
+  "records": 3822,
+  "messages": 7317,
+  "sourceMiB": 152.953125,
+  "nativeMiB": 191.8984375,
+  "exact": true
+}

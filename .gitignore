@@ -13,3 +13,11 @@ Thumbs.db
 .DS_Store
 /_scratch/vendor-pages/
 /_scratch/official-price-test.json
+
+**/node_modules/
+/app/server/storage-runtime/native/
+/_scratch/storage-*
+
+account-storage.sqlite*
+
+storage-v1-*.sqlite*
