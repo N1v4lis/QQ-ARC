@@ -1,0 +1,24 @@
+// Development-only source inventory; never loads the archived host application.
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+const source = process.argv[2];
+if (!source) throw new Error('Pass the archived application source directory');
+const config = fs.readFileSync(path.join(source, 'config.js'), 'utf8');
+const personasSource = fs.readFileSync(path.join(source, 'personas.js'), 'utf8');
+const personas = vm.runInNewContext(personasSource.replace('export const PERSONAS =', 'const PERSONAS =') + '\nPERSONAS', {}, { timeout: 1000 });
+const begin = config.indexOf('export const DEFAULT_CONFIG =');
+const end = config.indexOf('\n};', begin) + 3;
+const defaults = vm.runInNewContext(config.slice(begin, end).replace('export const', 'const') + '\nDEFAULT_CONFIG', { PERSONAS: personas, portOffset: () => 0, process: { env: {} } }, { timeout: 1000 });
+delete defaults.personaUnified;
+delete defaults.personaShared;
+delete defaults.api.apiByChat.group;
+delete defaults.api.apiByChat.private;
+defaults.server.autoStart = false;
+defaults.snowluma.autoLaunch = false;
+fs.mkdirSync('native/resources', { recursive: true });
+fs.writeFileSync('native/resources/default-config.json', JSON.stringify(defaults, null, 2) + '\n');
+fs.writeFileSync('native/resources/personas.json', JSON.stringify(personas, null, 2) + '\n');
+const routes = [...fs.readFileSync(path.join(source, 'routes.js'), 'utf8').matchAll(/method:\s*'([^']+)',\s*pattern:\s*'([^']+)'/g)].map(m => `${m[1]} ${m[2]}`);
+fs.writeFileSync('native/resources/legacy-routes.txt', routes.join('\n') + '\n');
+console.log(`Source-only inventory: ${routes.length} routes, ${Object.keys(defaults).length} configuration sections`);

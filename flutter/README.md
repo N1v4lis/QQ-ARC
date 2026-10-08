@@ -1,8 +1,10 @@
 # QQAF Flutter 桌面界面
 
-Flutter UI 与 Rust 核心的迁移开发版，不依赖 Electron、Node 或 WebView。旧客户端归档为 0.4.5a，实验包独立使用 0.1.0。
+Flutter UI + Rust 核心的 Windows 实验版，版本 0.1.0。旧客户端归档为 0.4.5a。所有后续开发在 Rust+Slint 分支进行，不覆盖旧安装和数据。
 
-开发使用 Flutter 3.47.6 / Dart 3.13.5；Windows 构建还需要 Visual Studio C++ 桌面开发组件及插件所需的符号链接权限。
+开发使用 Flutter 3.47.6 / Dart 3.13.5；Windows 构建需要 Visual Studio C++ 桌面组件及插件符号链接权限。用户运行无需工具链。
+
+先在仓库根目录执行 tools/sync-flutter-assets.ps1，复制已跟踪的模型 Logo、Minecraft 背景/字体/音效，并生成像素图标。生成脚本用开发工具 Node，QQAF 运行时不使用它。
 
 ```sh
 flutter pub get
@@ -11,10 +13,12 @@ flutter test --no-pub
 flutter build windows --release --no-pub
 ```
 
-构建 native/ 后将 qqaf-native.exe 复制到 build/windows/x64/runner/Release/，与 qqaf.exe 同级。分发须包含完整 Release 目录。开发运行可指定 QQAF_CORE_EXECUTABLE；QQAF_NATIVE_DATA_DIR 用于数据隔离，不能指定旧客户端数据库目录。
+构建 native/ 后，把 qqaf-native.exe 复制到 Windows Release 目录，与 qqaf.exe 同级。分发需完整目录，不能单独复制 exe。可用 QQAF_CORE_EXECUTABLE、QQAF_NATIVE_DATA_DIR 做隔离验证，不能使用旧数据库路径。
 
-已接入总览、会话、模型设置、OneBot、手动记忆和主题偏好，读取核心真实状态。无账号时在 OneBot 页创建离线账号。连接和发送需手动触发，未实现自动回复。Minecraft 配色仅为界面验证，完整主题与酒狐尚未迁移。
+界面覆盖所有主导航和设置入口，接入核心实际状态。API与搜索使用平铺工作区；媒体草稿与自定义价格按模型隔离；人设保存当前栏及 Ctrl+S 不提交其他栏；配色禁用时仍可展开/收回；Minecraft 使用背景、字体、像素图标及实际开关拉杆；窗口控制按钮不播放点击音。酒狐开关禁用，没有装载其素材。
 
-Flutter 负责窗口与 UI，Rust 负责业务。IPC 使用随机端口和令牌保护的本机 HTTP。密钥仅保留在当前核心会话。酒狐默认关闭且禁用，Slint 或原生 3D 仍在考量。
+Windows 托盘和显式开机启动通过原生 runner 实现。默认不会注册启动项，用户在桌面端保存时才应用实验版启动项。关闭到托盘需用户打开，退出会终止 Rust 核心。外部 OneBot 不自动被终止。
 
-Windows 本地构建可从仓库根目录调用 `tools/build-experimental.ps1`，传入 FlutterBinary 以及所需 Rust 工具链参数。脚本检查当前分支、运行分析与测试、构建并打包至忽略的 dist 目录，附带 Rust 核心和可用的 VC 运行库。不自动注册开机自启或覆盖旧安装。
+**这不是完整旧版功能替代品。** 媒体执行、旧 JS 插件、完整主题包、主动话题、完整模板/市场管理及多 QQ 注入登录仍待移植。未迁移的执行选项在界面标注，不能以页面数量作为完成依据。具体边界见 [功能清单](../docs/NATIVE-FEATURE-MATRIX.md)。
+
+Windows 从根目录用 tools/build-experimental.ps1 构建，传入 FlutterBinary 和所需 Rust 参数。脚本检查分支、同步素材、运行分析/测试、构建并打包到独立目录，附核心、VC 运行库、资源来源及许可证。未验证干净 Windows 安装和性能目标，实验包不等于正式安装器。

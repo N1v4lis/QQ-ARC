@@ -6,6 +6,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'core_client.dart';
 import 'qqaf_app.dart';
+import 'desktop_bridge.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,16 +57,36 @@ class _CoreLifecycleState extends State<CoreLifecycle> with WindowListener {
     super.initState();
     windowManager.addListener(this);
     unawaited(windowManager.setPreventClose(true));
+    DesktopBridge.channel.setMethodCallHandler((call) async {
+      if (call.method == 'trayExit') {
+        await terminate();
+      }
+    });
   }
 
   @override
   void dispose() {
     windowManager.removeListener(this);
+    DesktopBridge.channel.setMethodCallHandler(null);
     super.dispose();
   }
 
   @override
   void onWindowClose() async {
+    try {
+      final prefs = await widget.core.request('/preferences') as Map;
+      if (prefs['closeToTray'] == true) {
+        await DesktopBridge.setTray(true);
+        await windowManager.hide();
+        return;
+      }
+    } catch (_) {
+      /* If the tray cannot be created, leave no hidden orphan. */
+    }
+    await terminate();
+  }
+
+  Future<void> terminate() async {
     if (closing) return;
     closing = true;
     await widget.core.close();

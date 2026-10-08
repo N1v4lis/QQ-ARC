@@ -12,6 +12,7 @@ try {
     if ((git branch --show-current) -ne 'Rust+Slint') { throw 'Experimental builds require the Rust+Slint branch.' }
     if (-not $FlutterBinary) { $FlutterBinary = (Get-Command flutter -ErrorAction Stop).Source }
     $flutterExe = [IO.Path]::GetFullPath($FlutterBinary)
+    & "$PSScriptRoot/sync-flutter-assets.ps1"
     if (-not $SkipCoreBuild) {
         & "$PSScriptRoot/run-native.ps1" -Mode release -CargoHome $CargoHome -RustupHome $RustupHome -CompilerBin $CompilerBin
     }
@@ -50,6 +51,13 @@ try {
         }
     }
     Copy-Item -LiteralPath 'flutter/README.md' -Destination (Join-Path $bundle 'EXPERIMENTAL.md')
+    $licenses = Join-Path $bundle 'LICENSES'
+    New-Item -ItemType Directory -Path $licenses | Out-Null
+    Copy-Item -LiteralPath 'tools/host/QQ-AGENT-LICENSE.txt' -Destination $licenses
+    foreach ($assetDir in @('app/ui/assets/model-logos', 'app/ui/assets/mc/fonts')) {
+        Get-ChildItem -LiteralPath $assetDir -File | Where-Object { $_.Name -match '(?i)license|source|notice|OFL' } |
+            ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $licenses }
+    }
     $manifest = @{version=$version;branch='Rust+Slint';commit=(git rev-parse HEAD);experimental=$true}
     $manifest | ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $bundle 'build-info.json')
     $zip = $bundle + '.zip'

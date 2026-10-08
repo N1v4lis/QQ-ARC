@@ -17,7 +17,7 @@ pub fn version_probe() -> String {
     .expect("serialize fixed OneBot action")
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 pub struct IncomingMessage {
     pub self_id: i64,
     pub user_id: i64,

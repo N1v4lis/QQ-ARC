@@ -8,15 +8,27 @@ use tokio_tungstenite::{
     tungstenite::{Message, client::IntoClientRequest},
 };
 type Reply = oneshot::Sender<Result<Value, String>>;
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Connections {
     sessions: Arc<Mutex<HashMap<String, Session>>>,
+    events: tokio::sync::broadcast::Sender<crate::onebot::IncomingMessage>,
+}
+impl Default for Connections {
+    fn default() -> Self {
+        Self {
+            sessions: Default::default(),
+            events: tokio::sync::broadcast::channel(1024).0,
+        }
+    }
 }
 struct Session {
     sender: mpsc::Sender<(Value, Reply)>,
     task: tokio::task::JoinHandle<()>,
 }
 impl Connections {
+    pub fn subscribe(&self) -> tokio::sync::broadcast::Receiver<crate::onebot::IncomingMessage> {
+        self.events.subscribe()
+    }
     pub async fn connect(
         &self,
         account: String,
@@ -56,6 +68,7 @@ impl Connections {
         let (mut sink, mut stream) = socket.split();
         let (sender, mut receiver) = mpsc::channel::<(Value, Reply)>(32);
         let account_task = account.clone();
+        let events = self.events.clone();
         let task = tokio::spawn(async move {
             let mut pending: HashMap<String, Reply> = HashMap::new();
             loop {
@@ -70,7 +83,7 @@ impl Connections {
                         let Some(Ok(message))=incoming else{break;};match message{
                             Message::Text(text)=>{
                                 if let Ok(value)=serde_json::from_str::<Value>(&text){if let Some(echo)=value["echo"].as_str(){if let Some(reply)=pending.remove(echo){let result=if value["status"]=="ok"{Ok(value["data"].clone())}else{Err("OneBot 操作失败".into())};let _=reply.send(result);}}}
-                                if let Ok(Some(event))=parse_message(&text){if event.self_id.to_string()!=account_task{continue;}let chat=event.chat_key();let _=databases.call(account_task.clone(),move|store|store.append(&chat,&event.user_id.to_string(),&event.raw_message,event.time).map(|_|()).map_err(|_|"消息写入失败".into())).await;}
+                                if let Ok(Some(event))=parse_message(&text){if event.self_id.to_string()!=account_task{continue;}let record=event.clone();let Ok(cfg)=crate::workspace::load(&databases,&account_task).await else{continue;};if !crate::agent::recordable(&cfg,&event){continue;}if databases.call(account_task.clone(),move|store|store.receive(&record).map_err(|_|"消息写入失败".into())).await==Ok(true){let _=events.send(event);}}
                             }
                             Message::Ping(bytes)=>{if sink.send(Message::Pong(bytes)).await.is_err(){break;}}
                             Message::Close(_)=>break,_=>{}
@@ -121,4 +134,48 @@ impl Connections {
         .await
         .map_err(|_| "OneBot 操作超时".to_string())?
     }
+}
+
+/// Reconnect opted-in accounts only. A user's explicit disconnect persists the
+/// opt-out; status refresh alone never changes connection state.
+pub fn supervise(core: crate::core::Core) {
+    tokio::spawn(async move {
+        let mut shutdown = core.shutdown.subscribe();
+        let mut timer = tokio::time::interval(std::time::Duration::from_secs(15));
+        loop {
+            tokio::select! {_ = shutdown.changed() => break, _ = timer.tick() => {}}
+            let connected = core.connections.status().await;
+            for account in core.databases.accounts() {
+                if connected.contains(&account) {
+                    continue;
+                }
+                let Ok(cfg) = crate::workspace::load(&core.databases, &account).await else {
+                    continue;
+                };
+                if cfg["snowluma"]["autoConnect"] != true {
+                    continue;
+                }
+                let Ok(token) = crate::workspace::key(&core.databases, &account, "onebot").await
+                else {
+                    continue;
+                };
+                let address = cfg["snowluma"]["wsUrl"].as_str().unwrap_or("").to_string();
+                // One failed account does not block reconnection of other accounts.
+                let child = core.clone();
+                tokio::spawn(async move {
+                    let _ = child
+                        .connections
+                        .connect(account.clone(), address, token, child.databases.clone())
+                        .await;
+                    if crate::workspace::load(&child.databases, &account)
+                        .await
+                        .ok()
+                        .is_none_or(|cfg| cfg["snowluma"]["autoConnect"] != true)
+                    {
+                        child.connections.disconnect(&account).await;
+                    }
+                });
+            }
+        }
+    });
 }

@@ -92,16 +92,22 @@ impl DatabasePool {
 }
 #[derive(Clone)]
 pub struct Core {
+    pub data_root: PathBuf,
+    pub snow: crate::snow::Manager,
     pub databases: DatabasePool,
     pub connections: Connections,
     pub http: reqwest::Client,
     pub token: String,
     pub model_keys: Arc<tokio::sync::Mutex<HashMap<String, String>>>,
     pub shutdown: tokio::sync::watch::Sender<bool>,
+    pub runtime: crate::agent::Runtime,
+    pub price_refresh: Arc<tokio::sync::Mutex<()>>,
 }
 impl Core {
     pub fn new(root: PathBuf, token: String) -> Self {
         Self {
+            data_root: root.clone(),
+            snow: Default::default(),
             databases: DatabasePool::new(root),
             connections: Default::default(),
             http: reqwest::Client::builder()
@@ -111,6 +117,8 @@ impl Core {
             token,
             model_keys: Default::default(),
             shutdown: tokio::sync::watch::channel(false).0,
+            runtime: Default::default(),
+            price_refresh: Default::default(),
         }
     }
 }
@@ -142,6 +150,12 @@ struct Page {
 }
 pub fn router(core: Core) -> Router {
     Router::new()
+        .merge(crate::workspace::routes())
+        .merge(crate::community::routes())
+        .merge(crate::prices::routes())
+        .merge(crate::snow::routes())
+        .merge(crate::extensions::routes())
+        .merge(crate::migration::routes())
         .route("/status", get(status))
         .route("/stats", get(stats))
         .route("/memory", get(read_memory).post(write_memory))
@@ -211,13 +225,30 @@ struct Connect {
 async fn connect(State(core): State<Core>, Json(s): Json<Connect>) -> ResultJson {
     core.databases.call(s.account.clone(), |_| Ok(())).await?;
     core.connections
-        .connect(s.account, s.address, s.access_token, core.databases.clone())
+        .connect(
+            s.account.clone(),
+            s.address.clone(),
+            s.access_token.clone(),
+            core.databases.clone(),
+        )
         .await?;
+    crate::workspace::set_key(&core.databases, &s.account, "onebot", &s.access_token).await?;
+    crate::workspace::update(&core.databases, &s.account, move |cfg| {
+        cfg["snowluma"]["wsUrl"] = json!(s.address);
+        cfg["snowluma"]["autoConnect"] = json!(true);
+        Ok(())
+    })
+    .await?;
     Ok(Json(json!({"ok":true})))
 }
-async fn disconnect(State(core): State<Core>, Json(account): Json<Account>) -> Json<Value> {
+async fn disconnect(State(core): State<Core>, Json(account): Json<Account>) -> ResultJson {
+    crate::workspace::update(&core.databases, &account.account, |cfg| {
+        cfg["snowluma"]["autoConnect"] = json!(false);
+        Ok(())
+    })
+    .await?;
     core.connections.disconnect(&account.account).await;
-    Json(json!({"ok":true}))
+    Ok(Json(json!({"ok":true})))
 }
 #[derive(Deserialize)]
 struct SendMessage {
@@ -291,6 +322,15 @@ async fn get_model(State(core): State<Core>, Query(account): Query<Account>) -> 
     Ok(Json(json!(load_model(&core, account.account).await?)))
 }
 async fn chat_model(State(core): State<Core>, Json(m): Json<SendMessage>) -> ResultJson {
+    let workspace = crate::workspace::load(&core.databases, &m.account).await?;
+    if workspace["api"]["model"]
+        .as_str()
+        .is_some_and(|m| !m.is_empty())
+    {
+        return Ok(Json(json!(
+            crate::agent::run(&core, &m.account, &m.chat, &m.text, false).await?
+        )));
+    }
     let mut config = load_model(&core, m.account.clone()).await?;
     let memory_chat = m.chat.clone();
     let memories = core
@@ -355,7 +395,7 @@ async fn chat_model(State(core): State<Core>, Json(m): Json<SendMessage>) -> Res
         .await?;
     Ok(Json(result))
 }
-fn now() -> i64 {
+pub(crate) fn now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()

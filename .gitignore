@@ -31,3 +31,4 @@ storage-v1-*.sqlite*
 /flutter/build/
 /flutter/windows/flutter/ephemeral/
 /flutter/.flutter-plugins*
+flutter/assets/

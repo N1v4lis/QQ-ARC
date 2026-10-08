@@ -60,6 +60,14 @@ void main() {
     await tester.pumpWidget(QqafApp(core: core));
     await tester.pumpAndSettle();
     expect(find.text('Rust 核心已连接 · 独立迁移数据目录'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('主题'),
+      80,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('main-nav')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.tap(find.text('主题'));
     await tester.pumpAndSettle();
     final pet = tester.widget<SwitchListTile>(

@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 pub struct AccountStore {
     connection: Connection,
+    cached_workspace: Option<serde_json::Value>,
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize)]
@@ -35,11 +36,20 @@ impl AccountStore {
                  id INTEGER PRIMARY KEY, chat TEXT NOT NULL, sender TEXT NOT NULL,
                  text TEXT NOT NULL, timestamp INTEGER NOT NULL);
              CREATE INDEX IF NOT EXISTS messages_chat_id ON messages(chat, id);
+             CREATE TABLE IF NOT EXISTS incoming_receipts(chat TEXT NOT NULL,message_id INTEGER NOT NULL,PRIMARY KEY(chat,message_id));
+             CREATE TABLE IF NOT EXISTS message_media(message_id INTEGER NOT NULL,position INTEGER NOT NULL,kind TEXT,url TEXT,file TEXT,summary TEXT,PRIMARY KEY(message_id,position));
+             CREATE TABLE IF NOT EXISTS message_replies(message_id INTEGER PRIMARY KEY,sender TEXT,text TEXT);
+             CREATE TABLE IF NOT EXISTS imported_rows(source TEXT NOT NULL,source_id TEXT NOT NULL,message_id INTEGER NOT NULL,PRIMARY KEY(source,source_id));
              CREATE TABLE IF NOT EXISTS memories(id INTEGER PRIMARY KEY, chat TEXT NOT NULL, content TEXT NOT NULL);
              CREATE TABLE IF NOT EXISTS usage(id INTEGER PRIMARY KEY, model TEXT NOT NULL, input INTEGER NOT NULL, output INTEGER NOT NULL, cost REAL NOT NULL, timestamp INTEGER NOT NULL);
+             CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,chat TEXT NOT NULL,started INTEGER NOT NULL,finished INTEGER,status TEXT NOT NULL,error TEXT NOT NULL DEFAULT '');
+             CREATE INDEX IF NOT EXISTS runs_started ON runs(started DESC);
              PRAGMA user_version=1;",
         )?;
-        Ok(Self { connection })
+        Ok(Self {
+            connection,
+            cached_workspace: None,
+        })
     }
 
     pub fn append(
@@ -56,6 +66,107 @@ impl AccountStore {
         Ok(self.connection.last_insert_rowid())
     }
 
+    pub fn receive(&mut self, event: &crate::onebot::IncomingMessage) -> rusqlite::Result<bool> {
+        let chat = event.chat_key();
+        let tx = self.connection.transaction()?;
+        if tx.execute(
+            "INSERT OR IGNORE INTO incoming_receipts(chat,message_id) VALUES(?1,?2)",
+            params![chat, event.message_id],
+        )? == 0
+        {
+            return Ok(false);
+        }
+        tx.execute(
+            "INSERT INTO messages(chat,sender,text,timestamp) VALUES(?1,?2,?3,?4)",
+            params![
+                chat,
+                event.user_id.to_string(),
+                event.raw_message,
+                event.time
+            ],
+        )?;
+        tx.commit()?;
+        Ok(true)
+    }
+
+    // JSON is accepted only at the explicit official-format migration boundary.
+    // The destination always stores message and media fields in SQL columns.
+    pub fn import_official_messages(
+        &mut self,
+        source: &str,
+        value: &serde_json::Value,
+    ) -> Result<usize, String> {
+        let chat = value["chatKey"]
+            .as_str()
+            .filter(|s| s.starts_with("group:") || s.starts_with("private:"))
+            .ok_or("迁入文件缺少有效 chatKey")?;
+        let rows = value["messages"]
+            .as_array()
+            .ok_or("迁入文件缺少 messages 数组")?;
+        if rows.len() > 1_000_000 {
+            return Err("单个迁入文件消息过多".into());
+        }
+        let tx = self
+            .connection
+            .transaction()
+            .map_err(|_| "迁入事务创建失败")?;
+        let mut count = 0;
+        for row in rows {
+            let source_id = row["id"]
+                .as_i64()
+                .map(|n| n.to_string())
+                .ok_or("消息缺少有效本地 id")?;
+            let exists: bool = tx
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM imported_rows WHERE source=?1 AND source_id=?2)",
+                    params![source, source_id],
+                    |r| r.get(0),
+                )
+                .map_err(|_| "迁入状态查询失败")?;
+            if exists {
+                continue;
+            }
+            let text = row["text"].as_str().ok_or("消息正文不是文本，迁入已回滚")?;
+            let sender = if row["self"] == true {
+                "self".into()
+            } else {
+                row["senderId"]
+                    .as_str()
+                    .map(String::from)
+                    .or_else(|| row["senderId"].as_i64().map(|n| n.to_string()))
+                    .unwrap_or_default()
+            };
+            let time = (row["ts"].as_f64().unwrap_or(0.) / 1000.).floor() as i64;
+            tx.execute(
+                "INSERT INTO messages(chat,sender,text,timestamp) VALUES(?1,?2,?3,?4)",
+                params![chat, sender, text, time],
+            )
+            .map_err(|_| "消息迁入失败")?;
+            let id = tx.last_insert_rowid();
+            for (position, media) in row["media"].as_array().into_iter().flatten().enumerate() {
+                tx.execute("INSERT INTO message_media(message_id,position,kind,url,file,summary) VALUES(?1,?2,?3,?4,?5,?6)",params![id,position as i64,media["kind"].as_str(),media["url"].as_str(),media["file"].as_str(),media["summary"].as_str()]).map_err(|_|"媒体迁入失败")?;
+            }
+            if let Some(reply) = row["reply"].as_object() {
+                tx.execute(
+                    "INSERT INTO message_replies(message_id,sender,text) VALUES(?1,?2,?3)",
+                    params![
+                        id,
+                        reply.get("sender").and_then(serde_json::Value::as_str),
+                        reply.get("text").and_then(serde_json::Value::as_str)
+                    ],
+                )
+                .map_err(|_| "引用迁入失败")?;
+            }
+            tx.execute(
+                "INSERT INTO imported_rows(source,source_id,message_id) VALUES(?1,?2,?3)",
+                params![source, source_id, id],
+            )
+            .map_err(|_| "迁入状态记录失败")?;
+            count += 1;
+        }
+        tx.commit().map_err(|_| "迁入提交失败")?;
+        Ok(count)
+    }
     // Keyset pagination avoids an increasingly expensive OFFSET for deep history.
     pub fn recent(
         &self,
@@ -123,6 +234,22 @@ impl AccountStore {
         )?;
         Ok(())
     }
+    pub fn save_turn(
+        &mut self,
+        chat: &str,
+        prompt: &str,
+        answer: &str,
+        timestamp: i64,
+    ) -> rusqlite::Result<()> {
+        let tx = self.connection.transaction()?;
+        for (sender, text) in [("user", prompt), ("assistant", answer)] {
+            tx.execute(
+                "INSERT INTO messages(chat,sender,text,timestamp) VALUES(?1,?2,?3,?4)",
+                params![chat, sender, text, timestamp],
+            )?;
+        }
+        tx.commit()
+    }
     pub fn stats(&self) -> rusqlite::Result<serde_json::Value> {
         let messages: i64 =
             self.connection
@@ -170,7 +297,79 @@ impl AccountStore {
 
     pub fn set_preference(&mut self, key: &str, value: &str) -> rusqlite::Result<()> {
         self.connection.execute("INSERT INTO preferences(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", params![key,value])?;
+        if key == "workspace" {
+            self.cached_workspace = None;
+        }
         Ok(())
+    }
+    pub fn workspace(&mut self) -> Result<serde_json::Value, String> {
+        if let Some(value) = &self.cached_workspace {
+            return Ok(value.clone());
+        }
+        let mut cfg = crate::workspace::defaults();
+        if let Some(saved) = self.preference("workspace").map_err(|_| "读取配置失败")? {
+            crate::workspace::merge(
+                &mut cfg,
+                serde_json::from_str(&saved).map_err(|_| "配置损坏")?,
+            );
+        }
+        self.cached_workspace = Some(cfg.clone());
+        Ok(cfg)
+    }
+
+    pub fn save_preferences(&mut self, values: &[(String, String)]) -> rusqlite::Result<()> {
+        let tx = self.connection.transaction()?;
+        for (key, value) in values {
+            tx.execute("INSERT INTO preferences(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value",params![key,value])?;
+        }
+        tx.commit()?;
+        if values.iter().any(|(key, _)| key == "workspace") {
+            self.cached_workspace = None;
+        }
+        Ok(())
+    }
+    pub fn save_run(
+        &mut self,
+        id: &str,
+        chat: &str,
+        started: i64,
+        finished: Option<i64>,
+        status: &str,
+        error: &str,
+    ) -> rusqlite::Result<()> {
+        self.connection.execute("INSERT INTO runs(id,chat,started,finished,status,error) VALUES(?1,?2,?3,?4,?5,?6) ON CONFLICT(id) DO UPDATE SET finished=excluded.finished,status=excluded.status,error=excluded.error",params![id,chat,started,finished,status,error])?;
+        Ok(())
+    }
+    pub fn runs(&self) -> rusqlite::Result<serde_json::Value> {
+        let mut q=self.connection.prepare("SELECT id,chat,started,finished,status,error FROM runs ORDER BY started DESC LIMIT 200")?;
+        let values:Vec<serde_json::Value>=q.query_map([],|r|Ok(serde_json::json!({"id":r.get::<_,String>(0)?,"chat":r.get::<_,String>(1)?,"started":r.get::<_,i64>(2)?,"finished":r.get::<_,Option<i64>>(3)?,"status":r.get::<_,String>(4)?,"error":r.get::<_,String>(5)?})))?.collect::<Result<_,_>>()?;
+        Ok(serde_json::json!(values))
+    }
+    pub fn archive(
+        &self,
+        chat: &str,
+        search: &str,
+        before: Option<i64>,
+    ) -> rusqlite::Result<serde_json::Value> {
+        let mut query=self.connection.prepare("SELECT id,chat,sender,text,timestamp FROM messages WHERE (?1='' OR chat=?1) AND instr(text,?2)>0 AND id<?3 ORDER BY id DESC LIMIT 200")?;
+        let rows:Vec<serde_json::Value>=query.query_map(params![chat,search,before.unwrap_or(i64::MAX)],|r|Ok(serde_json::json!({"id":r.get::<_,i64>(0)?,"chat":r.get::<_,String>(1)?,"sender":r.get::<_,String>(2)?,"text":r.get::<_,String>(3)?,"timestamp":r.get::<_,i64>(4)?})))?.collect::<Result<_,_>>()?;
+        Ok(serde_json::json!(rows))
+    }
+    pub fn delete_chat(&mut self, chat: &str) -> rusqlite::Result<usize> {
+        let tx = self.connection.transaction()?;
+        for table in ["message_media", "message_replies", "imported_rows"] {
+            tx.execute(&format!("DELETE FROM {table} WHERE message_id IN (SELECT id FROM messages WHERE chat=?1)"), [chat])?;
+        }
+        let deleted = tx.execute("DELETE FROM messages WHERE chat=?1", [chat])?;
+        tx.commit()?;
+        Ok(deleted)
+    }
+    pub fn usage_breakdown(&self, since: i64) -> rusqlite::Result<serde_json::Value> {
+        let mut query=self.connection.prepare("SELECT model,COUNT(*),SUM(input),SUM(output),SUM(cost) FROM usage WHERE timestamp>=?1 GROUP BY model ORDER BY SUM(cost) DESC")?;
+        let models:Vec<serde_json::Value>=query.query_map([since],|r|Ok(serde_json::json!({"model":r.get::<_,String>(0)?,"calls":r.get::<_,i64>(1)?,"input":r.get::<_,i64>(2)?,"output":r.get::<_,i64>(3)?,"cost":r.get::<_,f64>(4)?})))?.collect::<Result<_,_>>()?;
+        let mut query=self.connection.prepare("SELECT strftime('%Y-%m-%d',timestamp,'unixepoch','localtime'),COUNT(*),SUM(input),SUM(output),SUM(cost) FROM usage WHERE timestamp>=?1 GROUP BY 1 ORDER BY 1 DESC")?;
+        let days:Vec<serde_json::Value>=query.query_map([since],|r|Ok(serde_json::json!({"date":r.get::<_,String>(0)?,"calls":r.get::<_,i64>(1)?,"input":r.get::<_,i64>(2)?,"output":r.get::<_,i64>(3)?,"cost":r.get::<_,f64>(4)?})))?.collect::<Result<_,_>>()?;
+        Ok(serde_json::json!({"models":models,"days":days}))
     }
 }
 

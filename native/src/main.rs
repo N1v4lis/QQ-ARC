@@ -12,6 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("Core token must have at least 24 characters".into());
     }
     let core = Core::new(default_data_root(), token);
+    qqaf_native::agent::start(core.clone());
+    qqaf_native::connections::supervise(core.clone());
     let mut shutdown = core.shutdown.subscribe();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
     println!(

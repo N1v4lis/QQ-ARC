@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'core_client.dart';
+import 'workspace_page.dart';
+import 'app_style.dart';
 
 import 'package:window_manager/window_manager.dart';
 
@@ -20,6 +22,7 @@ class _QqafAppState extends State<QqafApp> {
   List<String> accounts = [], chats = [];
   List<Map<String, dynamic>> messages = [];
   Map<String, dynamic> status = {}, usage = {};
+  Map<String, dynamic> uiPrefs = {};
   List<dynamic> memories = [];
   final memory = TextEditingController();
   String notice = '正在连接 Rust 核心…', answer = '';
@@ -30,6 +33,9 @@ class _QqafAppState extends State<QqafApp> {
   final inputPrice = TextEditingController(),
       outputPrice = TextEditingController();
   Timer? refresh;
+  Timer? preferenceSave;
+  Future<void> preferenceQueue = Future<void>.value();
+  int pendingPreferenceSaves = 0;
 
   @override
   void initState() {
@@ -43,6 +49,7 @@ class _QqafAppState extends State<QqafApp> {
   @override
   void dispose() {
     refresh?.cancel();
+    preferenceSave?.cancel();
     for (final controller in [
       qq,
       ws,
@@ -89,6 +96,7 @@ class _QqafAppState extends State<QqafApp> {
         account = ids.isEmpty ? null : ids.first;
         dark = prefs['theme'] == 'dark';
         minecraft = prefs['skin'] == 'minecraft';
+        uiPrefs = prefs;
         notice = 'Rust 核心已连接 · 独立迁移数据目录';
       });
       if (account != null) await loadAccount();
@@ -121,6 +129,13 @@ class _QqafAppState extends State<QqafApp> {
     try {
       final state =
           await widget.core.request('/status') as Map<String, dynamic>;
+      final ids = List<String>.from(
+        await widget.core.request('/accounts') as List,
+      );
+      final prefs =
+          preferenceSave?.isActive == true || pendingPreferenceSaves > 0
+          ? null
+          : await widget.core.request('/preferences') as Map<String, dynamic>;
       final id = account;
       final selected = chat;
       List<String> items = [];
@@ -148,6 +163,13 @@ class _QqafAppState extends State<QqafApp> {
       if (!mounted || id != account || selected != chat) return;
       setState(() {
         status = state;
+        accounts = ids;
+        if (prefs != null) {
+          uiPrefs = prefs;
+          dark = prefs['theme'] == 'dark';
+          minecraft = prefs['skin'] == 'minecraft';
+        }
+        if (account == null && ids.isNotEmpty) account = ids.first;
         chats = items;
         messages = rows;
         usage = nextUsage;
@@ -177,30 +199,16 @@ class _QqafAppState extends State<QqafApp> {
       ),
     ),
   );
-  Future<void> saveModel() async {
-    if (account == null) throw StateError('请先添加账号。');
-    final body = <String, dynamic>{
-      'account': account,
-      'config': {
-        'base_url': base.text.trim(),
-        'model': model.text.trim(),
-        'system_prompt': prompt.text,
-        'input_per_million': double.tryParse(inputPrice.text) ?? 0,
-        'output_per_million': double.tryParse(outputPrice.text) ?? 0,
-      },
-    };
-    if (key.text.isNotEmpty) body['api_key'] = key.text;
-    await widget.core.request('/model/config', body: body);
-    if (mounted) setState(() => notice = '模型配置已保存；密钥仅保留在本次核心会话内。');
-  }
-
-  Future<void> saveTheme() async {
-    await widget.core.request(
-      '/preferences',
-      body: {
-        'theme': dark ? 'dark' : 'light',
-        'skin': minecraft ? 'minecraft' : 'default',
-      },
+  void playSound(String name, String channel) {
+    if (!minecraft || uiPrefs['sound'] != true) return;
+    final volume =
+        ((uiPrefs['masterVolume'] as num?)?.toDouble() ?? 1) *
+        ((uiPrefs['${channel}Volume'] as num?)?.toDouble() ?? 1);
+    unawaited(
+      widget.core
+          .request('/ui/sound', body: {'name': name, 'volume': volume})
+          .then<void>((_) {})
+          .catchError((Object _) {}),
     );
   }
 
@@ -211,12 +219,29 @@ class _QqafAppState extends State<QqafApp> {
     );
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: minecraft ? Colors.green : const Color(0xff4169e1),
-          brightness: dark ? Brightness.dark : Brightness.light,
-        ),
-        useMaterial3: true,
+      theme: appTheme(dark: false, minecraft: minecraft, prefs: uiPrefs),
+      darkTheme: appTheme(dark: true, minecraft: minecraft, prefs: uiPrefs),
+      themeMode: uiPrefs['theme'] == 'auto'
+          ? ThemeMode.system
+          : dark
+          ? ThemeMode.dark
+          : ThemeMode.light,
+      builder: (context, child) => Stack(
+        children: [
+          if (minecraft && uiPrefs['background'] == true)
+            Positioned.fill(
+              child: Opacity(
+                opacity: ((uiPrefs['opacity'] as num?)?.toDouble() ?? .55)
+                    .clamp(0, 1),
+                child: Image.asset(
+                  'assets/mc/bg/wallpaper-${uiPrefs['wallpaper'] ?? 1}.png',
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.medium,
+                ),
+              ),
+            ),
+          ?child,
+        ],
       ),
       home: Builder(
         builder: (pageContext) => Scaffold(
@@ -259,37 +284,56 @@ class _QqafAppState extends State<QqafApp> {
           ),
           body: Row(
             children: [
-              NavigationRail(
-                selectedIndex: section,
-                onDestinationSelected: (value) =>
-                    setState(() => section = value),
-                labelType: NavigationRailLabelType.all,
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.dashboard_outlined),
-                    label: Text('总览'),
+              SizedBox(
+                width: 170,
+                child: ListView(
+                  key: const ValueKey('main-nav'),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 8,
                   ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.chat_bubble_outline),
-                    label: Text('会话'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.api),
-                    label: Text('API 与模型'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.cable),
-                    label: Text('OneBot'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.memory),
-                    label: Text('记忆'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.palette_outlined),
-                    label: Text('主题'),
-                  ),
-                ],
+                  children: [
+                    for (final item in const <(int, String, IconData)>[
+                      (0, '仪表盘', Icons.dashboard_outlined),
+                      (1, '会话', Icons.chat_bubble_outline),
+                      (6, '存档', Icons.inventory_2_outlined),
+                      (4, '记忆', Icons.memory),
+                      (7, '用量', Icons.bar_chart),
+                      (8, '人设', Icons.badge_outlined),
+                      (9, '技能', Icons.auto_awesome_outlined),
+                      (10, '插件', Icons.extension_outlined),
+                      (11, '账号', Icons.people_outline),
+                      (2, 'API与搜索', Icons.api),
+                      (12, '聊天白名单', Icons.checklist),
+                      (13, '聊天设置', Icons.chat_outlined),
+                      (14, '桌面端', Icons.desktop_windows_outlined),
+                      (15, '个性化', Icons.color_lens_outlined),
+                      (5, '主题', Icons.palette_outlined),
+                      (3, 'OneBot', Icons.cable),
+                      (16, '进阶', Icons.tune),
+                      (17, '工具与技能', Icons.handyman_outlined),
+                      (18, '社区与市场', Icons.storefront_outlined),
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: ListTile(
+                          dense: true,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          selected: section == item.$1,
+                          leading: minecraft
+                              ? PixelIcon(pixelNav[item.$1] ?? 'gear')
+                              : Icon(item.$3, size: 20),
+                          title: Text(item.$2),
+                          onTap: () {
+                            playSound('menu', 'click');
+                            setState(() => section = item.$1);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const VerticalDivider(width: 1),
               Expanded(
@@ -357,6 +401,64 @@ class _QqafAppState extends State<QqafApp> {
   }
 
   List<Widget> content(BuildContext pageContext, List<String> connected) {
+    if (section == 5) {
+      return [
+        ThemeWorkspace(
+          prefs: {
+            ...uiPrefs,
+            'theme': uiPrefs['theme'] ?? (dark ? 'dark' : 'light'),
+            'skin': minecraft ? 'minecraft' : 'default',
+          },
+          changed: (value) {
+            setState(() {
+              uiPrefs = value;
+              dark = value['theme'] == 'dark';
+              minecraft = value['skin'] == 'minecraft';
+            });
+            preferenceSave?.cancel();
+            preferenceSave = Timer(const Duration(milliseconds: 150), () {
+              final snapshot = Map<String, dynamic>.from(uiPrefs);
+              pendingPreferenceSaves++;
+              preferenceQueue = preferenceQueue.then((_) async {
+                try {
+                  await widget.core.request('/preferences', body: snapshot);
+                } catch (error) {
+                  if (mounted) setState(() => notice = '$error');
+                } finally {
+                  pendingPreferenceSaves--;
+                }
+              });
+            });
+          },
+        ),
+      ];
+    }
+    const pages = <int, String>{
+      2: 'api',
+      6: 'archive',
+      7: 'usage',
+      8: 'persona',
+      9: 'skills',
+      10: 'plugins',
+      11: 'accounts',
+      12: 'whitelist',
+      13: 'chat-settings',
+      14: 'desktop',
+      15: 'personalize',
+      16: 'advanced',
+      17: 'tools',
+      18: 'markets',
+    };
+    if (pages.containsKey(section)) {
+      return [
+        WorkspacePage(
+          key: ValueKey('$account:$section'),
+          core: widget.core,
+          account: account,
+          page: pages[section]!,
+        ),
+      ];
+    }
     switch (section) {
       case 0:
         return [
@@ -478,7 +580,6 @@ class _QqafAppState extends State<QqafApp> {
                 onPressed: busy || account == null
                     ? null
                     : () => perform(() async {
-                        await saveModel();
                         final result = await widget.core.request(
                           '/model/chat',
                           body: {
@@ -505,33 +606,6 @@ class _QqafAppState extends State<QqafApp> {
               child: SelectableText(answer),
             ),
         ];
-      case 2:
-        return [
-          const Text(
-            'API 与模型',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          const Text('当前支持 OpenAI 兼容 Chat Completions 接口；其他协议与工具调用尚未迁移。'),
-          const SizedBox(height: 16),
-          field('Base URL', base, hint: 'https://api.example.com/v1'),
-          field('模型 ID', model),
-          field('API Key（本次核心会话有效）', key, secret: true),
-          field('系统提示词', prompt, lines: 4),
-          Row(
-            children: [
-              Expanded(child: field('输入单价 / 百万 Token', inputPrice)),
-              const SizedBox(width: 16),
-              Expanded(child: field('输出单价 / 百万 Token', outputPrice)),
-            ],
-          ),
-          FilledButton(
-            onPressed: busy || account == null
-                ? null
-                : () => perform(saveModel),
-            child: const Text('保存模型配置'),
-          ),
-        ];
       case 3:
         return [
           const Text(
@@ -541,7 +615,7 @@ class _QqafAppState extends State<QqafApp> {
           const SizedBox(height: 16),
           field('QQ 账号', qq),
           field('正向 WebSocket 地址', ws, hint: 'ws://127.0.0.1:端口'),
-          field('Access Token（连接期间有效）', token, secret: true),
+          field('Access Token（本机加密保存）', token, secret: true),
           const Text('QQ 客户端由用户提供。填写 SnowLuma 的 OneBot 正向 WS 配置，点击连接后开始接收消息。'),
           const SizedBox(height: 16),
           Wrap(
@@ -611,6 +685,13 @@ class _QqafAppState extends State<QqafApp> {
               ),
             ],
           ),
+          if (account != null)
+            WorkspacePage(
+              key: ValueKey('$account:snow'),
+              core: widget.core,
+              account: account,
+              page: 'snow',
+            ),
         ];
       case 4:
         return [
@@ -657,39 +738,7 @@ class _QqafAppState extends State<QqafApp> {
             ),
         ];
       default:
-        return [
-          const Text(
-            '主题与酒狐',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          SwitchListTile(
-            title: const Text('暗色模式'),
-            value: dark,
-            onChanged: busy
-                ? null
-                : (value) {
-                    setState(() => dark = value);
-                    unawaited(perform(saveTheme));
-                  },
-          ),
-          SwitchListTile(
-            title: const Text('Minecraft 配色'),
-            subtitle: const Text('完整像素主题、背景与音效待迁移'),
-            value: minecraft,
-            onChanged: busy
-                ? null
-                : (value) {
-                    setState(() => minecraft = value);
-                    unawaited(perform(saveTheme));
-                  },
-          ),
-          const SwitchListTile(
-            title: Text('酒狐'),
-            subtitle: Text('默认关闭。Slint 或原生 3D 方案仍在考量；完成实现及硬件 GPU 验证后才允许开启。'),
-            value: false,
-            onChanged: null,
-          ),
-        ];
+        return [const Text('请选择功能页')];
     }
   }
 
