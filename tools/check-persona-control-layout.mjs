@@ -9,6 +9,10 @@ await withPage({url:'http://127.0.0.1:3210/',width:1360,height:900},async page=>
    await page.eval(`window.qqaSkin.set('${skin}');document.documentElement.dataset.motion='off';`);
    const metrics=await page.eval(`(()=>{const toolbar=document.querySelector('.persona-manual-tools').getBoundingClientRect(), surface=document.querySelector('.persona-edit-surface').getBoundingClientRect();return [...document.querySelectorAll('.persona-save-actions button')].every(b=>{const r=b.getBoundingClientRect();return r.right<=surface.right+1 && r.left>=surface.left-1 && r.bottom<=toolbar.bottom+1 && r.top>=toolbar.top-1;});})()`);
    assert.equal(metrics,true,skin+' '+width+' 保存按钮在工具栏内');
+   if(width===1360){
+     const aligned=await page.eval(`(()=>{const r=id=>document.getElementById(id).getBoundingClientRect(),history=r('persona-revisions'),save=r('persona-manual-save'),create=r('persona-new-blank'),status=r('persona-save-status'),all=r('persona-save-all');return [Math.abs(history.top-save.top),Math.abs(history.bottom-save.bottom),Math.abs(history.top-create.top),Math.abs(status.top+status.height/2-all.top-all.height/2)].every(n=>n<1);})()`);
+     assert.equal(aligned,true,skin+' 状态居中、下拉框与下排按钮上下边缘对齐');
+   }
  }
  await page.eval(`document.querySelector('[data-persona-left=templates]').click();document.querySelector('.persona-usage-open').focus();`);
  assert.equal(await page.eval(`getComputedStyle(document.querySelector('.persona-usage-open')).outlineStyle`),'none');

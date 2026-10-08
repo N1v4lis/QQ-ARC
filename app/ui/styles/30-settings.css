@@ -499,15 +499,15 @@ html[data-motion='off'] #view-persona #persona-manual-save.persona-save-success 
 /* 右侧重建：写作区 + 纵向编辑目录，左侧联系人布局保持。 */
 #view-persona .persona-manual-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 16px; flex-shrink: 0; min-width: 0; }
 #view-persona .persona-manual-tools[hidden] { display: none; }
-#view-persona #persona-revisions { width: 205px; max-width: 100%; font: inherit; font-size: 12px; }
+#view-persona #persona-revisions { width: 205px; max-width: 100%; height: 34px; box-sizing: border-box; margin: 0; font: inherit; font-size: 12px; }
 #view-persona .persona-manual-tools #persona-save-status { font-size: 11px; max-width: 110px; }
 #view-persona .persona-manual-tools + .persona-document > .persona-page-heading { min-height: 48px; }
 #view-persona .persona-edit-surface { position: relative; }
 #view-persona #cfg-persona-name { width: 280px; max-width: 100%; font: inherit; font-size: 16px; padding: 7px 10px; }
 #view-persona .persona-template-drawer footer { justify-content: flex-end; }
-#view-persona .persona-save-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 174px; max-width: 100%; gap: 5px; flex-shrink: 0; }
+#view-persona .persona-save-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: repeat(2,34px); width: 174px; max-width: 100%; gap: 5px; flex-shrink: 0; }
 #view-persona #persona-save-all { grid-column: 1 / -1; }
-#view-persona .persona-save-actions .btn { min-width: 82px; }
+#view-persona .persona-save-actions .btn { display: grid; place-items: center; min-width: 82px; height: 34px; box-sizing: border-box; margin: 0; padding: 0 10px; }
 #view-persona .persona-template-open b { transition: transform 160ms ease-out; }
 #view-persona .persona-template-open[aria-expanded='true'] b { transform: rotate(180deg); }
 #view-persona .persona-template-open[aria-expanded='true'] { background: var(--q-accent-soft); }
@@ -518,8 +518,8 @@ html[data-motion='off'] #view-persona .persona-template-open b { transition: non
 @media (prefers-reduced-motion: reduce) { #view-persona .persona-template-drawer { animation: none; } #view-persona .persona-template-open b { transition: none; } }
 #view-persona .persona-edit-surface:has(.persona-manual-tools:not([hidden])) > .persona-options > .persona-page-heading { min-height: 48px; }
 @media (min-width: 1101px) {
- #view-persona .persona-manual-tools { position: absolute; top: 24px; right: 28px; width: 390px; display: grid; grid-template-columns: minmax(0,1fr) 174px; gap: 5px 10px; margin: 0; }
- #view-persona .persona-manual-tools #persona-save-status { grid-column: 1; grid-row: 1; align-self: end; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ #view-persona .persona-manual-tools { position: absolute; top: 24px; right: 28px; width: 390px; display: grid; grid-template-columns: minmax(0,1fr) 174px; grid-template-rows: repeat(2,34px); gap: 5px 10px; margin: 0; }
+ #view-persona .persona-manual-tools #persona-save-status { grid-column: 1; grid-row: 1; align-self: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
  #view-persona #persona-revisions { grid-column: 1; grid-row: 2; width: 100%; min-width: 0; }
  #view-persona .persona-save-actions { grid-column: 2; grid-row: 1 / span 2; }
  #view-persona .persona-manual-tools + .persona-document > .persona-page-heading,
