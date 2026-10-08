@@ -1,10 +1,11 @@
 export function personaUsage(template, accounts) {
   const names = [template.name,template.fromOwner ? template.name.replace(/（来自主账号）$/,'') : template.name];
   const matches = persona => {
+    if(template.owner==='shared' && persona?.templateRef?.owner==='shared' && template.id===persona.templateRef.id)return true;
     if (template.builtin && persona?.templateRef?.builtin && persona.templateRef.id === template.id) return true;
     return String(persona?.roleText || '').trim() === String(template.text || '').trim()
       && String(persona?.customRules || '').trim() === String(template.customRules || '').trim()
-      && (template.id==='owner_current' || !persona?.name || names.includes(persona.name) || names.includes(persona.templateRef?.name));
+      && (template.id==='owner_current' || !persona?.name || names.includes(persona.name.replace(/（来自主账号）$/,'')) || names.includes(persona.templateRef?.name?.replace(/（来自主账号）$/,'')));
   };
   return accounts.flatMap(({uin,config}) => {
     const base=config.persona || {}, keys=new Set();

@@ -1,5 +1,7 @@
 # 主题系统（皮肤 × 亮度）
 
+0.4.4最新规则：默认皮肤动效固定开启，无关闭开关；旧qqa-motion=off仅作用于MC，切回默认立即开启。系统减弱动态效果保留。侧栏固定图标列和行高，文字淡出/淡入、色条/圆点变形、宽度260ms缓动；本地独立页通过shell/standalone-theme.js与styles/41-standalone.css跟随亮暗/MC，网页内联代码已外链化以适配宿主CSP。详见[本版说明](releases/0.4.4.md)，下文旧总开关约定被此条覆盖。
+
 > ARCFØX启动画面与默认/MC皮肤独立，共享图形几何，读取当前亮暗主题；切换只重绘照明，不重建粒子。系统减弱动态效果与qqa-motion关闭均使用500ms简化动画。见 [STARTUP-ANIMATION.md](STARTUP-ANIMATION.md)。
 
 > 当前酒狐仅MC自动出现，隐藏启用及关闭按钮。设置保留暂停、语音、大小、位置、表情及动作；首项自然允许自主走跑飞，手动选择不随机替换。长按圆形菜单含八个Extra。偏好与位置以qqa-wine-fox保存在localStorage，见WINE-FOX-INTERACTION.md。

@@ -1,7 +1,9 @@
 # QQ Agent ARCFOX - A modern, beautifully designed QQ Agent.
 
 > 当前工作区：`E:\CodeX-YSM\QQ Agent Dev\qq-agent-ui-next`。
-> 当前 UI 版本：**0.4.3**；目标 GitHub 仓库：**QQARCFOX（私有）**。
+> 当前 UI 版本：**0.4.4**；目标 GitHub 仓库：**QQARCFOX（私有）**。
+
+0.4.4：所有账号固定共享人设模板库，主侧栏及市场入口动效/对齐重做，页面切换减少重复请求和重排；默认皮肤动效固定开启，本地独立页补齐亮暗/MC主题。本机QQA程序版本也为0.4.4，部署增加 `tools/patch-host-shared-personas.mjs` 与 `tools/patch-host-version.mjs`。详情见 [0.4.4发布说明](docs/releases/0.4.4.md)。
 
 人设与模型自动继承：默认人设和主模型作为起点，单会话配置优先，空字段沿用默认；白名单仍控制响应范围。部署本轮前端时执行 `node tools/patch-host-persona-inheritance.mjs` 并重启，旧统一人设开关和群聊／私聊类别默认模型不再参与运行。
 > 本次接手结果与版本流程见 [`docs/CODEX-MIGRATION.md`](docs/CODEX-MIGRATION.md)。

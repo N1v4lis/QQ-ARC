@@ -412,7 +412,19 @@ async function openMemberNoteModal(qq, chatKey) {
     }
   });
 }
-async function loadSettings() {
+let settingsLoadPromise=null,settingsLoadedAt=0;
+async function loadSettings({navigation=false}={}) {
+  if(navigation && state.config && Object.keys(state.personaTemplates||{}).length){
+    const form=$('#settings-form');
+    const key=state.tab==='persona'?'persona':`settings:${state.settingsSection||'api'}`;
+    if(form?.dataset.renderedPage!==key)renderSettings();
+    if(Date.now()-settingsLoadedAt<15000)return;
+  }
+  if(settingsLoadPromise)return settingsLoadPromise;
+  settingsLoadPromise=loadSettingsData();
+  try{return await settingsLoadPromise;}finally{settingsLoadPromise=null;}
+}
+async function loadSettingsData() {
   const [cfg, tplData, provData, visionData, priceData, toolsData, skillsData] = await Promise.all([
     api('/api/config'),
     api('/api/persona-templates').catch(() => ({ templates: [] })),
@@ -437,7 +449,8 @@ async function loadSettings() {
   for (const t of tplData.templates || []) state.personaTemplates[t.id] = { ...t, name: t.name, text: t.text, customRules: t.customRules || '', builtin: !!t.builtin };
   // 提示词预览与配置并行拉取；渲染时可能还没到（先显示占位，到达后原地替换）
   refreshPromptPreview(cfg);
-  renderSettings();
+  settingsLoadedAt=Date.now();
+  if(['settings','persona'].includes(state.tab))renderSettings();
 }
 
 /** 设置页「远程价格表」状态行：来源（在线/缓存/内置）、时间、条目数、错误。 */

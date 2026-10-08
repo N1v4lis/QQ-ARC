@@ -185,3 +185,10 @@
 .q-scroll-fade {
   mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
 }
+/* 0.4.4: short, common feedback for both skins, without animating large lists. */
+.view.active { animation-duration: 180ms; }
+.view.leaving { display: none; }
+:is(.btn,button,.settings-menu-item,.persona-panel-nav button,.module-tab,.nav-btn) { transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease; }
+:is(.btn,button):active:not(:disabled) { filter: brightness(.94); }
+:is(.model-dd,.account-dd,.persona-context-menu,.popover,.dropdown-menu,.qrcode-egg-overlay) { animation: qPopIn 160ms ease-out both; }
+:is(.settings-menu-item,.persona-panel-nav button,.mcard,.market-card,.module-card) { transition: background-color 160ms ease, border-color 160ms ease; }

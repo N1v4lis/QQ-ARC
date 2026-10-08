@@ -1418,7 +1418,7 @@ async function saveConfig({ quiet = false } = {}) {
   if (sec === 'advanced') {
     patch.personaHistory={days:Math.max(1,Math.min(7,Number(val('#cfg-persona-history-days',1))||1)),limit:Math.max(1,Math.min(20,Math.trunc(Number(val('#cfg-persona-history-limit',5))||5)))};
     // 人设共用开关（只影响本账号如何取人设，不动数据本身）
-    patch.personaShared = chk('#cfg-persona-shared', c.personaShared === true);
+
     // 启动时自动拉起 SnowLuma（全局设置，写进 snowluma.autoLaunch）
     patch.snowluma = {
       ...(c.snowluma || {}),

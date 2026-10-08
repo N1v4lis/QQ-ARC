@@ -14,6 +14,11 @@
 
 (function shellBoot() {
   const root = document.documentElement;
+  document.querySelectorAll('.q-side-foot .nav-btn').forEach(button=>{
+    if(button.querySelector('.nav-btn-tx'))return;
+    const label=document.createElement('span');label.className='nav-btn-tx';
+    [...button.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).forEach(n=>label.append(n));button.append(label);
+  });
 
   /* ── 1. 窗口控制 ─────────────────────────────────────────────────────
      Electron 里 preload 暴露了 window.qqAgentShell.controls；
@@ -78,13 +83,15 @@
       if (name && root.getAttribute('data-view') !== name) root.setAttribute('data-view', name);
       // 页签高亮：switchTab 已经切了 .active，这里只补 aria 与滚动可见
       const btn = tabs.querySelector('.tab.active');
-      if (btn) {
+      if (btn && btn.getAttribute('aria-current')!=='page') {
         tabs.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-current', t === btn ? 'page' : 'false'));
         if (btn.scrollIntoView) btn.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }
     };
     syncView();
-    new MutationObserver(syncView).observe(layout, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    // Only actual page activation matters; inner cards change classes frequently.
+    const observer=new MutationObserver(records=>{if(records.some(r=>r.target.classList.contains('view')))syncView();});
+    [...layout.querySelectorAll('.view')].forEach(view=>observer.observe(view,{attributes:true,attributeFilter:['class']}));
   }
 
   /* ── 3. 侧栏折叠 ─────────────────────────────────────────────────────
@@ -124,10 +131,7 @@
     tabs.addEventListener('click', (e) => {
       const btn = e.target.closest('.tab, .nav-btn');
       if (!btn) return;
-      btn.classList.remove('q-tap');
-      void btn.offsetWidth;          // 强制回流，连点也能重播
-      btn.classList.add('q-tap');
-      setTimeout(() => btn.classList.remove('q-tap'), 180);
+      if(window.qqaMotion?.effective()!==false)btn.animate([{opacity:.65},{opacity:1}],{duration:140,easing:'ease-out'});
     });
   }
 

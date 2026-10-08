@@ -703,10 +703,10 @@ function syncQuoteButtons() {
   const qb = $('#quote-btn'), qc = $('#quote-confirm-btn');
   if (!qb || !qc) return;
   if (state.quoteMode) {
-    qb.textContent = '取消';
+    (qb.querySelector('.nav-btn-tx') || qb).textContent = '取消';
     uiShow(qc, () => qc.classList.remove('hidden'));
   } else {
-    qb.textContent = '金句上传';
+    (qb.querySelector('.nav-btn-tx') || qb).textContent = '金句上传';
     uiHide(qc, () => qc.classList.add('hidden'));
   }
 }

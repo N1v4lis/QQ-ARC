@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import {withPage} from './cdp.mjs';
 const url=process.argv[2]||'http://127.0.0.1:3210/';
 const before=await(await fetch(new URL('/api/config',url))).json();
+const fixture=structuredClone(before);fixture.persona={...fixture.persona,name:'UI定点人设',roleText:'UI定点正文',templateRef:null};
 await withPage({url,width:1360,height:900},async page=>{
  await page.waitFor('!!window.qqaSkin && !!document.querySelector(".tab.active")',{timeout:15000});
- await page.eval('window.__prePersonaFetch=window.fetch;window.fetch=async(input,init)=>{const u=typeof input==="string"?input:input.url;if(u.includes("/api/config")&&init?.method==="POST")return new Response(JSON.stringify({ok:true,config:state.config}),{headers:{"Content-Type":"application/json"}});return window.__prePersonaFetch(input,init);};window.qqaSkin.set("minecraft");state.personaTarget="global";document.querySelector(".tab[data-tab=persona]").click()');
+ await page.eval(`state.config=${JSON.stringify(fixture)};window.__prePersonaFetch=window.fetch;window.fetch=async(input,init)=>{const u=typeof input==='string'?input:input.url;if(u.includes('/api/config'))return new Response(JSON.stringify(init?.method==='POST'?{ok:true,config:state.config}:state.config),{headers:{'Content-Type':'application/json'}});return window.__prePersonaFetch(input,init);};window.qqaSkin.set('minecraft');state.personaTarget='global';document.querySelector('.tab[data-tab=persona]').click()`);
  await page.waitFor('!!document.querySelector(".persona-studio #cfg-roletext")',{timeout:15000});
  const initial=await page.eval(`({forms:document.querySelectorAll('#settings-form').length,cards:document.querySelectorAll('#view-persona .setcard').length,order:document.querySelector('.tab[data-tab=persona]').nextElementSibling.dataset.tab,templates:document.querySelectorAll('.persona-template').length,role:document.querySelector('#cfg-roletext').value})`);
- assert.equal(initial.forms,1);assert.equal(initial.cards,0);assert.equal(initial.order,'skills');assert(initial.templates>0);assert.equal(initial.role,before.persona.roleText);
+ assert.equal(initial.forms,1);assert.equal(initial.cards,0);assert.equal(initial.order,'skills');assert(initial.templates>0);assert.equal(initial.role,fixture.persona.roleText);
  assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),true,'模板按需展开');
  await page.eval('document.querySelector("[data-persona-left=templates]").click()');
  assert.equal(await page.eval('document.querySelector(".persona-template-drawer").hidden'),false);
@@ -36,7 +37,7 @@ await withPage({url,width:1360,height:900},async page=>{
  await page.eval('(()=>{document.querySelector("[data-persona-panel=role]").click();const r=document.querySelector("#cfg-roletext");r.value+="\\n中文保存验证";r.dispatchEvent(new Event("input",{bubbles:true}));})()');
  assert.equal(await page.eval('!!document.querySelector("#view-persona .settings-undo-btn")'),false);
  await page.eval('document.querySelector("#persona-manual-save").click()');
- await page.waitFor('!personaManualBusy && window.__personaPosts.some(p=>p.persona?.roleText.endsWith("中文保存验证"))');
+ try{await page.waitFor('!personaManualBusy && window.__personaPosts.some(p=>p.persona?.roleText.endsWith("中文保存验证"))');}catch(error){console.log(await page.eval('JSON.stringify({status:document.querySelector("#persona-save-status")?.textContent,busy:personaManualBusy,posts:__personaPosts.length,roleChanged:document.querySelector("#cfg-roletext")?.value.endsWith("中文保存验证"),panel:state.personaPanel,selected:state.personaEditingTemplates[personaRevisionKey()]?.builtin})'));throw error;}
  const target=await page.eval('document.querySelector(".persona-target[data-persona-target^=\\"group:\\"]")?.dataset.personaTarget || document.querySelector(".persona-target[data-persona-target^=\\"private:\\"]")?.dataset.personaTarget');
  assert(target,'需要会话用于定点验证');
  await page.eval(`document.querySelector('[data-persona-target="${target}"]').click()`);

@@ -169,12 +169,13 @@ const UI_EASE_OUT = 'cubic-bezier(.4, 0, .2, 1)';
 
 function uiCanAnimate(el) {
   if (!el || typeof el.animate !== 'function') return false;
+  if(window.qqaMotion?.effective()===false)return false;
   try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false; } catch { /* 老环境没有 matchMedia */ }
   return true;
 }
 
 function uiIsHidden(el) {
-  return !el || el.style.display === 'none' || el.classList.contains('hidden');
+  return !el || el.hidden || el.style.display === 'none' || el.classList.contains('hidden');
 }
 
 function uiStopAnim(el) {
@@ -945,6 +946,7 @@ async function resumePause({ skipBacklog = false } = {}) {
 }
 
 function switchTab(name) {
+  if(state.tab===name && document.querySelector(`#view-${name}.active`))return;
   // 离开设置页（无论去哪）前，先把防抖窗口内还没落盘的改动立即保存。
   // 必须在页签切换、任何 loadXxx 触发**之前**做：等切走之后表单 DOM 还在
   // （只是视图隐藏）其实也能读，但"正在输入的最后一个字段"可能只过了
@@ -955,7 +957,12 @@ function switchTab(name) {
   if (name === 'persona' || name === 'settings') {
     const form = $('#settings-form');
     const host = $(`#view-${name}`);
-    if (form && host && form.parentElement !== host) host.append(form);
+    if (form && host && form.parentElement !== host) {
+      // Do not lay out the previous page's editor under the new page's rules
+      // during the paint-before-load frame. Persona drafts already live in state.
+      form.replaceChildren();delete form.dataset.renderedPage;
+      host.append(form);
+    }
   }
   $$('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
   const prevView = $('.view.active');
@@ -965,21 +972,17 @@ function switchTab(name) {
     if (on) {
       /* 页面视图本身保留原有 display 切换语义；只重启动画，避免新旧页签同时占位。 */
       v.classList.remove('leaving');   // 快速来回切时旧的淡出可能还没收尾
-      v.style.animation = 'none';
-      void v.offsetWidth;
-      v.style.animation = '';
     }
   });
-  // 交叉淡化（对齐 concept2）：旧视图 .leaving 与新视图同帧共存约 120ms，
-  // 淡出落定后摘掉 .leaving（display 语义始终由 .active 唯一决定）。
-  if (prevView && prevView.id !== `view-${name}` && uiCanAnimate(prevView)) {
-    prevView.classList.add('leaving');
-    const clear = () => prevView.classList.remove('leaving');
-    prevView.addEventListener('animationend', clear, { once: true });
-    setTimeout(clear, 220);
-  }
+  // Only the new view participates in layout; do not render both large pages at once.
+  if(prevView)prevView.classList.remove('leaving');
   state.tab = name;
+  document.documentElement.dataset.view=name;
+  $$('.tab').forEach(t=>t.setAttribute('aria-current',t.dataset.tab===name?'page':'false'));
   if (state.quoteMode && name !== 'chats') exitQuoteMode();   // 离开存档页自动退出金句勾选
+  // Paint navigation first; skip obsolete work when users switch again before this frame.
+  requestAnimationFrame(()=>setTimeout(()=>{
+  if(state.tab!==name)return;
   if (name === 'dashboard') loadDashboard();
   if (name === 'sessions') loadSessions();
   if (name === 'chats') loadChats();
@@ -990,11 +993,12 @@ function switchTab(name) {
     api('/api/chats').then((d) => { state.chats = d.chats || []; }).catch(() => {});
   }
   if (name === 'memory') loadMemoryView();
-  if (name === 'usage') loadUsageView({ force: true });
+  if (name === 'usage') loadUsageView({ force: !usageLastData || usageLastData.range!==usageRange });
   if (name === 'skills') loadModulePage('skill');
   if (name === 'plugins') loadModulePage('plugin');
   // ⚠️ 没有 'snowluma' 分支了：该面板已整合进「设置 → OneBot（SnowLuma）」，
   //    由 renderSettings() 末尾的 afterRender 钩子在那个区块渲染后加载。
   if (name === 'accounts') loadAccountsPage();
-  if (name === 'settings' || name === 'persona') loadSettings();
+  if (name === 'settings' || name === 'persona') loadSettings({navigation:true});
+  },0));
 }

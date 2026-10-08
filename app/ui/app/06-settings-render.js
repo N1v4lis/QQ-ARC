@@ -234,6 +234,7 @@ function renderSettings() {
   }
   box.__qqaCfgRetry = 0;
   try {
+    box.dataset.renderedPage=state.tab==='persona'?'persona':`settings:${state.settingsSection||'api'}`;
     box.innerHTML = `
     ${renderSettingsSection(c)}`;
     // 先折叠收纳再绑事件：autoFold 会搬 DOM，但节点上的监听会跟着节点走；
@@ -385,7 +386,7 @@ function renderApiSection(c) {
       gray: true,
       title: '按会话选模型',
       sub: '已并入「人设」页 · 每个群/私聊可单独指定',
-      body: `<div class="hint">这一项搬到了 <b>人设</b> 设置页：分会话模式里每个会话一行（人设 + 模型），另有「默认模型（群聊/私聊）」。留空 = 跟随上方主模型。</div>`
+      body: `<div class="hint">这一项搬到了 <b>人设</b> 设置页：分会话模式里每个会话一行（人设 + 模型），未单独设置时跟随上方主模型。</div>`
     })}
     ${sc({
       id: 'card-api-price',
@@ -642,8 +643,8 @@ async function loadPersonaContacts({ refresh = false } = {}) {
 function personaDefaultTemplateId(c = state.config) {
   const persona=c?.persona || {}, ref=persona.templateRef;
   const templates=Object.entries(state.personaTemplates || {});
-  const matched=templates.find(([id,p])=>ref?.builtin ? p.builtin && id===ref.id : ref && p.owner===(ref.owner || undefined) && p.name===ref.name)
-    || templates.find(([,p])=>p.text===persona.roleText && (p.customRules || '')===(persona.customRules || '') && (!persona.name || p.name===persona.name));
+  const matched=templates.find(([id,p])=>ref?.builtin ? p.builtin && id===ref.id : ref?.owner==='shared'?id===ref.id:ref && p.owner===(ref.owner || undefined) && p.name===ref.name)
+    || templates.find(([,p])=>p.text===persona.roleText && (p.customRules || '')===(persona.customRules || '') && (!persona.name || p.name===persona.name.replace(/（来自主账号）$/,'')));
   return matched?.[0] || '';
 }
 
@@ -1440,7 +1441,7 @@ function renderPersonalizeSection(c) {
       深浅两套主题都会同步生效；想只改一套，可在输入框里填 <code>var(--s-)</code> 之外的具体颜色。
     </p>
 
-    <div class="setcard fold open" id="card-motion">
+${document.documentElement.dataset.skin==='minecraft'?`    <div class="setcard fold open" id="card-motion">
       <div class="setcard-head fold-head">
         <div class="sc-ico">✨</div>
         <div class="sc-tt"><h4>动效</h4><div class="sc-sub">界面过渡、视图切换、主题扩散等动画的总开关</div></div>
@@ -1457,6 +1458,7 @@ function renderPersonalizeSection(c) {
       </div></div>
     </div>
 
+`:''}
     <div class="setcard fold open" id="card-colors">
       <div class="setcard-head fold-head">
         <div class="sc-ico">🎨</div>
@@ -1869,10 +1871,12 @@ async function loadModulePage(kind, { rescan = false } = {}) {
   if (!meta) return;
   const box = $(meta.boxSel);
   if (!box) return;
-  box.innerHTML = renderModuleSkeleton(meta);
+  if(!box.dataset.loaded)box.innerHTML = renderModuleSkeleton(meta);
+  if(!rescan && Date.now()-(loadModulePage.loadedAt||0)<10000){renderModulePage(kind);return;}
   if (rescan) await rescanSkills({ quiet: true });
   else await loadSkillsStatus();
   renderModulePage(kind);
+  box.dataset.loaded='1';loadModulePage.loadedAt=Date.now();
   // 页面整页重建（切页签 / 手动刷新）时内容淡入；卡片开关后的原地重绘不播
   uiEnter(box);
 }
@@ -2142,7 +2146,6 @@ function renderAdvancedAccountTable() {
 
 function renderAdvancedSection(c) {
   const sc = (typeof setCard === 'function') ? setCard : (o) => `<div class="setcard">${o.body}</div>`;
-  const shared = c.personaShared === true;
   const autoLaunch = c.snowluma?.autoLaunch === true;
   const hookAuto = c.snowluma?.hookAutoLoad === true;
   const snowDir = String(c.snowluma?.dir || '');
@@ -2187,22 +2190,7 @@ function renderAdvancedSection(c) {
       ${renderAdvancedAccountTable()}<div style="display:none">
       </div>`
     })}
-    ${sc({
-      id: 'card-advanced-persona',
-      icon: '🧩',
-      title: '人设库共用',
-      sub: '本账号的"人设库"是否与主账号（bot 号）共用一份（各号仍各用自己的当前人设）',
-      body: `
-      <div class="checkbox-row">
-        <input type="checkbox" id="cfg-persona-shared" ${shared ? 'checked' : ''} />
-        <label for="cfg-persona-shared">与主账号共用同一份人设库（保存的人设互相可见/可选）</label>
-      </div>
-      <div class="hint" style="margin-top:8px">
-        打开后：人设选择器里能选到<b>两边保存过的所有人设</b>；在这里新保存的人设也会进共享库。<br>
-        <b>注意：这不会让两个号使用同一个人设</b> —— 每个号仍用自己的当前人设。
-        当前状态：<b>${shared ? '共用中' : '各自独立'}</b>。
-      </div>`
-    })}`;
+`;
 }
 
 function renderToolsSection(c) {

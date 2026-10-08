@@ -21,6 +21,9 @@
 
 /* 视图本身撑满内容区 */
 .q-main > .view { flex: 1 1 auto; min-height: 0; min-width: 0; }
+/* Views occupy a fixed viewport. Their intrinsic text/list size must not relayout
+   the body grid and sidebar on each activation or asynchronous data update. */
+#layout > .view { position: absolute; inset: 0; contain: layout style; }
 
 /* ── 列表 + 详情 两栏视图 ───────────────────────────────────────────────── */
 #view-sessions, #view-chats, #view-memory { flex-direction: row; }

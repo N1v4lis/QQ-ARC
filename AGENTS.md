@@ -1,5 +1,7 @@
 # 项目协作约定
 
+- 2026-10-08最新0.4.4：所有账号固定共享DATA_DIR/shared-personas.json模板库，进阶共用开关删除，不加来源后缀；各账号选用人设/会话/白名单仍隔离。部署需persona-policy、shared-personas、version补丁，宿主和UI版本均0.4.4。默认皮肤动效固定开启，不提供开关，MC保留既有偏好，系统减弱动态效果仍尊重。用户明确授权本轮push并发布0.4.4，不延伸为后续自动上传授权。
+
 动手前读 README.md、docs/HANDOFF-WILL.md 和 docs/CODEX-MIGRATION.md；
 按改动范围继续读 ARCHITECTURE、DEVELOPMENT、TESTING、THEME-SYSTEM、PITFALLS。
 

@@ -1141,7 +1141,7 @@ function bindSettingsEvents(c) {
       const latest=await api('/api/config');
       if(selectedTemplate?.editable && scope!=='model'){
         const updated={...selectedTemplate,...(fields.includes('name')?{name:editor.name,text:editor.roleText}:{}),...(fields.includes('customRules')?{customRules:editor.customRules}:{})};
-        await api('/api/persona-library',{method:'POST',body:JSON.stringify({action:'update',owner:selectedTemplate.owner,index:selectedTemplate.index,expectedName:selectedTemplate.name,expectedText:selectedTemplate.text,name:updated.name,text:updated.text,customRules:updated.customRules})});
+        await api('/api/persona-library',{method:'POST',body:JSON.stringify({action:'update',id:selectedTemplate.id,owner:selectedTemplate.owner,index:selectedTemplate.index,expectedName:selectedTemplate.name,expectedText:selectedTemplate.text,name:updated.name,text:updated.text,customRules:updated.customRules})});
         state.personaEditingTemplates[key]=updated;state.personaTemplates[selectedTemplate.id]=updated;
         const item=document.querySelector('[data-persona-id="'+selectedTemplate.id+'"] .persona-template-name');if(item)item.textContent=updated.name;
       }
@@ -1279,7 +1279,7 @@ function bindSettingsEvents(c) {
           let name=tpl.name;
           if(action==='rename'){name=await uiPrompt('重命名人设',tpl.name);if(name===null)return;name=name.trim().slice(0,100);}
           if(action==='delete' && !(await uiConfirm(`删除人设“${tpl.name}”？最近保存记录将保留。`)))return;
-          await api('/api/persona-library',{method:'POST',body:JSON.stringify({action,owner:tpl.owner,index:tpl.index,expectedName:tpl.name,expectedText:tpl.text,name})});
+          await api('/api/persona-library',{method:'POST',body:JSON.stringify({action,id,owner:tpl.owner,index:tpl.index,expectedName:tpl.name,expectedText:tpl.text,name})});
           const key=personaRevisionKey(), selected=state.personaEditingTemplates[key];
           if(selected?.owner===tpl.owner && selected?.index===tpl.index){
             if(action==='delete')state.personaEditingTemplates[key]=null;
@@ -1378,6 +1378,7 @@ function bindSettingsEvents(c) {
   }));
   if ($('.persona-studio')) setPersonaLeft(state.personaLeft || 'chats');
   $$('[data-persona-panel]').forEach(button => button.addEventListener('click', () => {
+    const changed=state.personaPanel!==button.dataset.personaPanel;
     state.personaPanel = button.dataset.personaPanel;
     const manualTools = $('.persona-manual-tools');
     if (manualTools) manualTools.hidden = false;
@@ -1386,6 +1387,7 @@ function bindSettingsEvents(c) {
       tab.classList.toggle('active', tab === button);
       tab.setAttribute('aria-pressed', String(tab === button));
     });
+    if(changed)uiEnter($('[data-persona-pane="'+state.personaPanel+'"]'));
   }));
   const personaStudio = $('.persona-studio');
   if (personaStudio) personaStudio.__personaFilter = filterPersonas;

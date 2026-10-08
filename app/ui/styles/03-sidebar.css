@@ -313,7 +313,7 @@
 html[data-nav='collapsed'] { --q-sidebar-w: var(--q-sidebar-w-rail); }
 html[data-nav='collapsed'] #q-side-toggle { justify-content: center; margin: 0 10px; padding: 6px; }
 html[data-nav='collapsed'] .q-side-toggle-tx,
-html[data-nav='collapsed'] .tab-tx { display: none; }
+html[data-nav='collapsed'] .tab-tx { opacity: 0; }
 html[data-nav='collapsed'] .q-side-foot { align-items: center; padding: 8px 8px 10px; }
 /* rail 里的社区入口收成一列小圆点：点得到、靠颜色区分，名字看 title */
 html[data-nav='collapsed'] .q-side-foot .nav-btn {  width: 32px;
@@ -338,7 +338,7 @@ html[data-nav='collapsed'] #tabs .q-side-scroll > .tab:nth-child(6)::after { dis
 /* ── 窄窗口自动 rail ────────────────────────────────────────────────────── */
 @media (max-width: 880px) {
   :root { --q-sidebar-w: var(--q-sidebar-w-rail); }
-  .q-side-toggle-tx, .tab-tx { display: none; }
+  .q-side-toggle-tx, .tab-tx { opacity: 0; }
   .q-side-foot .nav-btn { width: 32px; height: 24px; padding: 0; justify-content: center; font-size: 0; }
   .q-side-foot .nav-btn::before { margin: 0; width: 8px; height: 8px; border-radius: 50%; opacity: 0.9; }
   #q-side-toggle { justify-content: center; margin: 0 10px; padding: 6px; }
@@ -368,4 +368,27 @@ html[data-nav='collapsed'] #tabs .q-side-scroll > .tab:nth-child(6)::after { dis
   html[data-nav='expanded'] .q-side-foot .nav-btn { width: 100%; justify-content: flex-start; font-size: 12.5px; padding: 7px 10px; }
   html[data-nav='expanded'] .q-side-foot .nav-btn::before { margin-right: 8px; width: 3px; height: 12px; border-radius: 2px; }
   html[data-nav='expanded'] #tabs.q-side .tab { justify-content: flex-start; padding: 8px 10px; }
+}
+/* 0.4.4: one icon column and stable row heights throughout rail transitions. */
+@media (min-width: 641px) {
+ .q-sidebar { overflow: hidden; transition: width 260ms cubic-bezier(.2,.8,.2,1), min-width 260ms cubic-bezier(.2,.8,.2,1); }
+ #tabs .q-side-scroll { padding: 0 6px !important; }
+ #tabs.q-side .tab, html .q-sidebar .q-side-foot .nav-btn {
+  display: grid; grid-template-columns: 24px minmax(0,1fr); gap: 8px;
+  justify-content: start !important; align-items: center; padding: 6px 12px !important;
+  width: 100% !important; height: 36px !important; min-height: 36px; box-sizing: border-box;
+ }
+ #tabs .tab-ico, .q-side-foot .mc-nav-item { justify-self: center; }
+ .q-side-foot { padding: 10px 6px 12px !important; align-items: stretch !important; }
+ .q-side-foot .nav-btn::before { margin: 0 !important; justify-self: center; transition: width 220ms ease, height 220ms ease, border-radius 220ms ease, opacity 180ms ease; }
+ .tab-tx, .q-side-toggle-tx, .nav-btn-tx { display: block !important; min-width: 0; overflow: hidden; white-space: nowrap; opacity: 1; transition: opacity 150ms ease, transform 220ms ease; }
+ .nav-btn-tx { font-size: 12.5px; line-height: 1.5; }
+ html[data-skin='minecraft'][data-mc-font='on'] .nav-btn-tx { font-size: 14px; }
+ #q-side-toggle.q-side-toggle { margin: 0 6px !important; padding: 6px 12px !important; width: calc(100% - 12px); height: 36px; justify-content: start !important; }
+ #q-side-toggle svg { width: 24px; }
+ html[data-nav='collapsed'] :is(.tab-tx,.q-side-toggle-tx,.nav-btn-tx) { opacity: 0; transform: translateX(-6px); pointer-events: none; }
+ html[data-nav='expanded'] :is(.tab-tx,.q-side-toggle-tx,.nav-btn-tx) { transition-delay: 70ms; }
+}
+@media (min-width: 641px) and (max-width: 880px) {
+ .tab-tx,.q-side-toggle-tx,.nav-btn-tx { opacity: 0; pointer-events: none; }
 }

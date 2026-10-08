@@ -1,0 +1,23 @@
+/* Local markets and profile manager use the same semantic colors as the console. */
+:root { --ink:var(--q-fg); --muted:var(--q-fg-3); --bg:var(--q-bg-base); --panel:var(--q-bg-1); --line:var(--q-line-2); --accent:var(--q-accent); --accent2:var(--q-accent-hi); }
+html body { background:var(--q-bg-base) !important; color:var(--q-fg); font-family:var(--q-font); }
+html .nav { background:var(--q-bg-base); backdrop-filter:none; }
+html :is(.card,.profile-card,.modal-content,.dialog,.notice,.current-profile,.panel) { background:var(--q-bg-1); color:var(--q-fg); border-color:var(--q-line-2); }
+html :is(h1,h2,h3,.profile-name,.modal-title) { color:var(--q-fg); }
+html :is(input,select,textarea) { background:var(--q-bg-1); color:var(--q-fg); border-color:var(--q-line-2); }
+html :is(.pill,.cat,.badge,.btn.ghost,.eyebrow) { background:var(--q-bg-2); color:var(--q-fg-2); border-color:var(--q-line-2); }
+html :is(.cat.active,.pill.active) { background:var(--q-accent-soft); color:var(--q-accent); }
+html[data-skin='minecraft'] :is(.card,.profile-card,.modal-content,.pill,.btn,.cat,.search,.notice,.badge,.manifest) { border-radius:0; box-shadow:none; }
+html[data-skin='minecraft'] body { font-family:var(--q-font-mc); }
+@keyframes standaloneEnter { from {opacity:0;transform:translateY(5px)} to {opacity:1;transform:none} }
+html:not([data-motion='off']) :is(.hero,.header,.modal-content) { animation:standaloneEnter 180ms ease-out both; }
+:is(button,.btn,.pill,.cat,.card,.profile-card,input,select,textarea) { transition:background-color 150ms ease,border-color 150ms ease,color 150ms ease,box-shadow 150ms ease,transform 150ms ease; }
+@media (prefers-reduced-motion:reduce) { html :is(.hero,.header,.modal-content) { animation:none; } }
+html :is(.modal .box,.manifest) { background:var(--q-bg-1); color:var(--q-fg); }
+html .modal { backdrop-filter:none; }
+html .btn { background:var(--q-accent); color:#fff; }
+html .btn.btn-danger { background:var(--q-err); }
+html .btn.btn-warning { background:var(--q-warn); }
+html .btn.btn-success { background:var(--q-ok); }
+html .btn.btn-secondary { background:var(--q-bg-3); color:var(--q-fg); }
+html[data-skin='minecraft'] .modal .box { border-radius:0; box-shadow:none; }
