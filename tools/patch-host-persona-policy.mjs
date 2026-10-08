@@ -34,10 +34,20 @@ if(!source.includes('// ARCFOX persona usage and builtin protection v1')){
 }
 source=fs.readFileSync(file,'utf8');
 let normalized=source.replaceAll('\r\n','\n');
+// POST /api/config also needs the builtins; the GET handler's local import is out of scope.
+if(!/^import \{ PERSONAS \} from '\.\/personas\.js';$/m.test(normalized)){
+ const anchor="import fs from 'node:fs';";
+ if(!normalized.includes(anchor))throw Error('Routes import anchor changed');
+ normalized=normalized.replace(anchor,anchor+"\nimport { PERSONAS } from './personas.js';");
+}
 const helperStart=normalized.indexOf('function personaUsage('), helperEnd=normalized.indexOf('        const accounts=listQqAccounts()',helperStart);
 if(helperStart<0 || helperEnd<0)throw Error('Usage helper anchor changed');
 normalized=normalized.slice(0,helperStart)+fs.readFileSync(new URL('./host/arcfox-persona-usage.mjs',import.meta.url),'utf8').replace('export function','function')+'\n'+normalized.slice(helperEnd);
 normalized=normalized.replace('return json(res,200,{usage:personaUsage(template,accounts)});',"return json(res,200,Array.isArray(template.templates)?{usageByTemplate:Object.fromEntries(template.templates.slice(0,500).map(t=>[t.id,personaUsage(t,accounts)]))}:{usage:personaUsage(template,accounts)});");
 const updated=source.includes('\r\n')?normalized.replaceAll('\n','\r\n'):normalized;
 if(updated!==source){fs.writeFileSync(file+'.bak-persona-usage-'+Date.now(),source);fs.writeFileSync(file,updated);}
+const personasFile='E:/QQ Agent/resources/app/src/personas.js';
+const personasSource=fs.readFileSync(personasFile,'utf8');
+const personasUpdated=personasSource.replace("name: '小鲸鱼（默认）'","name: '小鲸鱼'");
+if(personasUpdated!==personasSource){fs.writeFileSync(personasFile+'.bak-persona-name-'+Date.now(),personasSource);fs.writeFileSync(personasFile,personasUpdated);}
 console.log('Persona usage and builtin save protection installed.');

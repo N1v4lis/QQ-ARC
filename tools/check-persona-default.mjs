@@ -1,5 +1,19 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {withPage} from './cdp.mjs';
+const hostSource=fs.readFileSync('E:/QQ Agent/resources/app/src/routes.js','utf8');
+assert.match(hostSource,/^import \{ PERSONAS \} from '\.\/personas\.js';$/m,'POST handler must have a module-scoped builtin import');
+const {PERSONAS}=await import('file:///E:/QQ%20Agent/resources/app/src/personas.js');
+assert.equal(PERSONAS.xiaojingyu.name,'小鲸鱼');
+// Run the installed POST handler with in-memory persistence, including its real builtin lookup.
+const routeStart=hostSource.indexOf("method: 'POST', pattern: '/api/config'");
+const handlerStart=hostSource.indexOf('handler: async',routeStart)+'handler: '.length;
+const handlerEnd=hostSource.indexOf('\n    },',handlerStart);
+let memory={persona:{name:'custom',roleText:'custom',templateRef:{builtin:false}}};
+const handler=new Function('PERSONAS','readBody','getConfig','updateConfig','store','sessions','orchestrator','initPriceFeed','FIXED_PRICE_FEED_URL','emit','sanitizeConfig',
+ 'return '+hostSource.slice(handlerStart,handlerEnd).trim())(PERSONAS,async req=>structuredClone(req.patch),()=>memory,patch=>(memory={...memory,...patch}),{setMaxPerChat(){}},{},{stopProactiveLoop(){}},()=>{},'',()=>{},v=>v);
+const response=await handler({req:{patch:{persona:{templateRef:{id:'xiaojingyu',builtin:true},roleText:'invalid edit'}}},res:{},json:(_res,status,body)=>({status,body})});
+assert.equal(response.status,200);assert.equal(memory.persona.roleText,PERSONAS.xiaojingyu.text);assert.equal(memory.persona.name,'小鲸鱼');
 const url='http://127.0.0.1:3210/';const before=await(await fetch(url+'api/config')).json();
 await withPage({url,width:1360,height:900},async page=>{
  await page.waitFor('!!state.config && !!document.querySelector(".tab.active")',{timeout:15000});
@@ -19,6 +33,10 @@ await withPage({url,width:1360,height:900},async page=>{
  assert.equal(await page.eval('state.config.persona.roleText'),'builtin text');assert.equal(await page.eval('state.config.persona.systemPromptOverride'),'');
  assert.equal(await page.eval('document.querySelectorAll(".persona-default").length'),1);assert.equal(await page.eval('document.querySelector(".persona-default-badge").textContent'),'★ 默认');
  assert.equal(await page.eval('state.config.personaByChat["private:preserved"].roleText'),'own text');
+ const count=await page.eval('__defaultPosts.length');
+ await setDefault('xiaojingyu');
+ await page.waitFor(`__defaultPosts.length===${count+1}`);
+ assert.equal(await page.eval('state.config.persona.name'),'小鲸鱼');
  console.log('✔ 自定义/内置均可设默认，唯一特殊标记、正文规则即时生效、身份/独立人设/白名单保留；真实写入模拟。');
 });
 assert.deepEqual(await(await fetch(url+'api/config')).json(),before);

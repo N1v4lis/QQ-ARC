@@ -1245,7 +1245,7 @@ function bindSettingsEvents(c) {
       if(!tpl)return;
       closePersonaWhitelistMenu?.();
       const menu=document.createElement('div');menu.className='persona-context-menu';menu.setAttribute('role','menu');
-      menu.innerHTML=`<button type="button" data-template-action="default" role="menuitem" ${personaDefaultTemplateId()===id?'disabled':''}>${personaDefaultTemplateId()===id?'当前默认人设':'设为默认人设'}</button><button type="button" data-template-action="copy" role="menuitem">从“${esc(tpl.name)}”创建新人设</button><button type="button" data-template-action="rename" role="menuitem" ${tpl.editable?'':'disabled'}>重命名人设</button><button type="button" data-template-action="delete" role="menuitem" ${tpl.editable?'':'disabled'}>删除人设</button>`;
+      menu.innerHTML=`<button type="button" data-template-action="default" role="menuitem">${personaDefaultTemplateId()===id?'重新选用默认人设':'设为默认人设'}</button><button type="button" data-template-action="copy" role="menuitem">从“${esc(tpl.name)}”创建新人设</button><button type="button" data-template-action="rename" role="menuitem" ${tpl.editable?'':'disabled'}>重命名人设</button><button type="button" data-template-action="delete" role="menuitem" ${tpl.editable?'':'disabled'}>删除人设</button>`;
       document.body.append(menu);menu.style.left=Math.max(4,Math.min(event.clientX,innerWidth-menu.offsetWidth-4))+'px';menu.style.top=Math.max(4,Math.min(event.clientY,innerHeight-menu.offsetHeight-4))+'px';
       const close=()=>{menu.remove();document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',keyboard);if(closePersonaWhitelistMenu===close)closePersonaWhitelistMenu=null;};
       const outside=e=>{if(!menu.contains(e.target))close();};
