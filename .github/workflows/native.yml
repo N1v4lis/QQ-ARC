@@ -38,6 +38,9 @@ jobs:
         run: flutter analyze --no-pub
       - name: Flutter tests
         working-directory: flutter
+        env:
+          QQAF_CORE_EXECUTABLE: ${{ github.workspace }}/native/target/release/qqaf-native.exe
+          QQAF_NATIVE_DATA_DIR: ${{ runner.temp }}/qqaf-core-test
         run: flutter test --no-pub
       - name: Build Flutter desktop
         working-directory: flutter

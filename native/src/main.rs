@@ -1,3 +1,5 @@
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 use qqaf_native::{
     core::{Core, router},
     storage::default_data_root,

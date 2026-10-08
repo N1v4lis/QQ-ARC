@@ -1,0 +1,55 @@
+param(
+    [string]$FlutterBinary,
+    [string]$CargoHome,
+    [string]$RustupHome,
+    [string]$CompilerBin,
+    [switch]$SkipCoreBuild
+)
+$ErrorActionPreference = 'Stop'
+$repoRoot = Split-Path $PSScriptRoot -Parent
+Push-Location $repoRoot
+try {
+    if ((git branch --show-current) -ne 'Rust+Slint') { throw 'Experimental builds require the Rust+Slint branch.' }
+    if (-not $FlutterBinary) { $FlutterBinary = (Get-Command flutter -ErrorAction Stop).Source }
+    $flutterExe = [IO.Path]::GetFullPath($FlutterBinary)
+    if (-not $SkipCoreBuild) {
+        & "$PSScriptRoot/run-native.ps1" -Mode release -CargoHome $CargoHome -RustupHome $RustupHome -CompilerBin $CompilerBin
+    }
+    $coreExe = Join-Path $repoRoot 'native/target/release/qqaf-native.exe'
+    if (-not (Test-Path -LiteralPath $coreExe)) { throw 'Rust release executable missing.' }
+    Push-Location flutter
+    try {
+        & $flutterExe pub get
+        if ($LASTEXITCODE -ne 0) { throw 'Flutter dependencies failed; ensure plugin symlink permissions are available.' }
+        & $flutterExe analyze --no-pub
+        if ($LASTEXITCODE -ne 0) { throw 'Flutter analysis failed.' }
+        & $flutterExe test --no-pub
+        if ($LASTEXITCODE -ne 0) { throw 'Flutter tests failed.' }
+        & $flutterExe build windows --release --no-pub
+        if ($LASTEXITCODE -ne 0) { throw 'Flutter Windows build failed.' }
+    } finally { Pop-Location }
+    $version = ((Get-Content flutter/pubspec.yaml | Select-String '^version:').Line -split ':',2)[1].Trim().Split('+')[0]
+    $bundle = Join-Path $repoRoot "dist/qqaf-experimental-$version"
+    # Unique output directory avoids retaining old binaries from a previous build.
+    if (Test-Path -LiteralPath $bundle) { $bundle += '-' + (Get-Date -Format 'yyyyMMdd-HHmmss') }
+    New-Item -ItemType Directory -Path $bundle | Out-Null
+    Copy-Item -Path 'flutter/build/windows/x64/runner/Release/*' -Destination $bundle -Recurse
+    Copy-Item -LiteralPath $coreExe -Destination (Join-Path $bundle 'qqaf-native.exe')
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+    if (Test-Path -LiteralPath $vswhere) {
+        $vsRoot = & $vswhere -latest -products '*' -property installationPath
+        $crt = Get-ChildItem -LiteralPath (Join-Path $vsRoot 'VC/Redist/MSVC') -Directory |
+            Sort-Object Name -Descending | Select-Object -First 1
+        if ($crt) {
+            $crtPath = Join-Path $crt.FullName 'x64/Microsoft.VC143.CRT'
+            if (Test-Path -LiteralPath $crtPath) { Copy-Item -Path (Join-Path $crtPath '*.dll') -Destination $bundle }
+        }
+    }
+    Copy-Item -LiteralPath 'flutter/README.md' -Destination (Join-Path $bundle 'EXPERIMENTAL.md')
+    $manifest = @{version=$version;branch='Rust+Slint';commit=(git rev-parse HEAD);experimental=$true}
+    $manifest | ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $bundle 'build-info.json')
+    $zip = $bundle + '.zip'
+    Compress-Archive -Path (Join-Path $bundle '*') -DestinationPath $zip
+    Get-FileHash -LiteralPath $zip -Algorithm SHA256 | Select-Object Hash,Path
+    Write-Output "Built: $bundle"
+} finally { Pop-Location }

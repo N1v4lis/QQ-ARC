@@ -16,3 +16,5 @@ flutter build windows --release --no-pub
 已接入总览、会话、模型设置、OneBot、手动记忆和主题偏好，读取核心真实状态。无账号时在 OneBot 页创建离线账号。连接和发送需手动触发，未实现自动回复。Minecraft 配色仅为界面验证，完整主题与酒狐尚未迁移。
 
 Flutter 负责窗口与 UI，Rust 负责业务。IPC 使用随机端口和令牌保护的本机 HTTP。密钥仅保留在当前核心会话。酒狐默认关闭且禁用，Slint 或原生 3D 仍在考量。
+
+Windows 本地构建可从仓库根目录调用 `tools/build-experimental.ps1`，传入 FlutterBinary 以及所需 Rust 工具链参数。脚本检查当前分支、运行分析与测试、构建并打包至忽略的 dist 目录，附带 Rust 核心和可用的 VC 运行库。不自动注册开机自启或覆盖旧安装。
