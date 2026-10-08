@@ -517,6 +517,14 @@ html[data-motion='off'] #view-persona .persona-template-drawer { animation: none
 html[data-motion='off'] #view-persona .persona-template-open b { transition: none; }
 @media (prefers-reduced-motion: reduce) { #view-persona .persona-template-drawer { animation: none; } #view-persona .persona-template-open b { transition: none; } }
 #view-persona .persona-edit-surface:has(.persona-manual-tools:not([hidden])) > .persona-options > .persona-page-heading { min-height: 48px; }
+@media (min-width: 1101px) {
+ #view-persona .persona-manual-tools { position: absolute; top: 24px; right: 28px; width: 390px; display: grid; grid-template-columns: minmax(0,1fr) 174px; gap: 5px 10px; margin: 0; }
+ #view-persona .persona-manual-tools #persona-save-status { grid-column: 1; grid-row: 1; align-self: end; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ #view-persona #persona-revisions { grid-column: 1; grid-row: 2; width: 100%; min-width: 0; }
+ #view-persona .persona-save-actions { grid-column: 2; grid-row: 1 / span 2; }
+ #view-persona .persona-manual-tools + .persona-document > .persona-page-heading,
+ #view-persona .persona-edit-surface:has(.persona-manual-tools:not([hidden])) > .persona-options > .persona-page-heading { padding-right: 410px; min-height: 74px; margin-bottom: 12px; }
+}
 #view-persona .persona-desk { position: relative; padding: 0; background: var(--q-bg-base); }
 #view-persona .persona-desk-head { padding: 22px 28px; border-bottom: 1px solid var(--q-line-1); background: var(--q-bg-1); }
 #view-persona .persona-desk-head h2 { margin-top: 5px; font-size: 20px; overflow-wrap: anywhere; }
