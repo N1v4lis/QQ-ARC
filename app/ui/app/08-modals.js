@@ -50,7 +50,7 @@ function modelModalShell({ head, body, foot = '', danger = false }) {
     <div class="model-modal ${danger ? 'danger' : ''}" role="dialog" aria-modal="true" aria-label="${esc(String(head || '对话框'))}">
       <div class="model-modal-head">
         <span>${head}</span>
-        <button class="model-modal-close" type="button" aria-label="关闭" title="关闭（Esc）">×</button>
+        <button class="model-modal-close" type="button" aria-label="关闭" title="关闭（Esc）"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2 2l8 8M10 2l-8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" /></svg></button>
       </div>
       <div class="model-modal-body${/^\s*<div class="model-modal-left"/.test(String(body)) ? ' row' : ''}">${body}</div>
       <div class="model-modal-foot">${foot || ''}</div>
