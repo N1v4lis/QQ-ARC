@@ -1245,7 +1245,7 @@ function bindSettingsEvents(c) {
       if(!tpl)return;
       closePersonaWhitelistMenu?.();
       const menu=document.createElement('div');menu.className='persona-context-menu';menu.setAttribute('role','menu');
-      menu.innerHTML=`<button type="button" data-template-action="copy" role="menuitem">从“${esc(tpl.name)}”创建新人设</button><button type="button" data-template-action="rename" role="menuitem" ${tpl.editable?'':'disabled'}>重命名人设</button><button type="button" data-template-action="delete" role="menuitem" ${tpl.editable?'':'disabled'}>删除人设</button>`;
+      menu.innerHTML=`<button type="button" data-template-action="default" role="menuitem" ${personaDefaultTemplateId()===id?'disabled':''}>${personaDefaultTemplateId()===id?'当前默认人设':'设为默认人设'}</button><button type="button" data-template-action="copy" role="menuitem">从“${esc(tpl.name)}”创建新人设</button><button type="button" data-template-action="rename" role="menuitem" ${tpl.editable?'':'disabled'}>重命名人设</button><button type="button" data-template-action="delete" role="menuitem" ${tpl.editable?'':'disabled'}>删除人设</button>`;
       document.body.append(menu);menu.style.left=Math.max(4,Math.min(event.clientX,innerWidth-menu.offsetWidth-4))+'px';menu.style.top=Math.max(4,Math.min(event.clientY,innerHeight-menu.offsetHeight-4))+'px';
       const close=()=>{menu.remove();document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',keyboard);if(closePersonaWhitelistMenu===close)closePersonaWhitelistMenu=null;};
       const outside=e=>{if(!menu.contains(e.target))close();};
@@ -1259,6 +1259,23 @@ function bindSettingsEvents(c) {
         if(action==='copy'){void createPersona(tpl);return;}
         templateActionBusy=true;
         try {
+          if(action==='default'){
+            if((state.personaTarget || 'global')==='global' && !(await beforePersonaReplacement()))return;
+            const chosen=state.personaTemplates[id] || tpl;
+            const latest=await api('/api/config');
+            const persona={...latest.persona,name:chosen.name,roleText:chosen.text,customRules:chosen.customRules || '',systemPromptOverride:'',templateRef:{id,owner:chosen.owner || '',name:chosen.name,builtin:!!chosen.builtin}};
+            const response=await api('/api/config',{method:'POST',body:JSON.stringify({persona})});
+            state.config={...response.config,account:latest.account || state.config.account};
+            const key=personaRevisionKey(state.config,'global');
+            if((state.personaTarget || 'global')==='global' || !state.personaDrafts?.[key]){
+              state.personaEditingTemplates[key]={id,...chosen};
+              delete state.personaDrafts?.[key];
+              delete state.personaEditBaselines?.[key];
+            }
+            renderSettings();
+            const status=$('#persona-save-status');if(status)status.textContent='已设为默认人设';
+            return;
+          }
           let name=tpl.name;
           if(action==='rename'){name=await uiPrompt('重命名人设',tpl.name);if(name===null)return;name=name.trim().slice(0,100);}
           if(action==='delete' && !(await uiConfirm(`删除人设“${tpl.name}”？最近保存记录将保留。`)))return;

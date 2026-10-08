@@ -555,6 +555,8 @@ html[data-motion='off'] #view-persona .persona-template-open b { transition: non
 #view-persona .persona-template-choices { max-height: 300px; }
 #view-persona .persona-template-item { display: flex; align-items: center; gap: 4px; background: var(--q-bg-base); border-radius: var(--q-r-sm); }
 #view-persona .persona-template-item:has(.persona-template.active) { background: var(--q-accent-soft); }
+#view-persona .persona-template-item.persona-default { box-shadow: inset 0 0 0 2px #cc963d; background: color-mix(in srgb,var(--q-bg-base) 90%,#f2b54b); }
+#view-persona .persona-default-badge { display: block; margin-top: 4px; color: #aa771c; font-size: 11px; font-weight: 600; }
 #view-persona .persona-template-item .persona-template { background: transparent; }
 #view-persona .persona-usage-open { width: 34px; height: 34px; font-size: 22px; }
 #view-persona .persona-usage-open.used { color: #4285ed; }

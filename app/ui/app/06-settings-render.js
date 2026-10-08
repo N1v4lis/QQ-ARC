@@ -639,6 +639,14 @@ async function loadPersonaContacts({ refresh = false } = {}) {
   paint();
 }
 
+function personaDefaultTemplateId(c = state.config) {
+  const persona=c?.persona || {}, ref=persona.templateRef;
+  const templates=Object.entries(state.personaTemplates || {});
+  const matched=templates.find(([id,p])=>ref?.builtin ? p.builtin && id===ref.id : ref && p.owner===(ref.owner || undefined) && p.name===ref.name)
+    || templates.find(([,p])=>p.text===persona.roleText && (p.customRules || '')===(persona.customRules || '') && (!persona.name || p.name===persona.name));
+  return matched?.[0] || '';
+}
+
 function renderPersonaSection(c) {
   const target = state.personaTarget || 'global';
   const global = target === 'global';
@@ -647,6 +655,7 @@ function renderPersonaSection(c) {
   const contact = global ? null : (state.personaContacts?.[target.startsWith('group:') ? 'groups' : 'friends'] || []).find(item => String(item.id) === target.split(':')[1]);
   const title = global ? '全局人设' : formatChatTitle(target, contact?.remark || contact?.name || contact?.nickname || chatNameOf(target));
   const templates = Object.entries(state.personaTemplates || {});
+  const defaultTemplateId = personaDefaultTemplateId(c);
   const panel = state.personaPanel || 'role';
   const currentModel = per.modelChoice !== undefined ? (per.modelChoice ? {provider:JSON.parse(per.modelChoice)[0],model:JSON.parse(per.modelChoice)[1]} : null) : c.api?.apiByChat?.byChat?.[target];
   const missingModel = currentModel?.model && !(state.providers || []).some(p => p.id === currentModel.provider && (p.models || []).includes(currentModel.model));
@@ -665,7 +674,7 @@ function renderPersonaSection(c) {
       <header class="persona-desk-head"><div><span class="persona-eyebrow">正在编辑 · ${global ? '默认角色' : target.startsWith('group:') ? '群聊角色' : '好友角色'}</span><h2>${esc(global ? '默认人设' : title)}</h2></div><button type="button" class="persona-template-open" data-persona-left="templates"><small>选用人设</small><span id="persona-current-template">${esc(templateName)}</span><b aria-hidden="true">⌄</b></button></header>
       <div class="persona-template-drawer" id="persona-template-library" data-persona-list="templates" hidden aria-label="选择人设模板">
         <header><div><h3>用模板开始</h3><p>选用后填入当前对象的名称、正文和规则</p></div></header>
-        <div class="persona-template-choices">${templates.map(([id,p]) => `<div class="persona-template-item"><button type="button" class="persona-template" data-persona-id="${esc(id)}" aria-pressed="${p.text===per.roleText}"><span class="persona-template-name">${esc(p.name)}</span>${p.builtin?'<small>内置</small>':''}</button><button type="button" class="persona-usage-open" data-persona-usage="${esc(id)}" aria-label="查看${esc(p.name)}的使用情况" title="查看使用情况"><span class="persona-usage-dot" aria-hidden="true"></span></button></div>`).join('')}</div>
+        <div class="persona-template-choices">${templates.map(([id,p]) => `<div class="persona-template-item${id===defaultTemplateId?' persona-default':''}"><button type="button" class="persona-template" data-persona-id="${esc(id)}" aria-pressed="${p.text===per.roleText}"><span class="persona-template-name">${esc(p.name)}${id===defaultTemplateId?'<span class="persona-default-badge" title="未单独配置的会话使用此人设">★ 默认</span>':''}</span>${p.builtin?'<small>内置</small>':''}</button><button type="button" class="persona-usage-open" data-persona-usage="${esc(id)}" aria-label="查看${esc(p.name)}的使用情况" title="查看使用情况"><span class="persona-usage-dot" aria-hidden="true"></span></button></div>`).join('')}</div>
 
       </div>
       <input type="hidden" id="cfg-persona-pick" value="${esc(templateName)}" /><span id="persona-pick-hint" class="hidden"></span>
