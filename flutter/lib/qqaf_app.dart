@@ -6,7 +6,7 @@ import 'core_client.dart';
 import 'workspace_page.dart';
 import 'app_style.dart';
 
-import 'package:window_manager/window_manager.dart';
+import 'legacy_shell.dart';
 
 class QqafApp extends StatefulWidget {
   const QqafApp({super.key, required this.core});
@@ -228,6 +228,13 @@ class _QqafAppState extends State<QqafApp> {
           : ThemeMode.light,
       builder: (context, child) => Stack(
         children: [
+          Positioned.fill(
+            child: ColoredBox(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xff151517)
+                  : const Color(0xfff7f8fa),
+            ),
+          ),
           if (minecraft && uiPrefs['background'] == true)
             Positioned.fill(
               child: Opacity(
@@ -244,156 +251,97 @@ class _QqafAppState extends State<QqafApp> {
         ],
       ),
       home: Builder(
-        builder: (pageContext) => Scaffold(
-          appBar: AppBar(
-            title: GestureDetector(
-              onPanStart: (_) => windowManager.startDragging(),
-              onDoubleTap: () async {
-                if (await windowManager.isMaximized()) {
-                  await windowManager.unmaximize();
-                } else {
-                  await windowManager.maximize();
-                }
-              },
-              child: const Text('QQ Agent ARCFØX'),
-            ),
-            actions: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Flutter + Rust · 迁移开发版'),
-              ),
-              IconButton(
-                onPressed: () => windowManager.minimize(),
-                icon: const Icon(Icons.remove),
-              ),
-              IconButton(
-                onPressed: () async {
-                  if (await windowManager.isMaximized()) {
-                    await windowManager.unmaximize();
-                  } else {
-                    await windowManager.maximize();
-                  }
-                },
-                icon: const Icon(Icons.crop_square),
-              ),
-              IconButton(
-                onPressed: () => windowManager.close(),
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-          body: Row(
-            children: [
-              SizedBox(
-                width: 170,
-                child: ListView(
-                  key: const ValueKey('main-nav'),
+        builder: (pageContext) => LegacyShell(
+          section: section,
+          minecraft: minecraft,
+          busy: busy,
+          notice: notice,
+          model: model.text.isEmpty ? '未配置' : model.text,
+          refresh: () => unawaited(perform(updateMessages)),
+          select: (id) {
+            playSound('menu', 'click');
+            setState(() => section = id);
+          },
+          toolbar: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Container(
                   padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 8,
+                    horizontal: 10,
+                    vertical: 5,
                   ),
-                  children: [
-                    for (final item in const <(int, String, IconData)>[
-                      (0, '仪表盘', Icons.dashboard_outlined),
-                      (1, '会话', Icons.chat_bubble_outline),
-                      (6, '存档', Icons.inventory_2_outlined),
-                      (4, '记忆', Icons.memory),
-                      (7, '用量', Icons.bar_chart),
-                      (8, '人设', Icons.badge_outlined),
-                      (9, '技能', Icons.auto_awesome_outlined),
-                      (10, '插件', Icons.extension_outlined),
-                      (11, '账号', Icons.people_outline),
-                      (2, 'API与搜索', Icons.api),
-                      (12, '聊天白名单', Icons.checklist),
-                      (13, '聊天设置', Icons.chat_outlined),
-                      (14, '桌面端', Icons.desktop_windows_outlined),
-                      (15, '个性化', Icons.color_lens_outlined),
-                      (5, '主题', Icons.palette_outlined),
-                      (3, 'OneBot', Icons.cable),
-                      (16, '进阶', Icons.tune),
-                      (17, '工具与技能', Icons.handyman_outlined),
-                      (18, '社区与市场', Icons.storefront_outlined),
-                    ])
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: ListTile(
-                          dense: true,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          selected: section == item.$1,
-                          leading: minecraft
-                              ? PixelIcon(pixelNav[item.$1] ?? 'gear')
-                              : Icon(item.$3, size: 20),
-                          title: Text(item.$2),
-                          onTap: () {
-                            playSound('menu', 'click');
-                            setState(() => section = item.$1);
+                  decoration: BoxDecoration(
+                    color: Theme.of(pageContext).cardColor,
+                    borderRadius: BorderRadius.circular(minecraft ? 0 : 20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.circle,
+                        size: 8,
+                        color: account != null && connected.contains(account)
+                            ? Colors.green
+                            : Colors.grey,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        account != null && connected.contains(account)
+                            ? 'OneBot 已连接'
+                            : 'OneBot 未连接',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 120,
+                  child: DropdownButtonFormField<String>(
+                    key: ValueKey(account),
+                    initialValue: account,
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                    ),
+                    hint: const Text('选择账号'),
+                    items: accounts
+                        .map(
+                          (id) => DropdownMenuItem(value: id, child: Text(id)),
+                        )
+                        .toList(),
+                    onChanged: busy
+                        ? null
+                        : (id) {
+                            setState(() => account = id);
+                            unawaited(perform(loadAccount));
                           },
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
-              ),
-              const VerticalDivider(width: 1),
-              Expanded(
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              key: ValueKey(account),
-                              initialValue: account,
-                              decoration: const InputDecoration(
-                                labelText: '当前账号',
-                                border: OutlineInputBorder(),
-                              ),
-                              items: accounts
-                                  .map(
-                                    (id) => DropdownMenuItem(
-                                      value: id,
-                                      child: Text(id),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: busy
-                                  ? null
-                                  : (id) {
-                                      setState(() => account = id);
-                                      unawaited(perform(loadAccount));
-                                    },
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Chip(
-                            label: Text(
-                              account != null && connected.contains(account)
-                                  ? 'OneBot 已连接'
-                                  : 'OneBot 未连接',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                        children: content(pageContext, connected),
-                      ),
-                    ),
-                    if (busy) const LinearProgressIndicator(),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      child: Text(notice),
-                    ),
-                  ],
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () => setState(() => section = 8),
+                  child: const Text('人设/模型设置'),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '调用 ${usage['calls'] ?? 0} 次 · 估算 ${usage['estimated_cost'] ?? 0}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          content: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            children: content(pageContext, connected),
           ),
         ),
       ),
@@ -463,8 +411,8 @@ class _QqafAppState extends State<QqafApp> {
       case 0:
         return [
           const Text(
-            '迁移工作区',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            '仪表盘',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           const Text('旧架构开发无限期暂停，恢复时间待定。此开发版不代表旧客户端全部功能已迁移。'),
@@ -493,7 +441,7 @@ class _QqafAppState extends State<QqafApp> {
         return [
           const Text(
             '会话',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Wrap(
@@ -610,7 +558,7 @@ class _QqafAppState extends State<QqafApp> {
         return [
           const Text(
             'OneBot / SnowLuma',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           field('QQ 账号', qq),
@@ -697,7 +645,7 @@ class _QqafAppState extends State<QqafApp> {
         return [
           const Text(
             '会话记忆',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text('当前目标：${chat ?? 'scratch'} · 保存后供该会话模型上下文使用'),
@@ -754,7 +702,7 @@ class _QqafAppState extends State<QqafApp> {
             const SizedBox(height: 12),
             Text(
               value,
-              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
           ],
         ),

@@ -155,7 +155,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 6),

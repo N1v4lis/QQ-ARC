@@ -1,6 +1,6 @@
 # QQAF Flutter 桌面界面
 
-Flutter UI + Rust 核心的 Windows 实验版，版本 0.1.0。旧客户端归档为 0.4.5a。所有后续开发在 Rust+Slint 分支进行，不覆盖旧安装和数据。
+Flutter UI + Rust 核心的 Windows 实验版，版本 0.1.1。旧客户端归档为 0.4.5a。所有后续开发在 Rust+Slint 分支进行，不覆盖旧安装和数据。
 
 开发使用 Flutter 3.47.6 / Dart 3.13.5；Windows 构建需要 Visual Studio C++ 桌面组件及插件符号链接权限。用户运行无需工具链。
 

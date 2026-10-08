@@ -212,10 +212,10 @@ ThemeData appTheme({
       ? const Color(0xff2f7d32)
       : Color(
           int.tryParse(
-                '${prefs['accent'] ?? '4169e1'}',
+                '${prefs['accent'] ?? '4176e6'}',
                 radix: 16,
               )?.toUnsigned(32) ??
-              0x4169e1,
+              0x4176e6,
         ).withValues(alpha: 1);
   final radius = minecraft ? BorderRadius.zero : BorderRadius.circular(8);
   final outline = OutlineInputBorder(
@@ -229,32 +229,52 @@ ThemeData appTheme({
     extensions: [SkinStyle(minecraft)],
     useMaterial3: true,
     brightness: brightness,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: accent,
-      brightness: brightness,
-    ),
+    colorScheme: ColorScheme.fromSeed(seedColor: accent, brightness: brightness)
+        .copyWith(
+          primary: accent,
+          surface: dark ? const Color(0xff232324) : Colors.white,
+          onSurface: dark ? const Color(0xfff9fafb) : const Color(0xff0f1115),
+        ),
     scaffoldBackgroundColor: background
         ? Colors.transparent
         : dark
-        ? const Color(0xff17191e)
+        ? const Color(0xff151517)
         : const Color(0xfff7f8fa),
-    fontFamily: minecraft && prefs['mcFont'] != false ? 'Monocraft' : null,
+    fontFamily: minecraft && prefs['mcFont'] != false
+        ? 'Monocraft'
+        : 'Segoe UI',
     fontFamilyFallback: minecraft && prefs['mcFont'] != false
         ? ['MinecraftAE']
-        : null,
+        : ['Microsoft YaHei', 'sans-serif'],
+    visualDensity: VisualDensity.compact,
+    textTheme: const TextTheme(
+      bodyMedium: TextStyle(fontSize: 13),
+      bodyLarge: TextStyle(fontSize: 13),
+      titleMedium: TextStyle(fontSize: 13),
+      labelLarge: TextStyle(fontSize: 12),
+    ),
+    dividerColor: dark ? const Color(0x1fffffff) : const Color(0x1a000000),
     appBarTheme: AppBarTheme(
       backgroundColor: background
           ? Colors.transparent
           : dark
-          ? const Color(0xff17191e)
+          ? const Color(0xff151517)
           : const Color(0xfff7f8fa),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
     ),
+    cardTheme: CardThemeData(
+      shape: RoundedRectangleBorder(borderRadius: radius),
+      elevation: 0,
+      color: (dark ? const Color(0xff2c2c2e) : Colors.white).withValues(
+        alpha: background ? .88 : 1,
+      ),
+    ),
     inputDecorationTheme: InputDecorationTheme(
+      isDense: true,
       filled: true,
       fillColor: dark
-          ? const Color(0xff22252b)
+          ? const Color(0xff2c2c2e)
           : Colors.white.withValues(alpha: background ? .88 : 1),
       border: outline,
       enabledBorder: outline,
@@ -262,15 +282,19 @@ ThemeData appTheme({
         borderRadius: radius,
         borderSide: BorderSide(color: accent, width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: radius),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: radius),
       ),
     ),
@@ -309,7 +333,7 @@ class ThemeWorkspace extends StatelessWidget {
       children: [
         const Text(
           '主题',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         SettingSwitchTile(
@@ -339,7 +363,7 @@ class ThemeWorkspace extends StatelessWidget {
                   spacing: 12,
                   children: [
                     for (final color in [
-                      '4169e1',
+                      '4176e6',
                       '8053c8',
                       'd15a76',
                       '218c72',

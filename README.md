@@ -11,7 +11,9 @@ Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 
 ## 当前状态
 
-实验包版本为 **0.1.0**，与归档版 **0.4.5a** 分开记录。Flutter 负责窗口与界面，Rust 负责业务、网络、存储和模型请求；默认运行不依赖 Electron、Node.js、WebView 或 Slint。
+界面风格迁移记录：[0.1.1 实验版](docs/releases/experimental-0.1.1.md)。
+
+实验包版本为 **0.1.1**，与归档版 **0.4.5a** 分开记录。Flutter 负责窗口与界面，Rust 负责业务、网络、存储和模型请求；默认运行不依赖 Electron、Node.js、WebView 或 Slint。
 
 本轮按旧架构 79 个接口、32 组配置核对业务和 UI。新界面已覆盖总览、会话、存档、记忆、用量、人设、账号、API与搜索、白名单、聊天设置、桌面端、个性化、主题、OneBot、进阶、工具、插件、技能和市场入口。**页面覆盖不代表旧功能全部迁移完成**；详见 [功能迁移清单](docs/NATIVE-FEATURE-MATRIX.md)。
 
