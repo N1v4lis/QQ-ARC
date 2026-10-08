@@ -1,73 +1,52 @@
-# QQ Agent ARCFØX
+# QQ Agent ARCFØX · 实验版
 
-A modern, beautifully designed QQ Agent.
+Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 
 > [!WARNING]
-> ⚠️ **架构迁移公告**
+> ⚠️ **实验性版本 · 正在迁移**
 >
-> 旧架构的开发已无限期暂停，恢复时间待定。开发者正在尝试将现有架构迁移至 **Rust＋Slint**；若迁移方案的可行性验证通过，将停止旧架构的后续开发。
+> 本分支用于验证 **Flutter UI＋Rust 核心**，功能、界面和数据结构仍可能调整，暂不能替代原有客户端。旧架构开发已无限期暂停，恢复时间待定；是否停止旧架构开发，将在新方案完成可行性验收后决定。
 >
-> **0.4.5a** 为架构迁移前归档。迁移尝试及后续改动将在 [Rust+Slint 分支](https://github.com/N1v4lis/QQARCFOX/tree/Rust%2BSlint) 推进；该分支暂不代表功能完整或可替代当前客户端。
+> **0.4.5a** 为迁移前归档。后续开发在 [Rust+Slint 分支](https://github.com/N1v4lis/QQARCFOX/tree/Rust%2BSlint) 推进。分支名称沿用早期命名，**酒狐采用 Slint 或原生 3D 仍在考量**，尚未定案。
 
-QQ Agent ARCFØX 为 QQ Agent 提供重新设计的桌面界面、Minecraft 主题和酒狐互动助手，整合模型连接、联网搜索、用量估算与人设管理。
+## 当前状态
 
-当前版本：**0.4.5a**。项目仍处于 Beta 阶段，后续功能计划见下方路线图。
+实验包版本为 **0.1.0**，与归档版 **0.4.5a** 分开记录。Flutter 负责窗口与界面，Rust 负责业务、网络、存储和模型请求；默认运行不依赖 Electron、Node.js、WebView 或 Slint。
 
-## 版本路线图
-
-点击版本号即可直接进入对应 Milestone，查看完整计划与进度。
-
-| 版本 | 计划 |
+| 已接通 | 当前边界 |
 | --- | --- |
-| [0.4.6](https://github.com/N1v4lis/QQARCFOX/milestone/5) | 下一阶段：记忆与上下文底层重构（高性能、低占用、减少 Token）；SnowLuma 更新检测；插件网络代理；主题打包导入/导出与制作规范；替换多 QQ 实例自动拉起/登录及注入方案；功能描述文本重绘。 |
-| [0.4.7](https://github.com/N1v4lis/QQARCFOX/milestone/1) | 完成设置 UI 与功能重制：聊天白名单、聊天设置、桌面端、个性化、主题、OneBot（SnowLuma）、进阶、工具与技能。 |
-| [0.4.8](https://github.com/N1v4lis/QQARCFOX/milestone/2) | 多账号重做；插件与技能对接本机任意 Agent / Harness；GitHub 源自动检查更新。 |
-| [0.4.9](https://github.com/N1v4lis/QQARCFOX/milestone/3) | 用量界面重制；记忆与存档重做；会话功能及 UI 改进。 |
-| [0.5.0](https://github.com/N1v4lis/QQARCFOX/milestone/4) | 核心功能验收、UI 功能完备，发布正式 Release。 |
+| 多账号独立 SQLite WAL、消息正文与游标分页 | 实验数据独立保存，旧版数据尚未提供迁入工具 |
+| OneBot / SnowLuma 正向 WS 文本收发 | 用户自带 QQ 客户端，连接和发送需手动触发；重连和媒体待迁移 |
+| OpenAI 兼容文本模型请求 | 使用 SSE 接收，界面在响应完成后显示；工具与多模态待迁移 |
+| 会话记忆与上下文 | 手动记忆、有限历史窗口；精确 Token 预算和自动压缩待实现 |
+| 用量及自定义价格估算 | 按返回的用量计价；官方价格源与完整统计待迁移 |
+| 明暗色与基础 Minecraft 配色 | 完整主题包、交互动效及酒狐待实现 |
 
-[全部 Milestones](https://github.com/N1v4lis/QQARCFOX/milestones) · [最新发布 0.4.5a：架构迁移前归档](https://github.com/N1v4lis/QQARCFOX/releases/tag/v0.4.5a) · [0.4.5a 改动说明](docs/releases/0.4.5a.md)
+API Key 和 OneBot Token 当前仅在核心会话中保留，退出后需重新输入。尚未迁移的功能包括人设、插件与技能、联网搜索、完整主题、自动登录与更新等。酒狐开关默认关闭且暂时禁用，后续启用需同时满足硬件 GPU 与实际渲染能力检查。
 
-## 功能概览
+## 构建与开发
 
-- **桌面界面**：自绘标题栏、侧栏导航、仪表盘及六阶段启动动画。
-- **主题系统**：默认与 Minecraft 皮肤，亮色、暗色和跟随系统模式；主题背景、字体、音效与动效配置。
-- **API 与搜索**：提供商及模型目录管理、默认模型选择、独立图片/视频输入配置、故障备选顺序与联网搜索配置。
-- **价格与用量**：十家官方公开价格来源、厂商筛选及模型 Logo；区分官方连接和中转渠道，自定义价格与仪表盘、用量估算联动。
-- **人设管理**：共享模板库、默认人设与单会话覆盖、分栏手动保存和历史记录；群聊独立活跃档位。
-- **酒狐助手**：Minecraft 主题下的互动角色，本地理解有限设置指令，通过移动、开卡和拉杆动作调整控件。
-- **账号存储**：每账号独立 SQLite WAL 与写入 Worker，消息增量写入、历史分页及原生用量计数；迁移保留原数据备份。
-- **OneBot / SnowLuma**：连接配置、运行状态与启动管理。
-
-酒狐的本地指令解析用于已支持的设置操作，不是通用离线聊天模型。未知需求会提示重新表述。官方价格估算受计费条件与汇率影响，实际费用以厂商账单为准。
-
-## 源码与开发
-
-本分支现按 **Flutter 主界面＋Rust 业务核心** 推进迁移。酒狐后续采用 Slint 承载并接入 3D 模块，还是直接使用原生 3D 模块，仍在考量，尚未定案。迁移方向见 [迁移说明](docs/RUST-SLINT-MIGRATION.md)。旧版功能概览描述的是 0.4.5a 归档，不代表迁移版本已实现这些功能。
-
-本仓库包含前端、资源、宿主补丁和开发工具；Release 提供源码归档，不是完整安装器。部署工具使用环境相关配置，使用前请核对目标环境。
-
-| 目录 | 内容 |
+| 目录 | 用途 |
 | --- | --- |
-| `app/ui/` | 页面逻辑、桌面外壳、样式与主题资源 |
-| `app/server/` | 价格来源、账号存储与服务模块 |
-| `native/` | 独立 Rust＋Slint 迁移原型 |
-| `tools/` | 开发、部署、版本同步及定点验证工具 |
-| `docs/` | 架构、功能说明、开发记录与发布说明 |
-| `Wine_Fox/`、`Wine_Fox_PECO/` | 酒狐模型、动画及语音资源 |
+| `flutter/` | 当前实验版桌面 UI 与 Windows runner |
+| `native/` | Rust 核心与独立存储；可选 Slint 候选验证 |
+| `app/` | 旧架构归档源码，用于迁移参考 |
+| `tools/` | 构建、检查与开发工具 |
+| `docs/` | 迁移状态、设计记录与归档说明 |
 
-部署版本与 `VERSION` 保持一致。验证默认采用四项静态检查，相关交互使用定点测试；具体流程见开发文档。
+后续开发使用本分支，实验构建不覆盖旧安装，也不直接读取旧版数据库。Windows 开发需要 Flutter 3.47.6、Rust 1.92+ 及 Visual Studio C++ 桌面构建组件；最终用户运行不需要开发工具链。
 
-## 文档
+构建步骤见 [Flutter 说明](flutter/README.md) 与 [Rust 核心说明](native/README.md)。分发需包含完整 Flutter Release 目录和 Rust 核心，不能只复制单个 exe。开发包不等于已验收的安装器；干净系统部署、运行库打包及性能目标仍需验证。
 
-- [0.4.5a 发布说明：架构迁移前归档](docs/releases/0.4.5a.md)
-- [多账号原生 SQL 存储](docs/ACCOUNT-STORAGE.md)
-- [版本记录](CHANGELOG.md)
-- [架构说明](docs/ARCHITECTURE.md)
-- [开发指南](docs/DEVELOPMENT.md)
-- [验证流程](docs/REGRESSION-WORKFLOW.md)
-- [主题系统](docs/THEME-SYSTEM.md)
-- [人设功能](docs/PERSONA-PAGE.md)
-- [官方价格与模型 Logo](docs/OFFICIAL-MODEL-PRICES.md)
-- [酒狐互动与设置助手](docs/WINE-FOX-INTERACTION.md)
+本地检查包括 Rust 单元/模拟集成测试、Flutter 静态分析与控件测试。测试使用本机模拟服务，不发送实际 QQ 或模型请求；通过这些检查不代表全部旧版功能已迁移。
 
-模型厂商 Logo 用于品牌识别，来源与商标说明见 [资源来源](app/ui/assets/model-logos/SOURCES.json)。
+## 计划与文档
+
+- [迁移状态与酒狐候选方案](docs/RUST-SLINT-MIGRATION.md)
+- [全部 Milestones](https://github.com/N1v4lis/QQARCFOX/milestones)
+- [0.4.5a 归档 Release](https://github.com/N1v4lis/QQARCFOX/releases/tag/v0.4.5a)
+- [0.4.5a 改动说明](docs/releases/0.4.5a.md)
+- [设计记录](docs/design-notes.md)
+- [旧版多账号存储说明](docs/ACCOUNT-STORAGE.md)
+
+模型厂商 Logo 的来源与商标说明见 [资源来源](app/ui/assets/model-logos/SOURCES.json)。
