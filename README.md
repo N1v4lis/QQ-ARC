@@ -2,6 +2,13 @@
 
 A modern, beautifully designed QQ Agent.
 
+> [!WARNING]
+> ⚠️ **架构迁移公告**
+>
+> 旧架构的开发已无限期暂停，恢复时间待定。开发者正在尝试将现有架构迁移至 **Rust＋Slint**；若迁移方案的可行性验证通过，将停止旧架构的后续开发。
+>
+> **0.4.5a** 为架构迁移前归档。迁移尝试及后续改动将在 [Rust+Slint 分支](https://github.com/N1v4lis/QQARCFOX/tree/Rust%2BSlint) 推进；该分支暂不代表功能完整或可替代当前客户端。
+
 QQ Agent ARCFØX 为 QQ Agent 提供重新设计的桌面界面、Minecraft 主题和酒狐互动助手，整合模型连接、联网搜索、用量估算与人设管理。
 
 当前版本：**0.4.5a**。项目仍处于 Beta 阶段，后续功能计划见下方路线图。
