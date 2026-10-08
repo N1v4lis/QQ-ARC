@@ -43,20 +43,10 @@ function renderThemeSection(c) {
   }
 
   const SKIN_ORDER = ['default', 'minecraft'];
-  /**
-   * 亮度档：**只有亮色 / 暗色两档**。
-   *
-   * ⚠️ 2026-10-05 用户明确要求去掉"跟随系统"：
-   *    "亮暗联动不是要改成跟随系统，而是直接亮色和暗色切换"。
-   *    原来这里是三档（跟随系统/亮色/暗色），与标题栏按钮的三档循环一致；
-   *    现在两处都改成**两档直接切换**，语义与"亮暗开关"对齐。
-   *    老用户 localStorage 里可能还留着 'auto' —— 下面 THEME_LABEL 仍保留它的
-   *    文案，只是不再是可选项，于是它会被当作"亮色"呈现，点一下就固定下来。
-   */
-  const THEME_ORDER = ['light', 'dark'];
+  // 亮暗选项统一放在主题页，auto 随 Windows 应用颜色模式更新。
+  const THEME_ORDER = ['light', 'dark', 'auto'];
   const THEME_LABEL = { auto: '跟随系统', light: '亮色', dark: '暗色' };
-  /** 偏好在界面上的呈现：auto 归到亮/暗里显示，但选中态只在两档之间 */
-  const shownPref = THEME_ORDER.includes(curPref) ? curPref : (actual === 'dark' ? 'dark' : 'light');
+  const shownPref = curPref;
 
   // ── 皮肤卡片 ──────────────────────────────────────────────────────────
   const skinCard = (id) => {
@@ -85,7 +75,7 @@ function renderThemeSection(c) {
       ${THEME_ORDER.map((v) => `
         <button type="button" class="th-mode${v === shownPref ? ' is-on' : ''}" data-theme-pref="${esc(v)}"
                 role="radio" aria-checked="${v === shownPref ? 'true' : 'false'}"
-                title="切换到${esc(THEME_LABEL[v])}">${esc(THEME_LABEL[v])}</button>`).join('')}
+                title="切换到${esc(THEME_LABEL[v])}"><span class="t-ico" aria-hidden="true">${THEME_ICON[v]}</span><span>${esc(THEME_LABEL[v])}</span></button>`).join('')}
     </div>`;
 
   // ── 二级设置：只有 Minecraft 有 ────────────────────────────────────────
@@ -116,7 +106,7 @@ function renderThemeSection(c) {
     <div class="setcard fold open" id="card-brightness">
       <div class="setcard-head fold-head">
         <div class="sc-ico">◐</div>
-        <div class="sc-tt"><h4>亮度</h4><div class="sc-sub">亮色 / 暗色 / 跟随系统。每套皮肤各自解析这套配色</div></div>
+        <div class="sc-tt"><h4>亮暗</h4><div class="sc-sub">亮色 / 暗色 / 跟随系统。每套皮肤各自解析这套配色</div></div>
         <span class="sc-val">${esc(THEME_LABEL[curPref] || curPref)}${curPref === 'auto' ? `（当前${actual === 'dark' ? '暗色' : '亮色'}）` : ''}</span>
         <span class="chev-r">›</span>
       </div>
@@ -124,8 +114,8 @@ function renderThemeSection(c) {
         ${themeRow}
         <p class="th-note">
           标题栏右上角那颗按钮与这里是**同一个开关** —— 在任何一边切换，另一边会同步。
-          Minecraft 皮肤有自己独立的一套亮暗配色 —— 选它之后这两个档位换的是 <b>MC 风格的亮/暗</b>，
-          不是默认皮肤那套。
+          Minecraft 皮肤有自己独立的一套亮暗配色 —— 选它之后亮色和暗色换的是 <b>MC 风格的亮/暗</b>，
+          不是默认皮肤那套。跟随系统会随 Windows 的应用颜色模式自动更新。
         </p>
       </div></div>
     </div>

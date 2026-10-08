@@ -748,9 +748,8 @@ function dashBetaNotice() {
           </svg>
         </span>
         <div class="dash-beta-text">
-          <p class="dash-beta-line dash-beta-strong">注意！这是“QQ Agent 还没想好叫什么版”的Beta测试版本。</p>
-          <!-- 第二行的 "Beta" 与 "测试版本" 之间按用户要求留一个空格 -->
-          <p class="dash-beta-line">Beta 测试版本不代表本产品的最终质量。感谢您的理解和支持，祝你好运！</p>
+          <p class="dash-beta-line dash-beta-strong">注意！这是“QQ Agent ARCFØX”的Beta测试版本。</p>
+          <p class="dash-beta-line">Beta测试版本不代表本产品的最终质量。感谢您的理解和支持，祝你好运！</p>
         </div>
       </div>
     </div>`;

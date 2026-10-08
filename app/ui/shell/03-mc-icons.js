@@ -93,7 +93,7 @@
       let key;const nav=node.closest('.tab[data-icon]'),box=node.closest('.dash-box');
       if(nav)key=nav.dataset.icon;
       else if(node.closest('.q-tb-logo'))key='logo';
-      else if(node.closest('#theme-btn'))key=document.documentElement.dataset.theme==='dark'?'moon':'sun';
+      else if(node.closest('#theme-btn'))key=document.documentElement.dataset.themePref==='auto'?'desktop':document.documentElement.dataset.theme==='dark'?'moon':'sun';
       else if(node.closest('#q-side-toggle'))key='menu';
       else if(node.closest('#q-reload-btn'))key='refresh';
       else if(node.closest('.dash-beta-badge'))key='warning';

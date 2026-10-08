@@ -8,7 +8,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,env:{...process.env,GIT_TERMINAL_PROMPT:'0'}}).trim();
 const versionArg=process.argv.indexOf('--version');
 const version=versionArg<0?fs.readFileSync(path.join(root,'VERSION'),'utf8').trim():process.argv[versionArg+1],tag='v'+version;
-if(!/^\d+\.\d+\.\d+(?:-OLD)?$/.test(version || ''))throw Error('Unexpected version');
+if(!/^\d+\.\d+\.\d+(?:\.\d+)?(?:-OLD)?$/.test(version || ''))throw Error('Unexpected version');
 if(git('status','--porcelain'))throw Error('Commit all release files first');
 if(git('remote','get-url','origin')!=='https://github.com/N1v4lis/QQARCFOX.git')throw Error('Unexpected release repository');
 const head=git('rev-parse','HEAD');if(git('rev-parse',tag+'^{commit}')!==head)throw Error('Tag is not the release commit');

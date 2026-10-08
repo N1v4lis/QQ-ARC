@@ -29,7 +29,7 @@
   // 这样亮色/暗色切换时视觉重量一致，不会一个粗一个细。
   const ICON = {
     // 跟随系统：一台显示器（仅作"另一套主题"的兜底图标，正常不会再显示）
-    auto: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="2.6" y="3.6" width="14.8" height="10.4" rx="1.8"/><path d="M7 16.4h6"/></svg>',
+    auto: '<svg data-theme-icon="auto" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="2.6" y="3" width="14.8" height="11" rx="1.8"/><circle cx="10" cy="8.5" r="3.1"/><path d="M10 5.4a3.1 3.1 0 0 1 0 6.2z" fill="currentColor" stroke="none"/><path d="M10 14v3M6.5 17h7"/></svg>',
     // 亮色：太阳（圆心 + 8 道光芒，与月亮的线宽一致）
     light: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="3.6"/><path d="M10 2.4v2M10 15.6v2M2.4 10h2M15.6 10h2M4.6 4.6l1.4 1.4M14 14l1.4 1.4M15.4 4.6L14 6M6 14l-1.4 1.4"/></svg>',
     // 暗色：月亮（与太阳同一粗细、同一圆角风格）
@@ -69,9 +69,9 @@
   function paintButton(pref, actual) {
     const btn = document.getElementById('theme-btn');
     if (!btn) return;
-    const icon = actual === 'dark' ? ICON.dark : ICON.light;
+    const icon = pref === 'auto' ? ICON.auto : ICON[actual];
     btn.innerHTML = icon;
-    btn.title = `主题：${LABEL[pref] || LABEL.auto}${pref === 'auto' ? `（当前${LABEL[actual]}）` : ''}　点击切换 亮色 ↔ 暗色`;
+    btn.title = `主题：${LABEL[pref] || LABEL.auto}${pref === 'auto' ? `（当前${LABEL[actual]}）` : ''}　左键切换亮暗，右键选择模式`;
     btn.setAttribute('aria-label', btn.title);
     btn.dataset.pref = pref;
     btn.dataset.theme = actual;
@@ -252,14 +252,34 @@
   } catch { /* ignore */ }
 
   // ── 绑定按钮 + 首次应用 ────────────────────────────────────────────────
+  function openThemeMenu(btn) {
+    document.querySelector('#theme-context-menu')?.themeClose?.();
+    const menu = document.createElement('div');
+    menu.id='theme-context-menu';menu.className='theme-context-menu';menu.setAttribute('role','menu');
+    for(const pref of ['light','dark','auto']) {
+      const item=document.createElement('button');item.type='button';item.dataset.themeChoice=pref;
+      item.setAttribute('role','menuitemradio');item.setAttribute('aria-checked',String(pref===getPref()));
+      item.innerHTML=ICON[pref]+'<span>'+LABEL[pref]+'</span><span class="theme-choice-check">'+(pref===getPref()?'✓':'')+'</span>';
+      item.addEventListener('click',()=>{close();applyTheme(pref,btn);btn.focus();});menu.appendChild(item);
+    }
+    const close=()=>{menu.remove();btn.setAttribute('aria-expanded','false');document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',keys);window.removeEventListener('resize',close);};
+    const outside=e=>{if(!menu.contains(e.target))close();};
+    const keys=e=>{if(e.key==='Escape'){close();btn.focus();}else if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();const items=[...menu.children],index=items.indexOf(document.activeElement);items[e.key==='Home'?0:e.key==='End'?items.length-1:(index+(e.key==='ArrowDown'?1:-1)+items.length)%items.length].focus();}};
+    menu.themeClose=close;
+    document.body.appendChild(menu);const r=btn.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(r.right-menu.offsetWidth,innerWidth-menu.offsetWidth-8))+'px';menu.style.top=Math.min(r.bottom+8,innerHeight-menu.offsetHeight-8)+'px';
+    btn.setAttribute('aria-expanded','true');menu.children[0].focus();document.addEventListener('pointerdown',outside);document.addEventListener('keydown',keys);window.addEventListener('resize',close);
+  }
   function bind() {
     const btn = document.getElementById('theme-btn');
     if (btn && !btn.dataset.themeBound) {
       btn.dataset.themeBound = '1';
       // 传按钮本身作为动效原点：主题从这颗按钮扩散出去（用户要求的效果）
       btn.addEventListener('click', () => cycleTheme(btn));
+      btn.setAttribute('aria-haspopup','menu');btn.setAttribute('aria-expanded','false');
+      btn.addEventListener('contextmenu',e=>{e.preventDefault();openThemeMenu(btn);});
       // 键盘触发（Enter/Space）同样给原点，动效一致
       btn.addEventListener('keydown', (e) => {
+        if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();openThemeMenu(btn);return;}
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleTheme(btn); }
       });
     }

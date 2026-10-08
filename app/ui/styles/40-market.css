@@ -315,9 +315,12 @@
 .theme-picker { display: flex; gap: 8px; flex-wrap: wrap; }
 .theme-option {
   flex: 1 1 130px;
+  height: auto;
+  min-height: 84px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   padding: 12px 10px;
   border: 1.5px solid var(--q-line-2);
@@ -344,7 +347,7 @@
   border: 1px solid var(--q-line-2);
   background: linear-gradient(135deg, var(--q-bg-2) 0 50%, var(--q-bg-base) 50% 100%);
 }
-.t-ico { font-size: 16px; line-height: 1; }
+.t-ico { display: grid; place-items: center; flex: 0 0 32px; min-width: 32px; height: 32px; font-size: 20px; line-height: 32px; }
 
 /* ═══ 峰谷档位滑条（tier-*）═══════════════════════════════════════════════ */
 
