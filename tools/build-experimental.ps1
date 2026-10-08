@@ -39,10 +39,14 @@ try {
     if (Test-Path -LiteralPath $vswhere) {
         $vsRoot = & $vswhere -latest -products '*' -property installationPath
         $crt = Get-ChildItem -LiteralPath (Join-Path $vsRoot 'VC/Redist/MSVC') -Directory |
+            Where-Object { $_.Name -match '^\d+\.' } |
             Sort-Object Name -Descending | Select-Object -First 1
         if ($crt) {
             $crtPath = Join-Path $crt.FullName 'x64/Microsoft.VC143.CRT'
-            if (Test-Path -LiteralPath $crtPath) { Copy-Item -Path (Join-Path $crtPath '*.dll') -Destination $bundle }
+            if (-not (Test-Path -LiteralPath $crtPath)) { throw 'VC runtime directory missing; do not distribute an incomplete bundle.' }
+            Copy-Item -Path (Join-Path $crtPath '*.dll') -Destination $bundle
+        } else {
+            throw 'VC runtime not found; do not distribute an incomplete bundle.'
         }
     }
     Copy-Item -LiteralPath 'flutter/README.md' -Destination (Join-Path $bundle 'EXPERIMENTAL.md')
