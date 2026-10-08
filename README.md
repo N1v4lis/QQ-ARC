@@ -12,6 +12,7 @@ QQ Agent ARCFØX 为 QQ Agent 提供重新设计的桌面界面、Minecraft 主�
 
 | 版本 | 计划 |
 | --- | --- |
+| [0.4.6](https://github.com/N1v4lis/QQARCFOX/milestone/5) | 下一阶段：记忆与上下文底层重构（高性能、低占用、减少 Token）；SnowLuma 更新检测；插件网络代理；主题打包导入/导出与制作规范；替换多 QQ 实例自动拉起/登录及注入方案；功能描述文本重绘。 |
 | [0.4.7](https://github.com/N1v4lis/QQARCFOX/milestone/1) | 完成设置 UI 与功能重制：聊天白名单、聊天设置、桌面端、个性化、主题、OneBot（SnowLuma）、进阶、工具与技能。 |
 | [0.4.8](https://github.com/N1v4lis/QQARCFOX/milestone/2) | 多账号重做；插件与技能对接本机任意 Agent / Harness；GitHub 源自动检查更新。 |
 | [0.4.9](https://github.com/N1v4lis/QQARCFOX/milestone/3) | 用量界面重制；记忆与存档重做；会话功能及 UI 改进。 |
