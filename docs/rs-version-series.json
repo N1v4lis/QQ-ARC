@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "prefix": "RS",
+  "prefixMeaning": "Rust+Slint",
+  "branch": "Rust+Slint",
+  "patchVersionsInheritMinorCodename": true,
+  "series": [
+    {
+      "version": "0.1.0",
+      "rsVersion": "RS0.1.0",
+      "codename": "First Light",
+      "phrase": "初光 · 故事的起点",
+      "milestone": {
+        "number": 6,
+        "title": "RS0.1.0 — First Light — 初光 · 故事的起点",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/6"
+      }
+    },
+    {
+      "version": "0.2.0",
+      "rsVersion": "RS0.2.0",
+      "codename": "Resonance",
+      "phrase": "共鸣 · 第一次理解",
+      "milestone": {
+        "number": 7,
+        "title": "RS0.2.0 — Resonance — 共鸣 · 第一次理解",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/7"
+      }
+    },
+    {
+      "version": "0.3.0",
+      "rsVersion": "RS0.3.0",
+      "codename": "Connection",
+      "phrase": "连接 · 跨越距离",
+      "milestone": {
+        "number": 8,
+        "title": "RS0.3.0 — Connection — 连接 · 跨越距离",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/8"
+      }
+    },
+    {
+      "version": "0.4.0",
+      "rsVersion": "RS0.4.0",
+      "codename": "Echoes",
+      "phrase": "回响 · 留下的记忆",
+      "milestone": {
+        "number": 9,
+        "title": "RS0.4.0 — Echoes — 回响 · 留下的记忆",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/9"
+      }
+    },
+    {
+      "version": "0.5.0",
+      "rsVersion": "RS0.5.0",
+      "codename": "Awakening",
+      "phrase": "觉醒 · 新的可能",
+      "milestone": {
+        "number": 10,
+        "title": "RS0.5.0 — Awakening — 觉醒 · 新的可能",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/10"
+      }
+    },
+    {
+      "version": "0.6.0",
+      "rsVersion": "RS0.6.0",
+      "codename": "Starlight",
+      "phrase": "星光 · 黑夜中的指引",
+      "milestone": {
+        "number": 11,
+        "title": "RS0.6.0 — Starlight — 星光 · 黑夜中的指引",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/11"
+      }
+    },
+    {
+      "version": "0.7.0",
+      "rsVersion": "RS0.7.0",
+      "codename": "Daybreak",
+      "phrase": "破晓 · 漫长黑夜的尽头",
+      "milestone": {
+        "number": 12,
+        "title": "RS0.7.0 — Daybreak — 破晓 · 漫长黑夜的尽头",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/12"
+      }
+    },
+    {
+      "version": "0.8.0",
+      "rsVersion": "RS0.8.0",
+      "codename": "Beyond",
+      "phrase": "彼岸 · 越过已知的边界",
+      "milestone": {
+        "number": 13,
+        "title": "RS0.8.0 — Beyond — 彼岸 · 越过已知的边界",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/13"
+      }
+    },
+    {
+      "version": "0.9.0",
+      "rsVersion": "RS0.9.0",
+      "codename": "Reverie",
+      "phrase": "绮梦 · 关于未来的想象",
+      "milestone": {
+        "number": 14,
+        "title": "RS0.9.0 — Reverie — 绮梦 · 关于未来的想象",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/14"
+      }
+    },
+    {
+      "version": "1.0.0",
+      "rsVersion": "RS1.0.0",
+      "codename": "Tomorrow",
+      "phrase": "明天 · 新旅程的开始",
+      "milestone": {
+        "number": 15,
+        "title": "RS1.0.0 — Tomorrow — 明天 · 新旅程的开始",
+        "url": "https://github.com/N1v4lis/QQARCFOX/milestone/15"
+      }
+    }
+  ]
+}

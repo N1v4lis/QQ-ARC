@@ -1,4 +1,4 @@
-# QQ Agent ARCFØX · 实验版
+# QQ Agent ARCFØX · RS0.1.1 — First Light
 
 Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 
@@ -13,7 +13,7 @@ Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 
 界面迁移记录：[0.1.1 实验版](docs/releases/experimental-0.1.1.md) · [页面与交互验收](docs/FLUTTER-UI-MIGRATION.md)。
 
-实验包版本为 **0.1.1**，与归档版 **0.4.5a** 分开记录。Flutter 负责窗口与界面，Rust 负责业务、网络、存储和模型请求；默认运行不依赖 Electron、Node.js、WebView 或 Slint。
+当前公开版本为 **RS0.1.1 — First Light — 初光 · 故事的起点**，内部实验包版本为 **0.1.1**，与归档版 **0.4.5a** 分开记录。Flutter 负责窗口与界面，Rust 负责业务、网络、存储和模型请求；默认运行不依赖 Electron、Node.js、WebView 或 Slint。
 
 本轮按旧架构 79 个接口、32 组配置核对业务和 UI。新界面已覆盖总览、会话、存档、记忆、用量、人设、账号、API与搜索、白名单、聊天设置、桌面端、个性化、主题、OneBot、进阶、工具、插件、技能和市场入口。**页面覆盖不代表旧功能全部迁移完成**；详见 [功能迁移清单](docs/NATIVE-FEATURE-MATRIX.md)。
 
@@ -48,6 +48,25 @@ Windows 密钥通过 DPAPI 加密后保存在独立账号库，账号之间隔�
 构建步骤见 [Flutter 说明](flutter/README.md) 与 [Rust 核心说明](native/README.md)。分发需包含完整 Flutter Release 目录和 Rust 核心，不能只复制单个 exe。开发包不等于已验收的安装器；干净系统部署、干净系统部署与性能目标仍需验证。
 
 本地检查包括 Rust 单元/模拟集成测试、Flutter 静态分析与控件测试。测试使用本机模拟服务，不发送实际 QQ 或模型请求；通过这些检查不代表全部旧版功能已迁移。
+
+## RS 版本系列
+
+RS = Rust+Slint。英文 Codename 与中文短语会同步到后续 Release 和 README；同一系列的补丁版本沿用名称。当前 `RS0.1.x` 属于 **First Light — 初光 · 故事的起点**。
+
+| 版本系列 | Codename | 中文版本短语 |
+| --- | --- | --- |
+| [RS0.1.0](https://github.com/N1v4lis/QQARCFOX/milestone/6) | First Light | 初光 · 故事的起点 |
+| [RS0.2.0](https://github.com/N1v4lis/QQARCFOX/milestone/7) | Resonance | 共鸣 · 第一次理解 |
+| [RS0.3.0](https://github.com/N1v4lis/QQARCFOX/milestone/8) | Connection | 连接 · 跨越距离 |
+| [RS0.4.0](https://github.com/N1v4lis/QQARCFOX/milestone/9) | Echoes | 回响 · 留下的记忆 |
+| [RS0.5.0](https://github.com/N1v4lis/QQARCFOX/milestone/10) | Awakening | 觉醒 · 新的可能 |
+| [RS0.6.0](https://github.com/N1v4lis/QQARCFOX/milestone/11) | Starlight | 星光 · 黑夜中的指引 |
+| [RS0.7.0](https://github.com/N1v4lis/QQARCFOX/milestone/12) | Daybreak | 破晓 · 漫长黑夜的尽头 |
+| [RS0.8.0](https://github.com/N1v4lis/QQARCFOX/milestone/13) | Beyond | 彼岸 · 越过已知的边界 |
+| [RS0.9.0](https://github.com/N1v4lis/QQARCFOX/milestone/14) | Reverie | 绮梦 · 关于未来的想象 |
+| [RS1.0.0](https://github.com/N1v4lis/QQARCFOX/milestone/15) | Tomorrow | 明天 · 新旅程的开始 |
+
+命名规则与统一数据来源见 [RS 版本规范](docs/RS-VERSIONING.md)。
 
 ## 计划与文档
 
