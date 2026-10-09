@@ -1,4 +1,4 @@
-import argparse,hashlib,json,shutil,subprocess,sys,zipfile
+import argparse,hashlib,json,shutil,subprocess,sys,zipfile,uuid
 from pathlib import Path
 from verify_clean_package import verify
 
@@ -17,11 +17,9 @@ def package(source,output):
     if source==destination:pass
     else:
         if destination.exists():
-            # Refuse overwriting an installed app or user data. Previous staging must match our marker.
-            if not (destination/'build-info.json').is_file():raise ValueError('Existing target is not a generated bundle')
-            if destination.is_symlink() or destination.parent!=output:raise ValueError('Unsafe target path')
-            if any(f.suffix in ['.db','.sqlite','.wal'] for f in destination.rglob('*')):raise ValueError('Target contains user data; will not overwrite')
-            shutil.rmtree(destination)
+            # A generated bundle may already be installed or running. Never
+            # delete it, even when it has our marker and no visible database.
+            destination=output/(label+'-build-'+uuid.uuid4().hex[:8])
         shutil.copytree(source,destination)
     manifest=[]
     for f in sorted(destination.rglob('*')):
