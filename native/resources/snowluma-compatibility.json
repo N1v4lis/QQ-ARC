@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "repository": "SnowLuma/SnowLuma",
+  "recommended": "v1.14.22",
+  "targetVersion": "v1.14.22",
+  "validated": [],
+  "asset": {
+    "name": "SnowLuma-v1.14.22-win-x64.zip",
+    "bytes": 37866010,
+    "sha256": "c8076ba2fbcdc19afeb8e8bf9b2956eaab3605e5fa4618c4db702749ae501681"
+  },
+  "notes": "用户指定唯一适配目标为 v1.14.22。官方包及 SHA-256 已核对；原生协议和安装链模拟验收，真实 QQ 登录/收发仍需用户验收。"
+}

@@ -35,7 +35,15 @@ try {
     # Unique output directory avoids retaining old binaries from a previous build.
     if (Test-Path -LiteralPath $bundle) { $bundle += '-' + (Get-Date -Format 'yyyyMMdd-HHmmss') }
     New-Item -ItemType Directory -Path $bundle | Out-Null
-    Copy-Item -Path 'flutter/build/windows/x64/runner/Release/*' -Destination $bundle -Recurse
+    $runner = Join-Path $repoRoot 'flutter/build/windows/x64/runner/Release'
+    foreach ($name in @('qqaf.exe', 'flutter_windows.dll', 'native_assets.json')) {
+        $file = Join-Path $runner $name
+        if (Test-Path -LiteralPath $file) { Copy-Item -LiteralPath $file -Destination $bundle }
+    }
+    Get-ChildItem -LiteralPath $runner -File -Filter '*_plugin.dll' | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $bundle }
+    Copy-Item -LiteralPath (Join-Path $runner 'data') -Destination $bundle -Recurse
+    # A user may install SnowLuma beside a development executable. Its config,
+    # data and native components are never inherited by the QQAF clean build.
     Copy-Item -LiteralPath $coreExe -Destination (Join-Path $bundle 'qqaf-native.exe')
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
     if (Test-Path -LiteralPath $vswhere) {

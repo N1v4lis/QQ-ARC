@@ -37,7 +37,7 @@ Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 
 Windows 密钥通过 DPAPI 加密后保存在独立账号库，账号之间隔离；普通配置拒绝密钥字段。QQAF 核心与 Flutter 界面不依赖 Node.js。用户自带的 SnowLuma 是独立 OneBot 组件，启动它会使用其自身随附的运行时，不能把这种场景宣称为整个系统完全没有 Node。
 
-当前安装包包含 QQAF 界面与核心，**未附带 SnowLuma**。请从 SnowLuma 官方发行页获取 Windows 完整版，解压后在 OneBot 页面填写目录；也支持识别程序旁的 `components/snowluma` 或 `snowluma` 目录。SnowLuma 随附 EULA 第 5.4 条要求将专有组件并入第三方安装包前取得书面授权，当前尚未确认此授权。组件仍需用户手动启动，不自动读取旧安装配置。
+当前安装包包含 QQAF 界面与 Rust 核心，**不捆绑 SnowLuma**。OneBot 页面提供「安装 SnowLuma」按钮，点击后从官方 GitHub 下载指定的 **v1.14.22 Windows 完整包**，校验并安装；首次默认位置为程序根目录的 `Snowluma`，也可选择其他位置。组件启动和 QQ 登录仍由用户操作。未来 QQAF 提高适配目标时，根据本地 SL 版本提示更新；不定时追随官网最新版、不自动降级。详见 [SnowLuma 安装与版本提示](docs/SNOWLUMA-INSTALLATION-RS.md)。
 
 酒狐未参与本轮迁移，开关默认关闭且禁用。所有实验数据与旧安装分离，不自动读取旧库、导入旧配置或注册开机启动。
 

@@ -22,3 +22,7 @@ pub mod themes;
 pub mod qq_tools;
 
 pub mod harness;
+
+pub mod snow_downloads;
+
+pub mod snow_install;

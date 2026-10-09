@@ -40,6 +40,8 @@ class _QqafAppState extends State<QqafApp> {
   Timer? preferenceSave;
   Future<void> preferenceQueue = Future<void>.value();
   int pendingPreferenceSaves = 0;
+  final Map<String, Map<String, dynamic>> snowVersions = {};
+  final Set<String> snowChecked = {};
 
   @override
   void initState() {
@@ -137,9 +139,52 @@ class _QqafAppState extends State<QqafApp> {
         usage = nextUsage;
         activeModel = nextModel;
       });
+      final activeAccount = account;
+      if (activeAccount != null && !snowChecked.contains(activeAccount)) {
+        unawaited(checkSnowVersion(activeAccount));
+      }
     } catch (_) {
       /* Explicit actions report errors; periodic refresh leaves the last snapshot. */
     }
+  }
+
+  Future<void> checkSnowVersion(String id) async {
+    if (!snowChecked.add(id)) return;
+    try {
+      final plan = object(
+        await widget.core.request('/snow/install/plan', query: {'account': id}),
+      );
+      if (mounted) setState(() => snowVersions[id] = object(plan['component']));
+    } catch (_) {
+      /* This local optional check never blocks startup. */
+    }
+  }
+
+  Widget withSnowNotice(Widget child) {
+    final component = snowVersions[account] ?? {};
+    if (component['updateAvailable'] != true) return child;
+    return Column(
+      children: [
+        MaterialBanner(
+          content: Text(
+            '已安装 SL ${component['installedVersion']}；本版 QQAF 的适配目标为 ${component['targetVersion']}，可更新组件。',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => setState(() {
+                snowVersions[account]!['updateAvailable'] = false;
+              }),
+              child: const Text('稍后'),
+            ),
+            TextButton(
+              onPressed: () => setState(() => section = 3),
+              child: const Text('前往更新'),
+            ),
+          ],
+        ),
+        Expanded(child: child),
+      ],
+    );
   }
 
   Widget field(
@@ -349,7 +394,7 @@ class _QqafAppState extends State<QqafApp> {
               ],
             ),
           ),
-          content: desktopContent(pageContext, connected),
+          content: withSnowNotice(desktopContent(pageContext, connected)),
         ),
       ),
     );
@@ -567,6 +612,13 @@ class _QqafAppState extends State<QqafApp> {
               core: widget.core,
               account: account,
               page: 'snow',
+              onSnowInstalled: () {
+                final id = account;
+                if (id != null) {
+                  snowChecked.remove(id);
+                  unawaited(checkSnowVersion(id));
+                }
+              },
             ),
         ];
       default:

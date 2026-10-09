@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <shellapi.h>
+#include <shobjidl.h>
 #include <flutter/standard_method_codec.h>
 #include "resource.h"
 
@@ -58,6 +59,37 @@ bool FlutterWindow::OnCreate() {
       RegCloseKey(key);
       if (status == ERROR_SUCCESS || (!*enabled && status == ERROR_FILE_NOT_FOUND)) result->Success();
       else result->Error("startup", "Startup registry update failed");
+    } else if (call.method_name() == "chooseDirectory") {
+      IFileOpenDialog* dialog = nullptr;
+      if (FAILED(CoCreateInstance(__uuidof(FileOpenDialog), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) {
+        result->Error("directory", "Directory picker unavailable"); return;
+      }
+      DWORD options = 0; dialog->GetOptions(&options);
+      dialog->SetOptions(options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
+      dialog->SetTitle(L"选择 SnowLuma 安装目录的父文件夹");
+      const HRESULT shown = dialog->Show(GetHandle());
+      if (shown == HRESULT_FROM_WIN32(ERROR_CANCELLED)) { dialog->Release(); result->Success(); return; }
+      IShellItem* item = nullptr; PWSTR path = nullptr;
+      if (FAILED(shown) || FAILED(dialog->GetResult(&item)) || FAILED(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
+        if (item) item->Release(); dialog->Release(); result->Error("directory", "Directory selection failed"); return;
+      }
+      const int length = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, nullptr, nullptr);
+      std::string utf8(length, '\0');
+      WideCharToMultiByte(CP_UTF8, 0, path, -1, utf8.data(), length, nullptr, nullptr);
+      if (!utf8.empty()) utf8.pop_back();
+      CoTaskMemFree(path); item->Release(); dialog->Release();
+      result->Success(flutter::EncodableValue(utf8));
+    } else if (call.method_name() == "openDirectory") {
+      const auto* value = call.arguments() ? std::get_if<std::string>(call.arguments()) : nullptr;
+      if (!value || value->empty() || value->size() > 32760) { result->Error("directory", "Directory path invalid"); return; }
+      const int length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value->data(), static_cast<int>(value->size()), nullptr, 0);
+      if (!length) { result->Error("directory", "Directory encoding invalid"); return; }
+      std::wstring path(length, L'\0');
+      MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value->data(), static_cast<int>(value->size()), path.data(), length);
+      const DWORD attributes = GetFileAttributesW(path.c_str());
+      if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_DIRECTORY)) { result->Error("directory", "Directory does not exist"); return; }
+      if (reinterpret_cast<INT_PTR>(ShellExecuteW(GetHandle(), L"open", path.c_str(), nullptr, nullptr, SW_SHOWNORMAL)) > 32) result->Success();
+      else result->Error("directory", "Directory launch failed");
     } else if (call.method_name() == "openUrl") {
       const auto* value = call.arguments() ? std::get_if<std::string>(call.arguments()) : nullptr;
       if (!value || value->size() > 4096 || (value->rfind("https://",0) != 0 && value->rfind("http://",0) != 0)) {

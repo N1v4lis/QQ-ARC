@@ -1,6 +1,11 @@
 use futures_util::StreamExt;
 use serde_json::Value;
 pub fn client(cfg: &Value) -> Result<reqwest::Client, String> {
+    builder(cfg)?
+        .build()
+        .map_err(|_| "HTTP 客户端配置失败".into())
+}
+pub fn builder(cfg: &Value) -> Result<reqwest::ClientBuilder, String> {
     let mut builder = reqwest::Client::builder().timeout(std::time::Duration::from_millis(
         cfg["api"]["timeoutMs"]
             .as_u64()
@@ -19,7 +24,7 @@ pub fn client(cfg: &Value) -> Result<reqwest::Client, String> {
         }
         builder = builder.proxy(reqwest::Proxy::all(url).map_err(|_| "代理配置失败")?);
     }
-    builder.build().map_err(|_| "HTTP 客户端配置失败".into())
+    Ok(builder)
 }
 pub async fn bytes(response: reqwest::Response, limit: usize) -> Result<Vec<u8>, String> {
     if !response.status().is_success() {

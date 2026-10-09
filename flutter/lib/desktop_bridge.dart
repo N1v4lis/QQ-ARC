@@ -6,6 +6,10 @@ class DesktopBridge {
       channel.invokeMethod('setTray', enabled);
   static Future<void> setStartup(bool enabled) =>
       channel.invokeMethod('setStartup', enabled);
+  static Future<String?> chooseDirectory() =>
+      channel.invokeMethod<String>('chooseDirectory');
+  static Future<void> openDirectory(String path) =>
+      channel.invokeMethod('openDirectory', path);
   static Future<void> openUrl(String value) async {
     final uri = Uri.tryParse(value);
     if (uri == null ||

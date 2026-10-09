@@ -94,6 +94,7 @@ impl DatabasePool {
 pub struct Core {
     pub data_root: PathBuf,
     pub snow: crate::snow::Manager,
+    pub snow_downloads: crate::snow_downloads::Manager,
     pub databases: DatabasePool,
     pub connections: Connections,
     pub http: reqwest::Client,
@@ -108,6 +109,7 @@ impl Core {
         Self {
             data_root: root.clone(),
             snow: Default::default(),
+            snow_downloads: Default::default(),
             databases: DatabasePool::new(root),
             connections: Default::default(),
             http: reqwest::Client::builder()
@@ -156,6 +158,7 @@ pub fn router(core: Core) -> Router {
         .merge(crate::community::routes())
         .merge(crate::prices::routes())
         .merge(crate::snow::routes())
+        .merge(crate::snow_downloads::routes())
         .merge(crate::extensions::routes())
         .merge(crate::migration::routes())
         .route("/status", get(status))

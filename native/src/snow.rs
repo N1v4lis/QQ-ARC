@@ -49,7 +49,7 @@ fn resolve_directory(cfg: &Value, application_dir: &std::path::Path) -> Result<P
     }
     // Discover a manually prepared component next to this app only. Never scan
     // the previous installation or copy its configuration, caches or accounts.
-    for relative in ["components/snowluma", "snowluma"] {
+    for relative in ["Snowluma", "components/snowluma", "snowluma"] {
         let candidate = application_dir.join(relative);
         if complete_directory(&candidate) {
             return std::fs::canonicalize(candidate).map_err(|_| "SnowLuma 目录不可用".into());
@@ -60,6 +60,39 @@ fn resolve_directory(cfg: &Value, application_dir: &std::path::Path) -> Result<P
 fn directory(cfg: &Value) -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|_| "无法定位 QQAF 程序目录")?;
     resolve_directory(cfg, exe.parent().ok_or("无法定位 QQAF 程序目录")?)
+}
+fn version_number(value: &str) -> Option<[u64; 3]> {
+    let parts = value
+        .trim_start_matches('v')
+        .split('.')
+        .map(str::parse::<u64>)
+        .collect::<Result<Vec<_>, _>>()
+        .ok()?;
+    parts.try_into().ok()
+}
+pub(crate) fn component_info(cfg: &Value, target: &str) -> Value {
+    let dir = match directory(cfg) {
+        Ok(dir) => dir,
+        Err(message) => {
+            return json!({"available":false,"targetVersion":target,"updateAvailable":false,"message":message});
+        }
+    };
+    let read = |name: &str| -> Option<Value> {
+        let file = dir.join(name);
+        if !std::fs::metadata(&file).is_ok_and(|m| m.len() < 262144) {
+            return None;
+        }
+        serde_json::from_slice(&std::fs::read(file).ok()?).ok()
+    };
+    let package = read("package.json");
+    let marker = read("qqaf-component.json");
+    let version = package
+        .as_ref()
+        .and_then(|p| p["version"].as_str())
+        .or_else(|| marker.as_ref().and_then(|p| p["version"].as_str()));
+    let old = version.and_then(version_number);
+    let wanted = version_number(target);
+    json!({"available":true,"directory":dir,"installedVersion":version,"targetVersion":target,"updateAvailable":old.zip(wanted).is_some_and(|(old,wanted)|old<wanted),"matchesTarget":old.zip(wanted).is_some_and(|(old,wanted)|old==wanted),"newerInstalled":old.zip(wanted).is_some_and(|(old,wanted)|old>wanted)})
 }
 fn port(dir: &std::path::Path) -> u16 {
     let file = dir.join("config/runtime.json");
@@ -84,6 +117,9 @@ async fn listening(port: u16) -> bool {
     )
     .await
     .is_ok_and(|v| v.is_ok())
+}
+pub(crate) async fn folder_in_use(dir: &std::path::Path) -> bool {
+    listening(port(dir)).await
 }
 pub fn routes() -> Router<Core> {
     Router::new()
@@ -270,7 +306,9 @@ mod tests {
         let core = Core::new(root.clone(), "fixture".into());
         let mut cfg = workspace::load(&core.databases, "123").await.unwrap();
         cfg["snowluma"]["dir"] = json!(root.join("not-installed"));
-        workspace::store(&core.databases, "123", &cfg).await.unwrap();
+        workspace::store(&core.databases, "123", &cfg)
+            .await
+            .unwrap();
         let Json(result) = status(
             State(core.clone()),
             Query(Account {
@@ -313,6 +351,41 @@ mod tests {
             resolve_directory(&json!({"snowluma":{"dir":explicit}}), &root).unwrap(),
             std::fs::canonicalize(&explicit).unwrap()
         );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod version_tests {
+    use super::*;
+    #[test]
+    fn installed_version_only_prompts_when_lower_than_the_adapted_target() {
+        let root = std::env::temp_dir().join(format!("qqaf-snow-version-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("node.exe"), "fixture never execute").unwrap();
+        std::fs::write(root.join("index.mjs"), "fixture never execute").unwrap();
+        let cfg = json!({"snowluma":{"dir":root}});
+        for (version, update, newer) in [
+            ("1.14.19", true, false),
+            ("1.14.22", false, false),
+            ("1.15.0", false, true),
+            ("invalid", false, false),
+        ] {
+            std::fs::write(
+                root.join("package.json"),
+                json!({"version":version}).to_string(),
+            )
+            .unwrap();
+            let info = component_info(&cfg, "v1.14.22");
+            assert_eq!(info["updateAvailable"], update);
+            assert_eq!(info["newerInstalled"], newer);
+        }
+        std::fs::write(
+            root.join("package.json"),
+            json!({"version":"1.14.22"}).to_string(),
+        )
+        .unwrap();
+        assert_eq!(component_info(&cfg, "v1.14.23")["updateAvailable"], true);
         std::fs::remove_dir_all(root).unwrap();
     }
 }

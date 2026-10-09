@@ -9,6 +9,7 @@ import 'app_style.dart';
 import 'desktop_bridge.dart';
 import 'price_catalogue.dart';
 import 'desktop_pages.dart';
+import 'snow_download_panel.dart';
 
 typedef JsonMap = Map<String, dynamic>;
 JsonMap object(dynamic value) =>
@@ -22,10 +23,12 @@ class WorkspacePage extends StatefulWidget {
     required this.core,
     required this.account,
     required this.page,
+    this.onSnowInstalled,
   });
   final CoreApi core;
   final String? account;
   final String page;
+  final VoidCallback? onSnowInstalled;
   @override
   State<WorkspacePage> createState() => _WorkspacePageState();
 }
@@ -1872,10 +1875,24 @@ class _WorkspacePageState extends State<WorkspacePage> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       const Divider(height: 40),
-      heading('SnowLuma 管理', 'QQAF 安装包未附带 SnowLuma，需单独准备官方 Windows 完整版。'),
-      const Text(
-        '解压后填写组件目录，也可放入 QQAF 程序旁的 components/snowluma 或 snowluma 文件夹。启动由你手动控制。',
+      heading('SnowLuma 管理', 'QQAF 安装包未内置组件；可在此获取官方完整包并安装。'),
+      SnowDownloadPanel(
+        core: widget.core,
+        account: widget.account!,
+        installed: (directory) {
+          if (mounted) {
+            redraw(() {
+              control('snow-dir').text = directory;
+              widget.onSnowInstalled?.call();
+              config['snowluma'] = {
+                ...object(config['snowluma']),
+                'dir': directory,
+              };
+            });
+          }
+        },
       ),
+      const Text('已有组件也可手动填写目录；安装后默认识别程序根目录的 Snowluma。启动由你控制。'),
       button('获取官方 SnowLuma', () async {
         await DesktopBridge.openUrl(
           'https://github.com/SnowLuma/SnowLuma/releases',
@@ -1931,21 +1948,6 @@ class _WorkspacePageState extends State<WorkspacePage> {
           }),
         ],
       ),
-      input(
-        'SnowLuma GitHub 来源 / owner/repository',
-        'snow-repository',
-        'SnowLuma/SnowLuma',
-      ),
-      button('检查 SnowLuma Release', () async {
-        final result = await post('/updates/check', {
-          'account': widget.account,
-          'component': 'snowluma',
-          'repository': control('snow-repository').text.trim(),
-        });
-        if (mounted) {
-          redraw(() => notice = '${result['tag']}\n${result['notes']}');
-        }
-      }),
     ],
   );
   Widget desktopPage() {
