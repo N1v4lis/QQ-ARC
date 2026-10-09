@@ -19,7 +19,12 @@ fn error(message: impl Into<String>) -> (axum::http::StatusCode, Json<Value>) {
     )
 }
 pub fn defaults() -> Value {
-    let mut value: Value = serde_json::from_str(include_str!("../resources/default-config.json"))
+    let mut value: Value =
+        serde_json::from_str(if std::env::var_os("QQAF_CLEAN_DEFAULTS").is_some() {
+            include_str!("../resources/fresh-config.json")
+        } else {
+            include_str!("../resources/default-config.json")
+        })
         .expect("embedded defaults");
     value["runtime"] = json!({"enabled":false});
     value["personaHistory"] = json!({"days":1,"limit":5});
@@ -176,7 +181,12 @@ pub async fn resolve_selected(
         merge(&mut persona, overrides.clone());
     }
     let builtin: Value =
-        serde_json::from_str(include_str!("../resources/personas.json")).expect("builtin personas");
+        serde_json::from_str(if std::env::var_os("QQAF_CLEAN_DEFAULTS").is_some() {
+            include_str!("../resources/fresh-personas.json")
+        } else {
+            include_str!("../resources/personas.json")
+        })
+        .expect("builtin personas");
     if persona
         .pointer("/templateRef/builtin")
         .and_then(Value::as_bool)
@@ -567,7 +577,13 @@ async fn save_persona(State(core): State<Core>, Json(s): Json<PersonaSave>) -> R
     Ok(Json(json!({"ok":true})))
 }
 async fn templates(State(core): State<Core>) -> ResultJson {
-    let builtin: Value = serde_json::from_str(include_str!("../resources/personas.json")).unwrap();
+    let builtin: Value =
+        serde_json::from_str(if std::env::var_os("QQAF_CLEAN_DEFAULTS").is_some() {
+            include_str!("../resources/fresh-personas.json")
+        } else {
+            include_str!("../resources/personas.json")
+        })
+        .unwrap();
     let custom = core
         .databases
         .call("local-settings".into(), |s| {

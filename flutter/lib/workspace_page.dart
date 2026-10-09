@@ -1753,11 +1753,19 @@ class _WorkspacePageState extends State<WorkspacePage> {
           icon: Icons.desktop_windows_outlined,
           initiallyExpanded: true,
           children: [
-            SettingSwitchTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('关闭窗口时留在托盘'),
-              value: data['closeToTray'] == true,
-              onChanged: (v) => redraw(() => data['closeToTray'] = v),
+            dropdown(
+              '关闭窗口时',
+              data['closeAction'] as String? ??
+                  (data['closeToTray'] == true ? 'tray' : 'taskbar'),
+              [
+                const DropdownMenuItem(
+                  value: 'taskbar',
+                  child: Text('最小化到任务栏（默认）'),
+                ),
+                const DropdownMenuItem(value: 'tray', child: Text('隐藏到系统托盘')),
+                const DropdownMenuItem(value: 'exit', child: Text('退出程序')),
+              ],
+              (v) => redraw(() => data['closeAction'] = v),
             ),
             SettingSwitchTile(
               contentPadding: EdgeInsets.zero,

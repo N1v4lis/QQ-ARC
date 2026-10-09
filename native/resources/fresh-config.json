@@ -1,0 +1,217 @@
+{
+  "api": {
+    "baseUrl": "",
+    "apiKey": "",
+    "model": "",
+    "provider": "",
+    "fallbackModels": [],
+    "apiByChat": {
+      "byChat": {}
+    },
+    "visionModel": "",
+    "videoModel": "",
+    "videoMode": "auto",
+    "vision": true,
+    "video": false,
+    "temperature": 0.8,
+    "maxRounds": 12,
+    "timeoutMs": 180000,
+    "thinkingMode": "auto",
+    "thinkingEffort": "",
+    "thinkingBudget": 0,
+    "priceInputPerM": 0,
+    "priceOutputPerM": 0,
+    "priceCachedPerM": 0,
+    "useOfficialPrice": true,
+    "modelPrices": {}
+  },
+  "providers": [],
+  "dshProviderKeys": {},
+  "providersSourceYaml": "",
+  "webSearch": {
+    "enabled": false,
+    "searchUrl": "https://cn.bing.com/search",
+    "maxResults": 6,
+    "provider": "",
+    "deepseek": {
+      "apiKey": "",
+      "baseUrl": "https://api.deepseek.com/responses",
+      "model": "deepseek-v4-flash",
+      "timeoutMs": 60000
+    },
+    "zhipu": {
+      "apiKey": "",
+      "baseUrl": "https://open.bigmodel.cn/api/paas/v4/web_search",
+      "engine": "search_std",
+      "count": 10,
+      "timeoutMs": 20000
+    },
+    "bocha": {
+      "apiKey": "",
+      "baseUrl": "https://api.bochaai.com/v1/web-search",
+      "count": 10,
+      "timeoutMs": 20000
+    },
+    "baidu": {
+      "apiKey": "",
+      "baseUrl": "https://qianfan.baidubce.com/v2/ai_search/web_search",
+      "count": 6,
+      "timeoutMs": 20000
+    },
+    "metaso": {
+      "apiKey": "",
+      "baseUrl": "https://metaso.cn/api/open/v1/search",
+      "count": 6,
+      "timeoutMs": 20000
+    },
+    "providers": [],
+    "custom": {
+      "name": "",
+      "type": "openai",
+      "baseUrl": "",
+      "apiKey": "",
+      "model": "",
+      "count": 6,
+      "timeoutMs": 20000
+    }
+  },
+  "security": {
+    "allowPrivateImageHosts": false,
+    "browseLock": {
+      "enabled": false,
+      "hosts": [],
+      "siteSearchUrl": ""
+    }
+  },
+  "snowluma": {
+    "dir": "",
+    "autoLaunch": false,
+    "hookAutoLoad": false,
+    "wsUrl": "ws://127.0.0.1:3001",
+    "httpUrl": "http://127.0.0.1:3000",
+    "accessToken": "",
+    "httpAccessToken": ""
+  },
+  "persona": {
+    "botName": "",
+    "selfNickname": "",
+    "roleText": "",
+    "participation": "medium",
+    "customRules": "",
+    "systemPromptOverride": ""
+  },
+  "customPersonas": [],
+  "personaByChat": {},
+  "allow": {
+    "groups": [],
+    "private": []
+  },
+  "deny": {
+    "groups": [],
+    "private": []
+  },
+  "allowAllWhenEmpty": false,
+  "wakeDelayMs": 2000,
+  "drainDelayMs": 1200,
+  "maxConcurrentRuns": 2,
+  "sessionRetryAttempts": 2,
+  "send": {
+    "minGapMs": 1000,
+    "maxGapMs": 3000,
+    "byLengthMs": 20,
+    "maxPerMinute": 80,
+    "maxPerHour": 500,
+    "hardSplitAt": 4000,
+    "dedupeWindowMs": 8000
+  },
+  "proactive": {
+    "enabled": false,
+    "checkIntervalMinMs": 1800000,
+    "checkIntervalMaxMs": 5400000,
+    "idleThresholdMs": 1800000,
+    "probability": 0.25
+  },
+  "chatActive": {
+    "enabled": false,
+    "ttlMinutes": 30
+  },
+  "sticker": {
+    "enabled": true,
+    "promptMaxStickers": 10,
+    "collectEnabled": true,
+    "maxCollectPerHour": 10,
+    "encourage": 1
+  },
+  "store": {
+    "maxMessagesPerChat": 0,
+    "contextTier": 4,
+    "historyCount": 80,
+    "keywords": [],
+    "randomPercent": 10,
+    "promptAnchor": {
+      "enabled": true,
+      "maxExtraRead": 5
+    },
+    "unifiedTier": true,
+    "groupSliderPos": {},
+    "groupPeakPos": {},
+    "keepSessionFiles": 0,
+    "peakSchedule": {
+      "enabled": false,
+      "peak": {
+        "start": "09:00",
+        "end": "18:00",
+        "sliderPos": 10
+      },
+      "valley": {
+        "sliderPos": 100
+      }
+    }
+  },
+  "blocklist": {},
+  "globalBlocklist": [],
+  "communityExemptions": [],
+  "commandMute": {
+    "enabled": true,
+    "command": "/安静",
+    "durationMin": 30,
+    "active": {}
+  },
+  "memory": {
+    "consolidateEnabled": true,
+    "consolidateMinIntervalMs": 21600000,
+    "useChatModel": true,
+    "provider": "",
+    "model": ""
+  },
+  "tools": {
+    "enabled": true,
+    "overrides": {},
+    "crossChatSend": false,
+    "categories": {
+      "messaging": true,
+      "sticker": true,
+      "query": true,
+      "memory": true,
+      "web": true,
+      "knowledge": true,
+      "media": true,
+      "system": true
+    }
+  },
+  "skills": {},
+  "extensions": {
+    "hotReload": true
+  },
+  "server": {
+    "port": 3210,
+    "token": "",
+    "autoStart": false,
+    "closeToTray": true
+  },
+  "ui": {
+    "theme": "dark",
+    "showVision": true,
+    "refreshMs": 15000
+  }
+}

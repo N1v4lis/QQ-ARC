@@ -43,6 +43,12 @@ Future<void> main() async {
   }
 }
 
+String closeAction(Map prefs) {
+  final action = prefs['closeAction'];
+  if (['taskbar', 'tray', 'exit'].contains(action)) return action as String;
+  return prefs['closeToTray'] == true ? 'tray' : 'taskbar';
+}
+
 class CoreLifecycle extends StatefulWidget {
   const CoreLifecycle({super.key, required this.core});
   final CoreClient core;
@@ -73,17 +79,25 @@ class _CoreLifecycleState extends State<CoreLifecycle> with WindowListener {
 
   @override
   void onWindowClose() async {
+    Map prefs = {};
     try {
-      final prefs = await widget.core.request('/preferences') as Map;
-      if (prefs['closeToTray'] == true) {
+      prefs = await widget.core.request('/preferences') as Map;
+    } catch (_) {}
+    final action = closeAction(prefs);
+    if (action == 'exit') {
+      await terminate();
+      return;
+    }
+    if (action == 'tray') {
+      try {
         await DesktopBridge.setTray(true);
         await windowManager.hide();
         return;
+      } catch (_) {
+        /* Keep the app reachable on the taskbar if tray creation fails. */
       }
-    } catch (_) {
-      /* If the tray cannot be created, leave no hidden orphan. */
     }
-    await terminate();
+    await windowManager.minimize();
   }
 
   Future<void> terminate() async {

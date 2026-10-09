@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qqaf/core_client.dart';
 import 'package:qqaf/qqaf_app.dart';
+import 'package:qqaf/main.dart' show closeAction;
 
 class FakeCore implements CoreApi {
   FakeCore({this.minecraft = false});
@@ -128,4 +129,11 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
+  test('window close defaults to taskbar and supports explicit actions', () {
+    expect(closeAction({}), 'taskbar');
+    expect(closeAction({'closeToTray': true}), 'tray');
+    expect(closeAction({'closeAction': 'exit'}), 'exit');
+    expect(closeAction({'closeAction': 'taskbar'}), 'taskbar');
+  });
 }
+

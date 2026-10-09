@@ -1,6 +1,8 @@
 # QQAF Rust 业务核心
 
-配合 Flutter 的独立实验程序。公开版本 **RS0.1.1 — First Light — 初光 · 故事的起点**，实验包内部版本 0.1.1，与归档版 0.4.5a 分开，不覆盖旧客户端，不直接打开旧数据库。业务核心不使用 Node、Electron、WebView 或 Slint。外部 SnowLuma 的运行时属于用户自带 OneBot 组件。
+配合 Flutter 的独立实验程序。当前目标为 **RS0.1.0 — First Light — 初光 · 故事的起点**，实验包内部版本 0.1.1，与归档版 0.4.5a 分开，不覆盖旧客户端，不直接打开旧数据库。业务核心不使用 Node、Electron、WebView 或 Slint。外部 SnowLuma 的运行时属于用户自带 OneBot 组件。
+
+干净构建通过 `QQAF_CLEAN_DEFAULTS=1` 使用空白配置和空白人设资源；普通开发仍使用完整内置默认值。
 
 开发需要 Rust 1.92+ 与目标平台链接器；用户无需 Rust 工具链。
 
