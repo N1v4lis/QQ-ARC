@@ -144,6 +144,11 @@ type ResultJson = Result<Json<Value>, Error>;
 struct Account {
     account: String,
 }
+#[derive(Deserialize, Default)]
+struct OptionalAccount {
+    #[serde(default)]
+    account: String,
+}
 #[derive(Deserialize)]
 struct Page {
     account: String,
@@ -189,7 +194,7 @@ async fn authenticate(State(core): State<Core>, request: Request, next: Next) ->
     }
     next.run(request).await
 }
-async fn status(State(core): State<Core>, Query(a): Query<Account>) -> Json<Value> {
+async fn status(State(core): State<Core>, Query(a): Query<OptionalAccount>) -> Json<Value> {
     let account = a.account.trim().to_string();
     let (snow_status, qq_status) = if !account.is_empty() {
         tokio::join!(
