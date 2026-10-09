@@ -1,7 +1,12 @@
 use futures_util::StreamExt;
 use serde_json::Value;
 pub fn client(cfg: &Value) -> Result<reqwest::Client, String> {
-    let mut builder = reqwest::Client::builder().timeout(std::time::Duration::from_secs(120));
+    let mut builder = reqwest::Client::builder().timeout(std::time::Duration::from_millis(
+        cfg["api"]["timeoutMs"]
+            .as_u64()
+            .unwrap_or(120000)
+            .clamp(1000, 600000),
+    ));
     if cfg["proxy"]["enabled"] == true {
         let address = cfg["proxy"]["url"].as_str().ok_or("代理地址为空")?;
         let url = reqwest::Url::parse(address).map_err(|_| "代理地址无效")?;
@@ -81,6 +86,18 @@ fn public(ip: std::net::IpAddr) -> bool {
     }
 }
 pub async fn fetch_public(cfg: &Value, address: &str) -> Result<String, String> {
+    Ok(plain(&String::from_utf8_lossy(
+        &fetch_public_bytes(cfg, address, 4 * 1024 * 1024).await?,
+    ))
+    .chars()
+    .take(18000)
+    .collect())
+}
+pub async fn fetch_public_bytes(
+    cfg: &Value,
+    address: &str,
+    limit: usize,
+) -> Result<Vec<u8>, String> {
     let mut url = reqwest::Url::parse(address).map_err(|_| "网页地址无效")?;
     for _ in 0..6 {
         if !matches!(url.scheme(), "http" | "https")
@@ -139,12 +156,7 @@ pub async fn fetch_public(cfg: &Value, address: &str) -> Result<String, String> 
             url = url.join(location).map_err(|_| "网页重定向无效")?;
             continue;
         }
-        return Ok(plain(&String::from_utf8_lossy(
-            &bytes(response, 4 * 1024 * 1024).await?,
-        ))
-        .chars()
-        .take(18000)
-        .collect());
+        return bytes(response, limit).await;
     }
     Err("网页重定向过多".into())
 }

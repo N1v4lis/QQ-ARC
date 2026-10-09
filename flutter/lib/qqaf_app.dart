@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -216,16 +217,25 @@ class _QqafAppState extends State<QqafApp> {
                   : const Color(0xfff7f8fa),
             ),
           ),
-          if (minecraft && uiPrefs['background'] == true)
+          if ((minecraft || uiPrefs['customBackground'] is List) &&
+              uiPrefs['background'] == true)
             Positioned.fill(
               child: Opacity(
                 opacity: ((uiPrefs['opacity'] as num?)?.toDouble() ?? .55)
                     .clamp(0, 1),
-                child: Image.asset(
-                  'assets/mc/bg/wallpaper-${uiPrefs['wallpaper'] ?? 1}.png',
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.medium,
-                ),
+                child: uiPrefs['customBackground'] is List
+                    ? Image.memory(
+                        Uint8List.fromList(
+                          List<int>.from(uiPrefs['customBackground'] as List),
+                        ),
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const SizedBox(),
+                      )
+                    : Image.asset(
+                        'assets/mc/bg/wallpaper-${uiPrefs['wallpaper'] ?? 1}.png',
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.medium,
+                      ),
               ),
             ),
           ?child,
@@ -415,6 +425,7 @@ class _QqafAppState extends State<QqafApp> {
     if (section == 5) {
       return [
         ThemeWorkspace(
+          core: widget.core,
           prefs: {
             ...uiPrefs,
             'theme': uiPrefs['theme'] ?? (dark ? 'dark' : 'light'),

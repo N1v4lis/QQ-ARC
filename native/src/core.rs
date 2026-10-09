@@ -151,6 +151,8 @@ struct Page {
 pub fn router(core: Core) -> Router {
     Router::new()
         .merge(crate::workspace::routes())
+        .merge(crate::themes::routes())
+        .merge(crate::harness::routes())
         .merge(crate::community::routes())
         .merge(crate::prices::routes())
         .merge(crate::snow::routes())
@@ -209,8 +211,11 @@ async fn messages(State(core): State<Core>, Query(page): Query<Page>) -> ResultJ
     let items = core
         .databases
         .call(page.account, move |s| {
-            s.recent(&page.chat, page.before, 50)
-                .map_err(|_| "读取消息失败".into())
+            let rows = s
+                .recent(&page.chat, page.before, 50)
+                .map_err(|_| "读取消息失败")?;
+            s.enrich_messages(json!(rows))
+                .map_err(|_| "读取多媒体关联失败".into())
         })
         .await?;
     Ok(Json(json!(items)))
@@ -257,31 +262,8 @@ struct SendMessage {
     text: String,
 }
 async fn send(State(core): State<Core>, Json(m): Json<SendMessage>) -> ResultJson {
-    if m.text.is_empty() {
-        return Err(Error("消息不能为空".into()));
-    }
-    let (kind, id) = m
-        .chat
-        .split_once(':')
-        .ok_or_else(|| Error("会话标识无效".into()))?;
-    let id: u64 = id.parse().map_err(|_| Error("会话标识无效".into()))?;
-    let action = match kind {
-        "group" => {
-            json!({"action":"send_group_msg","params":{"group_id":id,"message":m.text,"auto_escape":true}})
-        }
-        "private" => {
-            json!({"action":"send_private_msg","params":{"user_id":id,"message":m.text,"auto_escape":true}})
-        }
-        _ => return Err(Error("会话类型无效".into())),
-    };
-    core.connections.action(&m.account, action).await?;
-    core.databases
-        .call(m.account, move |s| {
-            s.append(&m.chat, "self", &m.text, now())
-                .map(|_| ())
-                .map_err(|_| "已发送但记录写入失败".into())
-        })
-        .await?;
+    let config = crate::workspace::load(&core.databases, &m.account).await?;
+    crate::agent::send(&core, &m.account, &m.chat, &m.text, &config).await?;
     Ok(Json(json!({"ok":true})))
 }
 #[derive(Deserialize)]
@@ -321,15 +303,29 @@ async fn load_model(core: &Core, account: String) -> Result<ModelConfig, String>
 async fn get_model(State(core): State<Core>, Query(account): Query<Account>) -> ResultJson {
     Ok(Json(json!(load_model(&core, account.account).await?)))
 }
-async fn chat_model(State(core): State<Core>, Json(m): Json<SendMessage>) -> ResultJson {
+#[derive(Deserialize)]
+struct MediaMessage {
+    account: String,
+    chat: String,
+    text: String,
+    #[serde(default)]
+    images: Vec<String>,
+}
+async fn chat_model(State(core): State<Core>, Json(m): Json<MediaMessage>) -> ResultJson {
+    if m.images.len() > 8 || m.images.iter().any(|s| s.len() > 4096) {
+        return Err(Error("最多8张图片，每个 URL 最长4096字节".into()));
+    }
     let workspace = crate::workspace::load(&core.databases, &m.account).await?;
     if workspace["api"]["model"]
         .as_str()
         .is_some_and(|m| !m.is_empty())
     {
         return Ok(Json(json!(
-            crate::agent::run(&core, &m.account, &m.chat, &m.text, false).await?
+            crate::agent::run_media(&core, &m.account, &m.chat, &m.text, false, m.images).await?
         )));
+    }
+    if !m.images.is_empty() {
+        return Err(Error("请先配置默认模型".into()));
     }
     let mut config = load_model(&core, m.account.clone()).await?;
     let memory_chat = m.chat.clone();

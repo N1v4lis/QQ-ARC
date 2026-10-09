@@ -29,6 +29,7 @@ const BUILTIN_PERSONAS: &str = include_str!("../resources/personas.json");
 
 pub fn defaults() -> Value {
     let mut value: Value = serde_json::from_str(DEFAULT_CONFIG).expect("embedded defaults");
+    value["harnesses"] = json!([]);
     value["runtime"] = json!({"enabled":false});
     value["personaHistory"] = json!({"days":1,"limit":5});
     value["proxy"] = json!({"enabled":false,"url":"http://127.0.0.1:7890"});
@@ -239,13 +240,19 @@ pub fn routes() -> Router<Core> {
         .route("/config", get(read).post(write))
         .route("/credentials", post(credentials))
         .route("/providers/fetch-models", post(fetch_models))
+        .route("/providers/test", post(test_model))
         .route("/roster", get(roster))
         .route("/persona", get(persona).post(save_persona))
         .route("/persona/templates", get(templates).post(save_templates))
         .route("/archive", get(archive))
         .route("/archive/delete", post(delete_archive))
         .route("/usage", get(usage))
+        .route("/memory/documents", get(documents).post(save_document))
+        .route("/memory/documents/delete", post(delete_document))
+        .route("/persona/template", post(edit_template))
         .route("/runs", get(runs))
+        .route("/runs/events", get(run_events))
+        .route("/runs/cancel", post(cancel_run))
         .route("/tools", get(tool_list))
         .route("/ui/sound", post(sound))
         .route("/onebot/action", post(action))
@@ -453,6 +460,65 @@ async fn fetch_models(State(core): State<Core>, Json(p): Json<Provider>) -> Resu
     .map_err(error)?;
     Ok(Json(json!(models)))
 }
+#[derive(Deserialize)]
+struct ModelTest {
+    account: String,
+    provider: String,
+    model: String,
+    #[serde(default)]
+    image: String,
+}
+async fn test_model(State(core): State<Core>, Json(q): Json<ModelTest>) -> ResultJson {
+    let cfg = load(&core.databases, &q.account).await.map_err(error)?;
+    let (model, key) = resolve_selected(
+        &core,
+        &q.account,
+        "",
+        Some(json!({"provider":q.provider,"model":q.model})),
+    )
+    .await
+    .map_err(error)?;
+    if model.model.is_empty() {
+        return Err(error("请选择测试模型"));
+    }
+    let content = if q.image.is_empty() {
+        json!("Reply with OK.")
+    } else {
+        let url = reqwest::Url::parse(&q.image).map_err(|_| error("图片地址无效"))?;
+        if !["http", "https"].contains(&url.scheme())
+            || url.host_str().is_none()
+            || !url.username().is_empty()
+            || url.password().is_some()
+        {
+            return Err(error("图片 URL 无效"));
+        }
+        json!([{"type":"text","text":"Describe the image briefly."},{"type":"image_url","image_url":{"url":url.as_str()}}])
+    };
+    let started = std::time::Instant::now();
+    let result = crate::model_protocols::request(
+        &crate::network::client(&cfg).map_err(error)?,
+        &model.base_url,
+        &key,
+        &json!({"model":model.model,"messages":[{"role":"user","content":content}],"stream":false,"local_network_config":cfg}),
+    )
+    .await
+    .map_err(error)?;
+    let input = result["usage"]["prompt_tokens"].as_u64().unwrap_or(0);
+    let output = result["usage"]["completion_tokens"].as_u64().unwrap_or(0);
+    let cost = (input as f64 * model.input_per_million + output as f64 * model.output_per_million)
+        / 1_000_000.;
+    let id = model.model.clone();
+    core.databases
+        .call(q.account, move |s| {
+            s.record_usage(&id, input, output, cost, crate::core::now())
+                .map_err(|_| "记录测试用量失败".into())
+        })
+        .await
+        .map_err(error)?;
+    Ok(Json(
+        json!({"ok":true,"milliseconds":started.elapsed().as_millis(),"text":result["choices"][0]["message"]["content"],"input":input,"output":output,"cost":cost}),
+    ))
+}
 async fn roster(State(core): State<Core>, Query(a): Query<Account>) -> ResultJson {
     let (groups, friends) = tokio::join!(
         core.connections
@@ -613,8 +679,11 @@ async fn archive(State(core): State<Core>, Query(q): Query<ArchiveQuery>) -> Res
     Ok(Json(
         core.databases
             .call(q.account, move |s| {
-                s.archive(&q.chat, &q.search, q.before)
-                    .map_err(|_| "读取存档失败".into())
+                let rows = s
+                    .archive(&q.chat, &q.search, q.before)
+                    .map_err(|_| "读取存档失败")?;
+                s.enrich_messages(rows)
+                    .map_err(|_| "读取多媒体关联失败".into())
             })
             .await
             .map_err(error)?,
@@ -664,6 +733,147 @@ async fn runs(State(core): State<Core>, Query(q): Query<Account>) -> ResultJson 
             .await
             .map_err(error)?,
     ))
+}
+#[derive(Deserialize)]
+struct RunQuery {
+    account: String,
+    run_id: String,
+}
+async fn run_events(State(core): State<Core>, Query(q): Query<RunQuery>) -> ResultJson {
+    Ok(Json(
+        core.databases
+            .call(q.account, move |s| {
+                s.run_events(&q.run_id)
+                    .map_err(|_| "读取运行事件失败".into())
+            })
+            .await
+            .map_err(error)?,
+    ))
+}
+async fn cancel_run(State(core): State<Core>, Json(q): Json<RunQuery>) -> ResultJson {
+    Ok(Json(
+        json!({"cancelled":crate::agent::cancel(&core,&q.account,&q.run_id).await.map_err(error)?}),
+    ))
+}
+#[derive(Deserialize)]
+struct Documents {
+    account: String,
+    chat: String,
+    #[serde(default)]
+    kind: String,
+    #[serde(default)]
+    search: String,
+}
+async fn documents(State(core): State<Core>, Query(q): Query<Documents>) -> ResultJson {
+    if q.search.len() > 2000 {
+        return Err(error("搜索内容过长"));
+    }
+    Ok(Json(
+        core.databases
+            .call(q.account, move |s| {
+                s.documents(&q.chat, &q.kind, &q.search)
+                    .map_err(|_| "读取文档失败".into())
+            })
+            .await
+            .map_err(error)?,
+    ))
+}
+#[derive(Deserialize)]
+struct Document {
+    account: String,
+    chat: String,
+    id: Option<i64>,
+    kind: String,
+    title: String,
+    content: String,
+}
+async fn save_document(State(core): State<Core>, Json(q): Json<Document>) -> ResultJson {
+    if !["document", "member", "summary"].contains(&q.kind.as_str())
+        || q.chat.is_empty()
+        || q.title.trim().is_empty()
+        || q.title.len() > 400
+        || q.content.chars().count() > 32000
+    {
+        return Err(error("文档类型、标题或长度无效"));
+    }
+    let id = core
+        .databases
+        .call(q.account, move |s| {
+            s.save_document(q.id, &q.chat, &q.kind, &q.title, &q.content)
+                .map_err(|_| "文档不存在或保存失败".into())
+        })
+        .await
+        .map_err(error)?;
+    Ok(Json(json!({"ok":true,"id":id})))
+}
+#[derive(Deserialize)]
+struct DeleteDocument {
+    account: String,
+    chat: String,
+    id: i64,
+    confirmed: bool,
+}
+async fn delete_document(State(core): State<Core>, Json(q): Json<DeleteDocument>) -> ResultJson {
+    if !q.confirmed {
+        return Err(error("请确认删除文档"));
+    }
+    let deleted = core
+        .databases
+        .call(q.account, move |s| {
+            s.delete_document(q.id, &q.chat)
+                .map_err(|_| "删除文档失败".into())
+        })
+        .await
+        .map_err(error)?;
+    Ok(Json(json!({"deleted":deleted})))
+}
+#[derive(Deserialize)]
+struct TemplateEdit {
+    id: String,
+    #[serde(default)]
+    value: Value,
+    #[serde(default)]
+    delete: bool,
+    #[serde(default)]
+    confirmed: bool,
+}
+async fn edit_template(State(core): State<Core>, Json(q): Json<TemplateEdit>) -> ResultJson {
+    if q.id.is_empty()
+        || q.id.len() > 100
+        || q.value.to_string().len() > 128 * 1024
+        || (q.delete && !q.confirmed)
+    {
+        return Err(error("模板参数无效"));
+    }
+    let value = core
+        .databases
+        .call("local-settings".into(), move |db| {
+            let mut library: Vec<Value> = db
+                .preference("persona-library")
+                .map_err(|_| "模板库读取失败")?
+                .and_then(|v| serde_json::from_str(&v).ok())
+                .unwrap_or_default();
+            if q.delete {
+                library.retain(|v| v["id"] != q.id);
+            } else {
+                let mut value = q.value;
+                if !value.is_object() || value["name"].as_str().is_none_or(str::is_empty) {
+                    return Err("请填写模板名称".into());
+                }
+                value["id"] = json!(q.id);
+                if let Some(found) = library.iter_mut().find(|v| v["id"] == q.id) {
+                    *found = value;
+                } else {
+                    library.push(value);
+                }
+            }
+            db.set_preference("persona-library", &json!(library).to_string())
+                .map_err(|_| "保存模板失败")?;
+            Ok(json!({"custom":library}))
+        })
+        .await
+        .map_err(error)?;
+    Ok(Json(value))
 }
 async fn tool_list(State(core): State<Core>, Query(q): Query<Account>) -> ResultJson {
     let cfg = load(&core.databases, &q.account).await.map_err(error)?;

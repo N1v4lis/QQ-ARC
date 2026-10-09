@@ -12,7 +12,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
 Push-Location $repoRoot
 try {
-  if ((git branch --show-current) -ne 'Rust+Slint') { throw 'Clean experimental builds require Rust+Slint.' }
+  if ((git branch --show-current) -notin @('Rust+Slint','RS0.2.0')) { throw 'Clean experimental builds require Rust+Slint.' }
   if (-not $BundlePath) {
     $previousCache = $env:PUB_CACHE
     $previousData = $env:QQAF_NATIVE_DATA_DIR
@@ -35,7 +35,8 @@ try {
   & python "$PSScriptRoot/package-clean-experimental.py" ([IO.Path]::GetFullPath($BundlePath)) --output ([IO.Path]::GetFullPath($OutputRoot))
   if ($LASTEXITCODE -ne 0) { throw 'Clean package verification failed.' }
   if ($CreateInstaller) {
-    & python "$PSScriptRoot/build-windows-installer.py" --output ([IO.Path]::GetFullPath($OutputRoot))
+    $version = (Get-Content -LiteralPath (Join-Path $BundlePath 'build-info.json') -Raw | ConvertFrom-Json).version
+    & python "$PSScriptRoot/build-windows-installer.py" --version $version --output ([IO.Path]::GetFullPath($OutputRoot))
     if ($LASTEXITCODE -ne 0) { throw 'Installer validation failed.' }
   }
 } finally { Pop-Location }

@@ -63,3 +63,25 @@ fn standard_and_conditional_prices_are_distinguished() {
     .unwrap();
     assert_eq!(conditional[0]["autoApply"], false);
 }
+
+#[test]
+fn official_image_blocks_are_translated_from_inline_protocol_content() {
+    let body = json!({"model":"fixture","messages":[{"role":"user","content":[{"type":"text","text":"describe"},{"type":"image_url","image_url":{"url":"data:image/png;base64,AAAA"}}]}]});
+    let (_, claude, _) = model_protocols::prepare("https://api.anthropic.com", &body).unwrap();
+    assert_eq!(
+        claude["messages"][0]["content"][1]["source"]["type"],
+        "base64"
+    );
+    assert_eq!(
+        claude["messages"][0]["content"][1]["source"]["media_type"],
+        "image/png"
+    );
+    let mut gemini = body;
+    gemini["model"] = json!("gemini-fixture");
+    let (_, wire, _) =
+        model_protocols::prepare("https://generativelanguage.googleapis.com", &gemini).unwrap();
+    assert_eq!(
+        wire["contents"][0]["parts"][1]["inlineData"]["data"],
+        "AAAA"
+    );
+}

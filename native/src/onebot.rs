@@ -42,6 +42,23 @@ pub fn parse_message(value: &str) -> Result<Option<IncomingMessage>, serde_json:
     if value.get("post_type").and_then(|v| v.as_str()) != Some("message") {
         return Ok(None);
     }
+    let mut value = value;
+    if value["raw_message"].as_str().is_none() {
+        let text = value["message"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|s| {
+                if s["type"] == "text" {
+                    s["data"]["text"].as_str().unwrap_or("").to_owned()
+                } else {
+                    format!("[{}]", s["type"].as_str().unwrap_or("message"))
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("");
+        value["raw_message"] = serde_json::json!(text);
+    }
     serde_json::from_value(value).map(Some)
 }
 

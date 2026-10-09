@@ -32,3 +32,5 @@ storage-v1-*.sqlite*
 /flutter/windows/flutter/ephemeral/
 /flutter/.flutter-plugins*
 flutter/assets/
+
+**/__pycache__/

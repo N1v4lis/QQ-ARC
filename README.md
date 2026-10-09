@@ -1,8 +1,8 @@
-# QQ Agent ARCFØX · RS0.1.0 — First Light
+# QQ Agent ARCFØX · RS0.2.0 — Resonance
 
-![First Light](docs/assets/rs-first-light.svg)
+![Resonance](docs/assets/rs-resonance.svg)
 
-**RS0.1.0 — First Light — 初光 · 故事的起点**
+**RS0.2.0 — Resonance — 共鸣 · 第一次理解**
 
 Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 
@@ -11,13 +11,15 @@ Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 >
 > 本分支用于验证 **Flutter UI＋Rust 核心**，功能、界面和数据结构仍可能调整，暂不能替代原有客户端。旧架构开发已无限期暂停，恢复时间待定；是否停止旧架构开发，将在新方案完成可行性验收后决定。
 >
-> **0.4.5a** 为迁移前归档。后续开发在 [Rust+Slint 分支](https://github.com/N1v4lis/QQARCFOX/tree/Rust%2BSlint) 推进。分支名称沿用早期命名，**酒狐采用 Slint 或原生 3D 仍在考量**，尚未定案。
+> **0.4.5a** 为迁移前归档。当前开发在 [RS0.2.0 分支](https://github.com/N1v4lis/QQARCFOX/tree/RS0.2.0) 推进。RS 继续使用原定系列代号；**酒狐采用 Slint 或原生 3D 仍在考量**，尚未定案。
 
 ## 当前状态
 
+当前目标为 **所有功能恢复**。已恢复的执行链路、验收结果和剩余缺口见 [RS0.2.0 验收进度](docs/RS0.2.0-ACCEPTANCE.md)。
+
 界面迁移记录：[0.1.1 实验版](docs/releases/experimental-0.1.1.md) · [页面与交互验收](docs/FLUTTER-UI-MIGRATION.md)。
 
-当前开发目标为 **RS0.1.0 — First Light — 初光 · 故事的起点**；本地实验包使用内部版本 **0.1.1**，与归档版 **0.4.5a** 分开记录。Flutter 负责窗口与界面，Rust 负责业务、网络、存储和模型请求；默认运行不依赖 Electron、Node.js、WebView 或 Slint。
+当前开发目标为 **RS0.2.0 — Resonance — 共鸣 · 第一次理解**；本地实验包使用内部版本 **0.2.0**，与归档版 **0.4.5a** 分开记录。Flutter 负责窗口与界面，Rust 负责业务、网络、存储和模型请求；默认运行不依赖 Electron、Node.js、WebView 或 Slint。
 
 本轮按旧架构 79 个接口、32 组配置核对业务和 UI。新界面已覆盖总览、会话、存档、记忆、用量、人设、账号、API与搜索、白名单、聊天设置、桌面端、个性化、主题、OneBot、进阶、工具、插件、技能和市场入口。**页面覆盖不代表旧功能全部迁移完成**；详见 [功能迁移清单](docs/NATIVE-FEATURE-MATRIX.md)。
 
@@ -51,7 +53,7 @@ Windows 密钥通过 DPAPI 加密后保存在独立账号库，账号之间隔�
 
 构建步骤见 [Flutter 说明](flutter/README.md) 与 [Rust 核心说明](native/README.md)。
 
-生成 RS0.1.0 干净安装包：`tools/build-clean-experimental.ps1`。该脚本使用空白默认配置、空白人设模板和独立数据目录，输出位置由 `-OutputRoot` 指定；不会打包开发机配置、账号或缓存。分发需包含完整 Flutter Release 目录和 Rust 核心，不能只复制单个 exe。开发包不等于已验收的安装器；干净系统部署与性能目标仍需验证。
+生成 RS0.1.0 归档干净安装包：`tools/build-clean-experimental.ps1`。该脚本使用空白默认配置、空白人设模板和独立数据目录，输出位置由 `-OutputRoot` 指定；不会打包开发机配置、账号或缓存。分发需包含完整 Flutter Release 目录和 Rust 核心，不能只复制单个 exe。开发包不等于已验收的安装器；干净系统部署与性能目标仍需验证。
 
 本地检查包括 Rust 单元/模拟集成测试、Flutter 静态分析与控件测试。测试使用本机模拟服务，不发送实际 QQ 或模型请求；通过这些检查不代表全部旧版功能已迁移。
 

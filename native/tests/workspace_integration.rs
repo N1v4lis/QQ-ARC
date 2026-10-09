@@ -496,3 +496,370 @@ fn clean_release_has_empty_model_configuration_and_persona() {
     assert_eq!(cfg["personaByChat"], json!({}));
     assert_eq!(cfg["runtime"]["enabled"], false);
 }
+
+#[tokio::test]
+async fn cancellation_is_account_scoped_and_does_not_wait_for_model_timeout() {
+    use axum::{Json, Router, routing::post};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        axum::serve(
+            listener,
+            Router::new().route(
+                "/chat/completions",
+                post(|| async {
+                    tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                    Json(json!({"choices":[{"message":{"content":"late"}}],"usage":{}}))
+                }),
+            ),
+        )
+        .await
+        .unwrap();
+    });
+    let core = Core::new(root(), "fixture".into());
+    workspace::update(&core.databases, "123", move |c| {
+        c["api"]["baseUrl"] = json!(format!("http://{address}"));
+        c["api"]["model"] = json!("fixture");
+        Ok(())
+    })
+    .await
+    .unwrap();
+    let child = core.clone();
+    let running =
+        tokio::spawn(async move { agent::run(&child, "123", "group:8", "hello", false).await });
+    let id = tokio::time::timeout(std::time::Duration::from_secs(3), async {
+        loop {
+            let rows = core
+                .databases
+                .call("123".into(), |s| s.runs().map_err(|e| e.to_string()))
+                .await
+                .unwrap();
+            if let Some(id) = rows[0]["id"].as_str() {
+                break id.to_owned();
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(!agent::cancel(&core, "456", &id).await.unwrap());
+    assert!(agent::cancel(&core, "123", &id).await.unwrap());
+    let result = tokio::time::timeout(std::time::Duration::from_secs(3), running)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(result.unwrap_err(), "运行已取消");
+    let events = core
+        .databases
+        .call("123".into(), move |s| {
+            s.run_events(&id).map_err(|e| e.to_string())
+        })
+        .await
+        .unwrap();
+    assert!(
+        events
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e["kind"] == "cancelled")
+    );
+    let rows = core
+        .databases
+        .call("123".into(), |s| s.runs().map_err(|e| e.to_string()))
+        .await
+        .unwrap();
+    assert_eq!(rows[0]["status"], "cancelled");
+    server.abort();
+}
+
+#[tokio::test]
+async fn memory_documents_are_isolated_by_account_chat_and_category() {
+    let core = Core::new(root(), "fixture".into());
+    let (status,saved)=request(&core,"/memory/documents",json!({"account":"123","chat":"group:8","kind":"member","title":"QQ 456","content":"喜欢茶"})).await;
+    assert_eq!(status, 200);
+    let id = saved["id"].as_i64().unwrap();
+    let docs = core
+        .databases
+        .call("123".into(), |s| {
+            s.documents("group:8", "member", "茶")
+                .map_err(|e| e.to_string())
+        })
+        .await
+        .unwrap();
+    assert_eq!(docs.as_array().unwrap().len(), 1);
+    let other = core
+        .databases
+        .call("456".into(), |s| {
+            s.documents("group:8", "", "").map_err(|e| e.to_string())
+        })
+        .await
+        .unwrap();
+    assert_eq!(other, json!([]));
+    let (status,_)=request(&core,"/memory/documents",json!({"account":"123","chat":"group:9","id":id,"kind":"member","title":"bad","content":"wrong chat"})).await;
+    assert_eq!(status, 400);
+    let (status, _) = request(
+        &core,
+        "/memory/documents/delete",
+        json!({"account":"123","chat":"group:8","id":id,"confirmed":false}),
+    )
+    .await;
+    assert_eq!(status, 400);
+    let (_, deleted) = request(
+        &core,
+        "/memory/documents/delete",
+        json!({"account":"123","chat":"group:9","id":id,"confirmed":true}),
+    )
+    .await;
+    assert_eq!(deleted["deleted"], 0);
+    let (_, deleted) = request(
+        &core,
+        "/memory/documents/delete",
+        json!({"account":"123","chat":"group:8","id":id,"confirmed":true}),
+    )
+    .await;
+    assert_eq!(deleted["deleted"], 1);
+}
+#[tokio::test]
+async fn template_upsert_keeps_other_templates_and_delete_requires_confirmation() {
+    let core = Core::new(root(), "fixture".into());
+    assert_eq!(
+        request(
+            &core,
+            "/persona/template",
+            json!({"id":"first","value":{"name":"First","roleText":"a"}})
+        )
+        .await
+        .0,
+        200
+    );
+    assert_eq!(
+        request(
+            &core,
+            "/persona/template",
+            json!({"id":"second","value":{"name":"Second","roleText":"b"}})
+        )
+        .await
+        .0,
+        200
+    );
+    let (_, result) = request(
+        &core,
+        "/persona/template",
+        json!({"id":"first","value":{"name":"Updated","roleText":"c"}}),
+    )
+    .await;
+    assert_eq!(result["custom"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        request(
+            &core,
+            "/persona/template",
+            json!({"id":"first","delete":true})
+        )
+        .await
+        .0,
+        400
+    );
+    let (_, result) = request(
+        &core,
+        "/persona/template",
+        json!({"id":"first","delete":true,"confirmed":true}),
+    )
+    .await;
+    assert_eq!(result["custom"].as_array().unwrap().len(), 1);
+    assert_eq!(result["custom"][0]["id"], "second");
+}
+
+#[tokio::test]
+async fn theme_round_trip_excludes_credentials_and_rejects_system_settings() {
+    let directory = root();
+    std::fs::create_dir_all(&directory).unwrap();
+    let core = Core::new(directory.clone(), "fixture".into());
+    core.databases.call("local-settings".into(),|s|s.set_preference("ui",&json!({"skin":"minecraft","theme":"dark","accent":"4176e6","fontSize":14,"apiKey":"private","autoStart":true,"closeAction":"exit"}).to_string()).map_err(|e|e.to_string())).await.unwrap();
+    let file = directory.join("test.qqtheme");
+    let (status, _) = request(&core, "/themes/export", json!({"path":file})).await;
+    assert_eq!(status, 200);
+    let contents = std::fs::read_to_string(&file).unwrap();
+    assert!(!contents.contains("private"));
+    assert!(!contents.contains("autoStart"));
+    assert!(!contents.contains("closeAction"));
+    assert_eq!(
+        request(&core, "/themes/export", json!({"path":file}))
+            .await
+            .0,
+        400
+    );
+    let (status, settings) = request(
+        &core,
+        "/themes/import",
+        json!({"path":file,"confirmed":true}),
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert_eq!(settings["skin"], "minecraft");
+    assert_eq!(settings["autoStart"], true);
+    std::fs::write(
+        &file,
+        json!({"format":"qqaf-theme","version":1,"settings":{"autoStart":true}}).to_string(),
+    )
+    .unwrap();
+    assert_eq!(
+        request(
+            &core,
+            "/themes/import",
+            json!({"path":file,"confirmed":true})
+        )
+        .await
+        .0,
+        400
+    );
+    assert!(qqaf_native::themes::validate(&json!({"customBackground":[1,2,3]})).is_err());
+}
+
+#[tokio::test]
+async fn compatible_stream_records_partial_text_tool_arguments_and_usage() {
+    use axum::{Router, routing::post};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        axum::serve(listener,Router::new().route("/chat/completions",post(||async{
+        ([("content-type","text/event-stream")],concat!("data: {\"choices\":[{\"delta\":{\"content\":\"你好\",\"tool_calls\":[{\"index\":0,\"id\":\"fixture-call\",\"function\":{\"name\":\"remember\",\"arguments\":\"{\\\"content\\\":\\\"\"}}]}}]}\n\n", "data: {\"choices\":[{\"delta\":{\"content\":\"🦊\",\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"记住\\\"}\"}}]}}]}\n\n", "data: {\"usage\":{\"prompt_tokens\":9,\"completion_tokens\":4}}\n\ndata: [DONE]\n\n"))
+    }))).await.unwrap();
+    });
+    let core = Core::new(root(), "fixture".into());
+    let response = qqaf_native::model_protocols::request_traced(
+        &core.http,
+        &core,
+        "123",
+        "stream-fixture",
+        &format!("http://{address}"),
+        "",
+        &json!({"model":"fixture","messages":[]}),
+    )
+    .await
+    .unwrap();
+    assert_eq!(response["choices"][0]["message"]["content"], "你好🦊");
+    assert_eq!(
+        response["choices"][0]["message"]["tool_calls"][0]["function"]["arguments"],
+        "{\"content\":\"记住\"}"
+    );
+    assert_eq!(response["usage"]["prompt_tokens"], 9);
+    let events = core
+        .databases
+        .call("123".into(), |s| {
+            s.run_events("stream-fixture").map_err(|e| e.to_string())
+        })
+        .await
+        .unwrap();
+    assert!(
+        events
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e["kind"] == "model_delta" && e["content"] == "你好🦊")
+    );
+    server.abort();
+}
+
+#[test]
+#[ignore]
+fn harness_output_fixture() {
+    use std::io::Read;
+    let mut text = String::new();
+    std::io::stdin().read_to_string(&mut text).unwrap();
+    assert!(std::env::var_os("QQAF_CORE_TOKEN").is_none());
+    print!("INPUT:{text}");
+}
+#[test]
+#[ignore]
+fn harness_timeout_fixture() {
+    std::thread::sleep(std::time::Duration::from_secs(20));
+}
+#[cfg(windows)]
+#[tokio::test]
+async fn harness_transmits_literal_stdin_and_enforces_timeout() {
+    let executable = std::env::current_exe()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    let mut cfg = json!({"harnesses":[{"id":"fixture","enabled":true,"executable":executable,"args":["--ignored","--exact","harness_output_fixture","--nocapture"],"stdin":true,"timeoutSeconds":10}]});
+    let result = qqaf_native::harness::execute(&cfg, "fixture", "literal $(secret) & <🦊>")
+        .await
+        .unwrap();
+    assert_eq!(result["ok"], true);
+    assert!(
+        result["stdout"]
+            .as_str()
+            .unwrap()
+            .contains("INPUT:literal $(secret) & <🦊>")
+    );
+    cfg["harnesses"][0]["args"] = json!([
+        "--ignored",
+        "--exact",
+        "harness_timeout_fixture",
+        "--nocapture"
+    ]);
+    cfg["harnesses"][0]["timeoutSeconds"] = json!(1);
+    let result = qqaf_native::harness::execute(&cfg, "fixture", "test").await;
+    assert!(result.unwrap_err().contains("超时"));
+}
+
+#[tokio::test]
+async fn realtime_wire_media_and_reply_are_sql_fields_and_not_lost_on_reopen() {
+    let path = root();
+    let pool = DatabasePool::new(path.clone());
+    let event = IncomingMessage {
+        self_id: 123,
+        user_id: 456,
+        group_id: Some(8),
+        message_id: 10,
+        time: 20,
+        raw_message: "正文 [图片]".into(),
+    };
+    let copy = event.clone();
+    let wire = json!({"message":[{"type":"text","data":{"text":"正文"}},{"type":"image","data":{"url":"https://example.invalid/image.png","file":"public-image","summary":"测试"}},{"type":"reply","data":{"id":"9"}}]});
+    assert!(
+        pool.call("123".into(), move |s| s
+            .receive_wire(&copy, &wire)
+            .map_err(|e| e.to_string()))
+            .await
+            .unwrap()
+    );
+    let reopened = DatabasePool::new(path);
+    let rows = reopened
+        .call("123".into(), |s| {
+            let rows = s.recent("group:8", None, 20).map_err(|e| e.to_string())?;
+            s.enrich_messages(json!(rows)).map_err(|e| e.to_string())
+        })
+        .await
+        .unwrap();
+    assert_eq!(rows[0]["text"], "正文 [图片]");
+    assert_eq!(rows[0]["media"][0]["kind"], "image");
+    assert_eq!(rows[0]["reply"]["text"], "9");
+}
+#[tokio::test]
+async fn model_test_uses_requested_provider_without_changing_default() {
+    use axum::{Json, Router, routing::post};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        axum::serve(listener,Router::new().route("/chat/completions",post(|Json(body):Json<Value>|async move{
+        assert_eq!(body["model"],"test-model");assert!(body.get("local_network_config").is_none());
+        Json(json!({"choices":[{"message":{"content":"OK"}}],"usage":{"prompt_tokens":5,"completion_tokens":1}}))
+    }))).await.unwrap();
+    });
+    let core = Core::new(root(), "fixture".into());
+    workspace::update(&core.databases,"123",move|c|{c["providers"]=json!([{"id":"test","baseUrl":format!("http://{address}"),"models":[{"id":"test-model"}]}]);c["api"]["model"]=json!("default-model");Ok(())}).await.unwrap();
+    let (status, result) = request(
+        &core,
+        "/providers/test",
+        json!({"account":"123","provider":"test","model":"test-model"}),
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert_eq!(result["text"], "OK");
+    assert_eq!(
+        workspace::load(&core.databases, "123").await.unwrap()["api"]["model"],
+        "default-model"
+    );
+    server.abort();
+}

@@ -60,6 +60,15 @@ pub fn prepare(base: &str, body: &Value) -> Result<(reqwest::Url, Value, Protoco
                 if let Some(text) = message["content"].as_str().filter(|t| !t.is_empty()) {
                     content.push(json!({"type":"text","text":text}));
                 }
+                for part in message["content"].as_array().into_iter().flatten() {
+                    if part["type"] == "text" {
+                        content.push(json!({"type":"text","text":part["text"]}));
+                    } else if part["type"] == "image_url" {
+                        content.push(image_source(
+                            part["image_url"]["url"].as_str().unwrap_or(""),
+                        )?);
+                    }
+                }
                 for call in message["tool_calls"].as_array().into_iter().flatten() {
                     content.push(json!({"type":"tool_use","id":call["id"],"name":call["function"]["name"],"input":serde_json::from_str::<Value>(call["function"]["arguments"].as_str().unwrap_or("{}")).map_err(|_|"工具参数无效")?}));
                 }
@@ -114,6 +123,15 @@ pub fn prepare(base: &str, body: &Value) -> Result<(reqwest::Url, Value, Protoco
             } else {
                 if let Some(text) = message["content"].as_str().filter(|s| !s.is_empty()) {
                     parts.push(json!({"text":text}));
+                }
+                for part in message["content"].as_array().into_iter().flatten() {
+                    if part["type"] == "text" {
+                        parts.push(json!({"text":part["text"]}));
+                    } else if part["type"] == "image_url" {
+                        parts.push(gemini_image(
+                            part["image_url"]["url"].as_str().unwrap_or(""),
+                        )?);
+                    }
                 }
                 for call in message["tool_calls"].as_array().into_iter().flatten() {
                     parts.push(json!({"functionCall":{"name":call["function"]["name"],"args":serde_json::from_str::<Value>(call["function"]["arguments"].as_str().unwrap_or("{}")).map_err(|_|"工具参数无效")?}}));
@@ -190,13 +208,81 @@ pub fn normalize(protocol: Protocol, response: Value) -> Result<Value, String> {
         json!({"choices":[{"message":message}],"usage":{"prompt_tokens":input,"completion_tokens":output}}),
     )
 }
+fn inline_data(address: &str) -> Option<(&str, &str)> {
+    let rest = address.strip_prefix("data:")?;
+    let (mime, data) = rest.split_once(";base64,")?;
+    Some((mime, data))
+}
+fn image_source(address: &str) -> Result<Value, String> {
+    if let Some((mime, data)) = inline_data(address) {
+        Ok(json!({"type":"image","source":{"type":"base64","media_type":mime,"data":data}}))
+    } else {
+        Ok(json!({"type":"image","source":{"type":"url","url":address}}))
+    }
+}
+fn gemini_image(address: &str) -> Result<Value, String> {
+    let (mime, data) = inline_data(address).ok_or("Gemini 图片需在发送前读取为内联图片")?;
+    Ok(json!({"inlineData":{"mimeType":mime,"data":data}}))
+}
+async fn inline_images(body: &Value) -> Result<Value, String> {
+    use base64::Engine;
+    let mut body = body.clone();
+    let empty = json!({});
+    let cfg = body.get("local_network_config").unwrap_or(&empty).clone();
+    body.as_object_mut()
+        .map(|m| m.remove("local_network_config"));
+    for message in body["messages"].as_array_mut().into_iter().flatten() {
+        for part in message["content"].as_array_mut().into_iter().flatten() {
+            if part["type"] != "image_url" {
+                continue;
+            }
+            let url = part["image_url"]["url"]
+                .as_str()
+                .ok_or("图片地址无效")?
+                .to_owned();
+            if url.starts_with("data:") {
+                continue;
+            }
+            let bytes = crate::network::fetch_public_bytes(&cfg, &url, 5 * 1024 * 1024).await?;
+            let mime = if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+                "image/png"
+            } else if bytes.starts_with(&[0xff, 0xd8, 0xff]) {
+                "image/jpeg"
+            } else if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
+                "image/gif"
+            } else if bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP") {
+                "image/webp"
+            } else {
+                return Err("图片格式不支持".into());
+            };
+            part["image_url"]["url"] = json!(format!(
+                "data:{mime};base64,{}",
+                base64::engine::general_purpose::STANDARD.encode(bytes)
+            ));
+        }
+    }
+    Ok(body)
+}
 pub async fn request(
     http: &reqwest::Client,
     base: &str,
     key: &str,
     body: &Value,
 ) -> Result<Value, String> {
-    let (url, wire, protocol) = prepare(base, body)?;
+    let official_image_host = reqwest::Url::parse(base)
+        .ok()
+        .and_then(|u| u.host_str().map(str::to_owned))
+        .is_some_and(|h| h == "generativelanguage.googleapis.com" || h == "api.anthropic.com");
+    let transformed = if official_image_host {
+        inline_images(body).await?
+    } else {
+        body.clone()
+    };
+    let (url, mut wire, protocol) = prepare(base, &transformed)?;
+    if let Some(obj) = wire.as_object_mut() {
+        obj.remove("local_network_config");
+    }
+
     let mut request = http.post(url).json(&wire);
     request = match protocol {
         Protocol::OpenAi => request.bearer_auth(key),
@@ -207,4 +293,159 @@ pub async fn request(
     };
     let response = request.send().await.map_err(|_| "模型请求失败")?;
     normalize(protocol, crate::network::json(response).await?)
+}
+
+/// OpenAI-compatible streaming with persisted deltas; JSON-only proxies fall back transparently.
+pub async fn request_traced(
+    http: &reqwest::Client,
+    core: &crate::core::Core,
+    account: &str,
+    run_id: &str,
+    base: &str,
+    key: &str,
+    body: &Value,
+) -> Result<Value, String> {
+    use futures_util::StreamExt;
+    let host = reqwest::Url::parse(base)
+        .ok()
+        .and_then(|u| u.host_str().map(str::to_owned));
+    if host
+        .as_deref()
+        .is_some_and(|h| h == "generativelanguage.googleapis.com" || h == "api.anthropic.com")
+    {
+        return request(http, base, key, body).await;
+    }
+    let (url, mut wire, protocol) = prepare(base, body)?;
+    if let Some(obj) = wire.as_object_mut() {
+        obj.remove("local_network_config");
+    }
+    if protocol != Protocol::OpenAi {
+        return request(http, base, key, body).await;
+    }
+    wire["stream"] = json!(true);
+    wire["stream_options"] = json!({"include_usage":true});
+    let response = http
+        .post(url)
+        .bearer_auth(key)
+        .json(&wire)
+        .send()
+        .await
+        .map_err(|_| "模型请求失败")?;
+    if !response.status().is_success() {
+        return Err(format!("模型服务 HTTP {}", response.status().as_u16()));
+    }
+    if !response
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.contains("text/event-stream"))
+    {
+        return crate::network::json(response).await;
+    }
+    let mut stream = response.bytes_stream();
+    let mut buffer = vec![];
+    let mut text = String::new();
+    let mut pending = String::new();
+    let mut usage = json!({});
+    let mut calls = std::collections::BTreeMap::<usize, Value>::new();
+    let mut finished = false;
+    let mut previous = std::time::Instant::now();
+    let mut total = 0usize;
+    let mut malformed = false;
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|_| "模型流式响应中断")?;
+        total += chunk.len();
+        if total > 8 * 1024 * 1024 {
+            return Err("模型流式响应超过限制".into());
+        }
+        buffer.extend_from_slice(&chunk);
+        while let Some(end) = buffer.iter().position(|b| *b == b'\n') {
+            let bytes: Vec<_> = buffer.drain(..=end).collect();
+            let line = std::str::from_utf8(&bytes)
+                .map_err(|_| "模型流式编码错误")?
+                .trim();
+            let Some(payload) = line.strip_prefix("data:") else {
+                continue;
+            };
+            let payload = payload.trim();
+            if payload == "[DONE]" {
+                finished = true;
+                break;
+            }
+            let data: Value = serde_json::from_str(payload).map_err(|_| "模型流式数据无效")?;
+            if data.get("error").is_some() {
+                return Err("模型流式接口返回错误".into());
+            }
+            if data["usage"].is_object() {
+                usage = data["usage"].clone();
+            }
+            let delta = &data["choices"][0]["delta"];
+            if let Some(t) = delta["content"].as_str() {
+                text.push_str(t);
+                pending.push_str(t);
+            }
+            for item in delta["tool_calls"].as_array().into_iter().flatten() {
+                let index = item["index"].as_u64().unwrap_or(0) as usize;
+                let call = calls.entry(index).or_insert_with(
+                    || json!({"id":"","type":"function","function":{"name":"","arguments":""}}),
+                );
+                for path in ["id", "function.name", "function.arguments"] {
+                    let parts: Vec<_> = path.split('.').collect();
+                    let val = if parts.len() == 1 {
+                        &item[parts[0]]
+                    } else {
+                        &item[parts[0]][parts[1]]
+                    };
+                    if let Some(v) = val.as_str() {
+                        let target = if parts.len() == 1 {
+                            &mut call[parts[0]]
+                        } else {
+                            &mut call[parts[0]][parts[1]]
+                        };
+                        let mut current = target.as_str().unwrap_or("").to_owned();
+                        current.push_str(v);
+                        *target = json!(current);
+                    }
+                }
+            }
+            if data["choices"][0]["finish_reason"] == "length" {
+                malformed = true;
+            }
+        }
+        if !pending.is_empty()
+            && (previous.elapsed() > std::time::Duration::from_millis(150) || finished)
+        {
+            let delta = std::mem::take(&mut pending);
+            let id = run_id.to_owned();
+            core.databases
+                .call(account.into(), move |s| {
+                    s.run_event(&id, "model_delta", &delta)
+                        .map_err(|_| "保存流式进度失败".into())
+                })
+                .await?;
+            previous = std::time::Instant::now();
+        }
+        if finished {
+            break;
+        }
+    }
+    if !pending.is_empty() {
+        let id = run_id.to_owned();
+        core.databases
+            .call(account.into(), move |s| {
+                s.run_event(&id, "model_delta", &pending)
+                    .map_err(|_| "保存流式进度失败".into())
+            })
+            .await?;
+    }
+    if !finished {
+        return Err("模型流式响应未完整结束".into());
+    }
+    // A length-limited tool call may contain invalid arguments; never execute it.
+    if malformed && !calls.is_empty() {
+        return Err("工具参数被模型长度限制截断".into());
+    }
+    Ok(
+        json!({"choices":[{"message":{"role":"assistant","content":text,"tool_calls":calls.into_values().collect::<Vec<_>>()}}],"usage":usage}),
+    )
 }

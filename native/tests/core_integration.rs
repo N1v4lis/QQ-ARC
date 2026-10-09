@@ -192,3 +192,57 @@ async fn model_sse_is_decoded_and_usage_is_priced_without_real_api() {
     assert!((result.estimated_cost - 0.00018).abs() < 1e-10);
     server.abort();
 }
+
+#[tokio::test]
+async fn long_unicode_messages_send_all_identical_chunks_without_dedup_loss() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    let mock = tokio::spawn(async move {
+        let (socket, _) = listener.accept().await.unwrap();
+        let mut ws = tokio_tungstenite::accept_async(socket).await.unwrap();
+        let mut texts = vec![];
+        while let Some(Ok(message)) = ws.next().await {
+            if let Ok(text) = message.into_text() {
+                let action: Value = serde_json::from_str(&text).unwrap();
+                texts.push(action["params"]["message"].as_str().unwrap().to_owned());
+                ws.send(tokio_tungstenite::tungstenite::Message::Text(
+                    json!({"status":"ok","data":{"message_id":texts.len()},"echo":action["echo"]})
+                        .to_string()
+                        .into(),
+                ))
+                .await
+                .unwrap();
+                if texts.len() == 3 {
+                    break;
+                }
+            }
+        }
+        texts
+    });
+    let core = Core::new(root(), "fixture".into());
+    core.connections
+        .connect(
+            "123".into(),
+            format!("ws://{address}"),
+            "".into(),
+            core.databases.clone(),
+        )
+        .await
+        .unwrap();
+    let mut cfg = qqaf_native::workspace::defaults();
+    cfg["send"]["hardSplitAt"] = json!(200);
+    cfg["send"]["minGapMs"] = json!(0);
+    cfg["send"]["maxGapMs"] = json!(0);
+    cfg["send"]["byLengthMs"] = json!(0);
+    let text = "🦊".repeat(401);
+    qqaf_native::agent::send(&core, "123", "group:8", &text, &cfg)
+        .await
+        .unwrap();
+    let chunks = mock.await.unwrap();
+    assert_eq!(chunks.concat(), text);
+    assert_eq!(
+        chunks.iter().map(|c| c.chars().count()).collect::<Vec<_>>(),
+        vec![200, 200, 1]
+    );
+    core.connections.disconnect("123").await;
+}

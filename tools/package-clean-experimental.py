@@ -7,7 +7,13 @@ def package(source,output):
     source=Path(source).resolve();output=Path(output).resolve()
     report=verify(source)
     output.mkdir(parents=True,exist_ok=True)
-    destination=output/'RS0.1.0-First-Light'
+    info=json.loads((source/'build-info.json').read_text(encoding='utf-8-sig'))
+    version=info['version'];parts=version.split('.')
+    series=json.loads((Path(__file__).resolve().parent.parent/'docs/rs-version-series.json').read_text(encoding='utf-8'))['series']
+    item=next((s for s in series if s['version'].split('.')[:2]==parts[:2]),None)
+    if item is None:raise ValueError('No approved codename for build version')
+    label='RS'+item['version']+'-'+item['codename'].replace(' ','-')
+    destination=output/label
     if source==destination:pass
     else:
         if destination.exists():
@@ -23,7 +29,7 @@ def package(source,output):
             manifest.append({'path':f.relative_to(destination).as_posix(),'bytes':f.stat().st_size,'sha256':hashlib.sha256(f.read_bytes()).hexdigest()})
     (destination/'package-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
     (destination/'verification.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
-    archive=output/'RS0.1.0-First-Light-clean.zip'
+    archive=output/(label+'-clean.zip')
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
         for f in sorted(destination.rglob('*')):
             if f.is_file():z.write(f,f.relative_to(destination).as_posix())

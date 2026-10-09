@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'core_client.dart';
+
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'dart:math' as math;
@@ -336,10 +339,85 @@ ThemeData appTheme({
 }
 
 class ThemeWorkspace extends StatelessWidget {
-  const ThemeWorkspace({super.key, required this.prefs, required this.changed});
+  const ThemeWorkspace({
+    super.key,
+    required this.prefs,
+    required this.changed,
+    this.core,
+  });
   final Map<String, dynamic> prefs;
   final ValueChanged<Map<String, dynamic>> changed;
+  final CoreApi? core;
   void set(String key, dynamic value) => changed({...prefs, key: value});
+  Future<void> package(BuildContext context, bool importing) async {
+    final path = TextEditingController(), background = TextEditingController();
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(importing ? '导入主题包' : '导出主题包'),
+        content: SizedBox(
+          width: 500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: path,
+                decoration: const InputDecoration(labelText: '.qqtheme 文件路径'),
+              ),
+              if (!importing) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: background,
+                  decoration: const InputDecoration(
+                    labelText: '自定义背景 PNG 路径（可选，最大 1 MiB）',
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              const Text('主题包只包含视觉与音效设置，不包含账号、密钥、人设或开机启动设置。'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(importing ? '确认导入' : '导出'),
+          ),
+        ],
+      ),
+    );
+    final file = path.text.trim(), image = background.text.trim();
+    path.dispose();
+    background.dispose();
+    if (proceed != true || file.isEmpty || !context.mounted) return;
+    try {
+      final result = await core!.request(
+        importing ? '/themes/import' : '/themes/export',
+        body: {
+          'path': file,
+          if (importing) 'confirmed': true,
+          if (!importing) 'background_path': image,
+        },
+      );
+      if (!context.mounted) return;
+      if (importing && result is Map) {
+        changed(Map<String, dynamic>.from(result));
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(importing ? '主题已导入' : '主题包已导出')));
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final minecraft = prefs['skin'] == 'minecraft';
@@ -410,6 +488,20 @@ class ThemeWorkspace extends StatelessWidget {
           '主题',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
+        if (core != null)
+          Wrap(
+            spacing: 8,
+            children: [
+              OutlinedButton(
+                onPressed: () => package(context, true),
+                child: const Text('导入主题包'),
+              ),
+              OutlinedButton(
+                onPressed: () => package(context, false),
+                child: const Text('导出主题包'),
+              ),
+            ],
+          ),
         const SizedBox(height: 16),
         SettingSwitchTile(
           title: const Text('暗色模式'),
@@ -468,6 +560,11 @@ class ThemeWorkspace extends StatelessWidget {
             ),
           ],
         ),
+        if (prefs['customBackground'] != null)
+          TextButton(
+            onPressed: () => set('customBackground', null),
+            child: const Text('移除自定义背景'),
+          ),
         if (minecraft) ...[
           SettingSwitchTile(
             title: const Text('像素字体'),

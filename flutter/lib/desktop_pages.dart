@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'app_style.dart';
 import 'core_client.dart';
+import 'desktop_bridge.dart';
 
 typedef MapData = Map<String, dynamic>;
 MapData asMap(dynamic value) =>
@@ -672,8 +673,8 @@ class SessionWorkspace extends StatefulWidget {
 }
 
 class _SessionWorkspaceState extends State<SessionWorkspace> {
-  final search = TextEditingController(), message = TextEditingController();
-  List<MapData> runs = [], messages = [];
+  final search = TextEditingController(), message = TextEditingController(), imageUrls = TextEditingController();
+  List<MapData> runs = [], messages = [], events = [];
   List<String> chats = [];
   String? chat;
   MapData selectedRun = {};
@@ -686,7 +687,7 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
     super.initState();
     unawaited(load());
     refresh = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (!busy) unawaited(load());
+      unawaited(load());
     });
   }
 
@@ -695,6 +696,7 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
     refresh?.cancel();
     search.dispose();
     message.dispose();
+    imageUrls.dispose();
     super.dispose();
   }
 
@@ -702,6 +704,7 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
     if (widget.account == null) return;
     final current = ++generation;
     final selected = chat;
+    final runId = selectedRun['id'];
     try {
       final query = {
         'account': widget.account!,
@@ -712,11 +715,21 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
         widget.core.request('/runs', query: {'account': widget.account!}),
         widget.core.request('/chats', query: {'account': widget.account!}),
         if (selected != null) widget.core.request('/messages', query: query),
+        if (runId != null)
+          widget.core.request(
+            '/runs/events',
+            query: {'account': widget.account!, 'run_id': '$runId'},
+          ),
       ]);
       if (!mounted || current != generation) return;
       setState(() {
         runs = asRows(values[0]);
         chats = List<String>.from(values[1] as List);
+        if (runId != null) {
+          events = asRows(values[selected == null ? 2 : 3]);
+          selectedRun =
+              runs.where((r) => r['id'] == runId).firstOrNull ?? selectedRun;
+        }
         if (selected != null) {
           final rows = asRows(values[2]);
           if (earlier) {
@@ -753,6 +766,7 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
       chat = id;
       selectedRun = run ?? {};
       messages = [];
+      events = [];
     });
     unawaited(load());
   }
@@ -906,6 +920,24 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                     ],
                   ),
                 ),
+                if (selectedRun['status'] == 'running')
+                  TextButton(
+                    onPressed: () async {
+                      try {
+                        await widget.core.request(
+                          '/runs/cancel',
+                          body: {
+                            'account': widget.account,
+                            'run_id': selectedRun['id'],
+                          },
+                        );
+                        await load();
+                      } catch (e) {
+                        if (mounted) setState(() => notice = '$e');
+                      }
+                    },
+                    child: const Text('取消运行'),
+                  ),
                 TextButton(
                   onPressed: chat == null
                       ? null
@@ -940,6 +972,41 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                       child: const Text('读取更早消息'),
                     ),
                   ),
+                if (events.any((e) => e['kind'] == 'model_delta'))
+                  SurfacePanel(
+                    child: SelectableText(
+                      events
+                          .where((e) => e['kind'] == 'model_delta')
+                          .map((e) => '${e['content']}')
+                          .join(),
+                    ),
+                  ),
+                for (final event in events.where(
+                  (e) => e['kind'] != 'model_delta',
+                ))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: SurfacePanel(
+                      padding: const EdgeInsets.all(10),
+                      child: ExpansionTile(
+                        dense: true,
+                        title: Text(
+                          '${event['kind']}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        subtitle: Text(
+                          stamp(event['timestamp']),
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: SelectableText('${event['content']}'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (structure)
                   SelectableText(
                     const JsonEncoder.withIndent('  ').convert(messages),
@@ -961,6 +1028,8 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                             ),
                             const SizedBox(height: 8),
                             SelectableText('${row['text']}'),
+                            if (row['media'] is List) for (final media in row['media'] as List) MediaLink(media:asMap(media)),
+                            if(row['reply'] is Map) Text('引用：${row['reply']['text']}',style:const TextStyle(fontSize:11)),
                           ],
                         ),
                       ),
@@ -985,6 +1054,7 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                   maxLines: 5,
                   decoration: const InputDecoration(hintText: '输入消息…'),
                 ),
+                TextField(controller:imageUrls,maxLines:2,decoration:const InputDecoration(hintText:'图片 URL（模型测试用，每行一张，可选）')),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -1017,8 +1087,12 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                                   '/model/chat',
                                   body: {
                                     'account': widget.account,
-                                    'chat': chat ?? 'scratch',
+                                    'chat': (chat ?? 'scratch').replaceFirst(
+                                      RegExp(r'^model:'),
+                                      '',
+                                    ),
                                     'text': message.text,
+                    'images': imageUrls.text.split('\n').map((s)=>s.trim()).where((s)=>s.isNotEmpty).toList(),
                                   },
                                 ),
                               );
@@ -1076,6 +1150,9 @@ class _MemoryWorkspaceState extends State<MemoryWorkspace> {
   final editor = TextEditingController(), search = TextEditingController();
   List<String> chats = [];
   List<dynamic> notes = [];
+  List<MapData> documents = [];
+  String kind = 'notes';
+  final documentSearch = TextEditingController();
   String target = 'scratch', notice = '';
   bool busy = false;
   @override
@@ -1088,6 +1165,7 @@ class _MemoryWorkspaceState extends State<MemoryWorkspace> {
   void dispose() {
     editor.dispose();
     search.dispose();
+    documentSearch.dispose();
     super.dispose();
   }
 
@@ -1101,11 +1179,21 @@ class _MemoryWorkspaceState extends State<MemoryWorkspace> {
           '/memory',
           query: {'account': widget.account!, 'chat': selected},
         ),
+        widget.core.request(
+          '/memory/documents',
+          query: {
+            'account': widget.account!,
+            'chat': selected,
+            'kind': kind == 'notes' ? '' : kind,
+            'search': documentSearch.text,
+          },
+        ),
       ]);
       if (!mounted || selected != target) return;
       setState(() {
         chats = List<String>.from(values[0] as List);
         notes = values[1] as List;
+        documents = asRows(values[2]);
       });
     } catch (e) {
       if (mounted) setState(() => notice = '$e');
@@ -1126,6 +1214,72 @@ class _MemoryWorkspaceState extends State<MemoryWorkspace> {
       if (mounted) setState(() => notice = '$e');
     } finally {
       if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> editDocument([MapData? document]) async {
+    final name = TextEditingController(text: '${document?['title'] ?? ''}');
+    final text = TextEditingController(text: '${document?['content'] ?? ''}');
+    final selected = target;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          kind == 'member'
+              ? '成员档案'
+              : kind == 'summary'
+              ? '会话摘要'
+              : '记忆文档',
+        ),
+        content: SizedBox(
+          width: 580,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  decoration: InputDecoration(
+                    labelText: kind == 'member' ? '成员 QQ / 名称' : '标题',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: text,
+                  minLines: 8,
+                  maxLines: 16,
+                  decoration: const InputDecoration(
+                    labelText: '正文',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    final title = name.text, content = text.text;
+    name.dispose();
+    text.dispose();
+    if (accepted == true && mounted) {
+      await write('/memory/documents', {
+        'chat': selected,
+        if (document != null) 'id': document['id'],
+        'kind': kind,
+        'title': title,
+        'content': content,
+      });
     }
   }
 
@@ -1186,51 +1340,73 @@ class _MemoryWorkspaceState extends State<MemoryWorkspace> {
         ),
         const SizedBox(height: 8),
         const Text('以下记忆参与该会话的模型上下文。其他会话独立保存。'),
-        const SizedBox(height: 20),
-        TextField(
-          controller: editor,
-          minLines: 4,
-          maxLines: 10,
-          decoration: const InputDecoration(labelText: '新增记忆'),
-        ),
         const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: FilledButton(
-            onPressed: busy || widget.account == null
-                ? null
-                : () {
-                    if (editor.text.trim().isNotEmpty) {
-                      unawaited(
-                        write('/memory', {'chat': target, 'text': editor.text}),
-                      );
-                    }
-                  },
-            child: const Text('保存记忆'),
-          ),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final entry in {
+              'notes': '长期记忆',
+              'document': '文档',
+              'member': '成员档案',
+              'summary': '会话摘要',
+            }.entries)
+              ChoiceChip(
+                label: Text(entry.value),
+                selected: kind == entry.key,
+                onSelected: (_) {
+                  setState(() => kind = entry.key);
+                  unawaited(load());
+                },
+              ),
+          ],
         ),
-        if (busy) const LinearProgressIndicator(minHeight: 2),
-        if (notice.isNotEmpty) SelectableText(notice),
-        const SizedBox(height: 20),
-        for (final row in notes)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: SurfacePanel(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: SelectableText('${row[1]}')),
-                  IconButton(
-                    tooltip: '删除记忆',
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    onPressed: busy
-                        ? null
-                        : () async {
+        if (kind != 'notes') ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: documentSearch,
+                  onSubmitted: (_) => load(),
+                  decoration: const InputDecoration(hintText: '查找标题或正文'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(onPressed: load, child: const Text('搜索')),
+              FilledButton(
+                onPressed: busy || widget.account == null ? null : editDocument,
+                child: const Text('新建'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          for (final document in documents)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: SurfacePanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${document['title']}',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: '编辑文档',
+                          onPressed: () => editDocument(document),
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                        ),
+                        IconButton(
+                          tooltip: '删除文档',
+                          onPressed: () async {
                             final yes = await showDialog<bool>(
                               context: context,
                               builder: (context) => AlertDialog(
-                                title: const Text('删除记忆？'),
-                                content: const Text('删除后该条内容将不再参与上下文。'),
+                                title: const Text('删除文档？'),
                                 actions: [
                                   TextButton(
                                     onPressed: () =>
@@ -1246,15 +1422,99 @@ class _MemoryWorkspaceState extends State<MemoryWorkspace> {
                               ),
                             );
                             if (yes == true) {
-                              await write('/memory/delete', {'id': row[0]});
+                              await write('/memory/documents/delete', {
+                                'chat': target,
+                                'id': document['id'],
+                                'confirmed': true,
+                              });
                             }
                           },
-                  ),
-                ],
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                        ),
+                      ],
+                    ),
+                    SelectableText('${document['content']}'),
+                  ],
+                ),
               ),
             ),
+          if (documents.isEmpty) const Text('此分类暂无内容。'),
+          if (notice.isNotEmpty) SelectableText(notice),
+        ],
+        if (kind == 'notes') ...[
+          const SizedBox(height: 20),
+          TextField(
+            controller: editor,
+            minLines: 4,
+            maxLines: 10,
+            decoration: const InputDecoration(labelText: '新增记忆'),
           ),
-        if (notes.isEmpty) const Text('该会话暂无记忆。'),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              onPressed: busy || widget.account == null
+                  ? null
+                  : () {
+                      if (editor.text.trim().isNotEmpty) {
+                        unawaited(
+                          write('/memory', {
+                            'chat': target,
+                            'text': editor.text,
+                          }),
+                        );
+                      }
+                    },
+              child: const Text('保存记忆'),
+            ),
+          ),
+          if (busy) const LinearProgressIndicator(minHeight: 2),
+          if (notice.isNotEmpty) SelectableText(notice),
+          const SizedBox(height: 20),
+          for (final row in notes)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SurfacePanel(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: SelectableText('${row[1]}')),
+                    IconButton(
+                      tooltip: '删除记忆',
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      onPressed: busy
+                          ? null
+                          : () async {
+                              final yes = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('删除记忆？'),
+                                  content: const Text('删除后该条内容将不再参与上下文。'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('取消'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text('删除'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (yes == true) {
+                                await write('/memory/delete', {'id': row[0]});
+                              }
+                            },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (notes.isEmpty) const Text('该会话暂无记忆。'),
+        ],
       ],
     ),
   );
@@ -1843,4 +2103,13 @@ class _AccountWorkspaceState extends State<AccountWorkspace> {
       ),
     ],
   );
+}
+
+class MediaLink extends StatelessWidget {
+  const MediaLink({super.key,required this.media});
+  final MapData media;
+  @override Widget build(BuildContext context){
+    final value='${media['url'] ?? ''}'.isNotEmpty?'${media['url']}':'${media['file'] ?? ''}';final uri=Uri.tryParse(value);final remote=uri!=null&&['http','https'].contains(uri.scheme)&&uri.host.isNotEmpty&&uri.userInfo.isEmpty;
+    return Padding(padding:const EdgeInsets.only(top:6),child:Row(children:[Icon(media['kind']=='image'?Icons.image_outlined:media['kind']=='video'?Icons.videocam_outlined:Icons.attach_file,size:16),const SizedBox(width:6),Expanded(child:Text('${media['kind']} · ${media['summary'] ?? value}',maxLines:2,overflow:TextOverflow.ellipsis)),if(remote)TextButton(onPressed:()=>DesktopBridge.openUrl(value),child:const Text('打开'))]));
+  }
 }

@@ -15,8 +15,8 @@ using Microsoft.Win32;
 // A per-user installer. This build tool never installs or launches the app.
 internal static class FirstLightSetup {
   const string Marker = "QQAFRS01";
-  const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\QQARCFOX-RS0.1";
-  static readonly string AppId = "QQARCFOX-RS0.1";
+  const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\QQARCFOX-__RS_SERIES__";
+  static readonly string AppId = "QQARCFOX-__RS_SERIES__";
   [STAThread] static int Main(string[] args) {
     Application.EnableVisualStyles();
     try {
@@ -92,7 +92,7 @@ internal static class FirstLightSetup {
     var shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
     try {
       dynamic link = shell.GetType().InvokeMember("CreateShortcut", System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { path });
-      link.TargetPath = executable; link.WorkingDirectory = directory; link.IconLocation = executable + ",0"; link.Description = "QQARCFOX · First Light"; link.Save();
+      link.TargetPath = executable; link.WorkingDirectory = directory; link.IconLocation = executable + ",0"; link.Description = "QQARCFOX · __CODENAME__"; link.Save();
       System.Runtime.InteropServices.Marshal.FinalReleaseComObject(link);
     } finally { System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell); }
   }
@@ -105,16 +105,16 @@ internal static class FirstLightSetup {
     using (var zip = Payload()) { Validate(zip); Extract(zip, target); }
     File.Copy(Application.ExecutablePath, Path.Combine(target, "Uninstall.exe"), false);
     File.WriteAllText(Path.Combine(target, "install-marker.json"), new JavaScriptSerializer().Serialize(new { appId = AppId, path = target, desktopShortcut = desktop }), Encoding.UTF8);
-    string menu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "QQARCFOX First Light"); Directory.CreateDirectory(menu);
+    string menu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "QQARCFOX __CODENAME__"); Directory.CreateDirectory(menu);
     Shortcut(Path.Combine(menu, "QQAF.lnk"), Path.Combine(target, "qqaf.exe"), target);
     Shortcut(Path.Combine(menu, "Uninstall.lnk"), Path.Combine(target, "Uninstall.exe"), target);
     // The uninstall shortcut needs the explicit command argument.
     dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
     try { dynamic link = shell.CreateShortcut(Path.Combine(menu, "Uninstall.lnk")); link.Arguments = "--uninstall"; link.Save(); System.Runtime.InteropServices.Marshal.FinalReleaseComObject(link); }
     finally { System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell); }
-    if (desktop) Shortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "QQAF First Light.lnk"), Path.Combine(target, "qqaf.exe"), target);
+    if (desktop) Shortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "QQAF __CODENAME__.lnk"), Path.Combine(target, "qqaf.exe"), target);
     using (var k = Registry.CurrentUser.CreateSubKey(UninstallKey)) {
-      k.SetValue("DisplayName", "QQARCFOX RS0.1 · First Light"); k.SetValue("DisplayVersion", "0.1.1"); k.SetValue("Publisher", "QQARCFOX"); k.SetValue("InstallLocation", target);
+      k.SetValue("DisplayName", "QQARCFOX __RS_SERIES__ · __CODENAME__"); k.SetValue("DisplayVersion", "__VERSION__"); k.SetValue("Publisher", "QQARCFOX"); k.SetValue("InstallLocation", target);
       k.SetValue("DisplayIcon", Path.Combine(target, "qqaf.exe")); k.SetValue("UninstallString", "\"" + Path.Combine(target, "Uninstall.exe") + "\" --uninstall"); k.SetValue("NoModify", 1); k.SetValue("NoRepair", 1);
     }
     return target;
@@ -128,10 +128,10 @@ internal static class FirstLightSetup {
     if (Process.GetProcessesByName("qqaf").Any(p => { try { return p.MainModule.FileName.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase); } catch { return false; } })) throw new Exception("请先退出 QQAF。");
     using (var zip = Payload()) { Validate(zip); foreach (var e in zip.Entries) { string file = Path.GetFullPath(Path.Combine(folder, Relative(e))); if (file.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && File.Exists(file)) File.Delete(file); } }
     File.Delete(marker);
-    string menu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "QQARCFOX First Light");
+    string menu = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "QQARCFOX __CODENAME__");
     foreach (string name in new[] { "QQAF.lnk", "Uninstall.lnk" }) { string f = Path.Combine(menu, name); if (File.Exists(f)) File.Delete(f); }
     if (Directory.Exists(menu) && !Directory.EnumerateFileSystemEntries(menu).Any()) Directory.Delete(menu);
-    if ((bool)item["desktopShortcut"]) { string f = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "QQAF First Light.lnk"); if (File.Exists(f)) File.Delete(f); }
+    if ((bool)item["desktopShortcut"]) { string f = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "QQAF __CODENAME__.lnk"); if (File.Exists(f)) File.Delete(f); }
     Registry.CurrentUser.DeleteSubKeyTree(UninstallKey, false);
     MessageBox.Show("程序文件已卸载，用户数据保留。卸载器本身可手动删除。", "QQAF");
   }
@@ -141,11 +141,11 @@ internal static class FirstLightSetup {
     readonly TextBox path = new TextBox(); readonly Button install = new Button(); readonly CheckBox desktop = new CheckBox(); readonly Label status = new Label();
     public SetupForm() {
       FormClosing += (s,e) => { if (installing) e.Cancel = true; };
-      Text = "QQARCFOX · First Light 安装"; ClientSize = new Size(600, 290); FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; StartPosition = FormStartPosition.CenterScreen;
+      Text = "QQARCFOX · __CODENAME__ 安装"; ClientSize = new Size(600, 290); FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false; StartPosition = FormStartPosition.CenterScreen;
       Font = new Font("Segoe UI", 10); Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
-      Controls.Add(new Label { Text = "FIRST LIGHT", Font = new Font("Segoe UI", 23, FontStyle.Bold), Location = new Point(24, 20), AutoSize = true });
-      Controls.Add(new Label { Text = "初光 · 故事的起点\nFlutter + Rust 实验版 · 全新空白配置", Location = new Point(26, 74), AutoSize = true });
-      path.SetBounds(24, 131, 460, 28); path.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "QQARCFOX-RS0.1"); Controls.Add(path);
+      Controls.Add(new Label { Text = "__CODENAME_UPPER__", Font = new Font("Segoe UI", 23, FontStyle.Bold), Location = new Point(24, 20), AutoSize = true });
+      Controls.Add(new Label { Text = "__PHRASE__\nFlutter + Rust 实验版 · 全新空白配置", Location = new Point(26, 74), AutoSize = true });
+      path.SetBounds(24, 131, 460, 28); path.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "QQARCFOX-__RS_SERIES__"); Controls.Add(path);
       var browse = new Button { Text = "选择…", Left = 494, Top = 129, Width = 80 }; browse.Click += (s,e) => { using (var d = new FolderBrowserDialog()) { d.Description = "选择专用的空安装目录"; if (d.ShowDialog() == DialogResult.OK) path.Text = d.SelectedPath; } }; Controls.Add(browse);
       desktop.Text = "创建桌面快捷方式"; desktop.SetBounds(24, 170, 250, 26); Controls.Add(desktop);
       status.SetBounds(24, 201, 550, 26); status.Text = "默认关闭窗口最小化到任务栏。不注册开机启动。"; Controls.Add(status);

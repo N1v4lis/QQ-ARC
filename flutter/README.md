@@ -1,10 +1,10 @@
-# QQAF Flutter 桌面界面 · RS0.1.0 — First Light
+# QQAF Flutter 桌面界面 · RS0.2.0 — Resonance
 
-![First Light](../docs/assets/rs-first-light.svg)
+![Resonance](../docs/assets/rs-resonance.svg)
 
-**RS0.1.0 — First Light — 初光 · 故事的起点**
+**RS0.2.0 — Resonance — 共鸣 · 第一次理解**
 
-Flutter UI + Rust 核心的 Windows 实验版，当前目标为 **RS0.1.0 — First Light — 初光 · 故事的起点**，内部版本 0.1.1。旧客户端归档为 0.4.5a。所有后续开发在 Rust+Slint 分支进行，不覆盖旧安装和数据。
+Flutter UI + Rust 核心的 Windows 实验版，当前目标为 **RS0.2.0 — Resonance — 共鸣 · 第一次理解**，内部版本 0.2.0。旧客户端归档为 0.4.5a。所有后续开发在 RS0.2.0 分支进行，不覆盖旧安装和数据。
 
 生成干净包：从仓库根目录执行 `tools/build-clean-experimental.ps1`，输出目录由 `-OutputRoot` 指定，关闭按钮默认最小化到任务栏。
 

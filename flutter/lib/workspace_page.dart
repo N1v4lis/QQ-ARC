@@ -621,6 +621,7 @@ class _WorkspacePageState extends State<WorkspacePage> {
     ]);
     final right = section('模型配置', [
       const Text('选择默认模型；单独配置请在人设中设置。'),
+      Wrap(spacing:8,children:[button('测试连通性',()async{final selected=selectedModel?.split('|||')??[];if(selected.length!=2)throw StateError('请选择模型');final result=object(await post('/providers/test',{'account':widget.account,'provider':selected[0],'model':selected[1]}));redraw(()=>notice='请求成功 · ${result['milliseconds']}ms · 输入 ${result['input']} / 输出 ${result['output']} · ${result['text']}');}),button('测试图片输入',()async{final selected=selectedModel?.split('|||')??[];if(selected.length!=2)throw StateError('请选择模型');final image=await ask('测试图片 HTTP/HTTPS URL');if(image==null||image.isEmpty)return;final result=object(await post('/providers/test',{'account':widget.account,'provider':selected[0],'model':selected[1],'image':image}));redraw(()=>notice='图片请求成功 · ${result['text']}');})]),
       dropdown(
         '选择模型',
         selectedModel,
@@ -1285,6 +1286,76 @@ class _WorkspacePageState extends State<WorkspacePage> {
                               }),
                             ],
                           ),
+                          for (final entry in custom)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '${entry['name'] ?? entry['id']}',
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: saving
+                                      ? null
+                                      : () => run(() async {
+                                          if (!await confirm(
+                                            '用当前正文和规则更新此模板？',
+                                          )) {
+                                            return;
+                                          }
+                                          final name = await ask(
+                                            '模板名称',
+                                            initial: '${entry['name']}',
+                                          );
+                                          if (name == null) return;
+                                          final result = object(
+                                            await post('/persona/template', {
+                                              'id': entry['id'],
+                                              'value': {
+                                                ...entry,
+                                                'name': name,
+                                                for (final key in [
+                                                  'roleText',
+                                                  'customRules',
+                                                  'systemPromptOverride',
+                                                ])
+                                                  key: control('persona:$key')
+                                                      .text,
+                                              },
+                                            }),
+                                          );
+                                          redraw(
+                                            () => templates['custom'] =
+                                                result['custom'],
+                                          );
+                                        }),
+                                  child: const Text('更新'),
+                                ),
+                                TextButton(
+                                  onPressed: saving
+                                      ? null
+                                      : () => run(() async {
+                                          if (!await confirm(
+                                            '删除此模板？已保存的会话正文保留。',
+                                          )) {
+                                            return;
+                                          }
+                                          final result = object(
+                                            await post('/persona/template', {
+                                              'id': entry['id'],
+                                              'delete': true,
+                                              'confirmed': true,
+                                            }),
+                                          );
+                                          redraw(
+                                            () => templates['custom'] =
+                                                result['custom'],
+                                          );
+                                        }),
+                                  child: const Text('删除'),
+                                ),
+                              ],
+                            ),
                           const SizedBox(height: 16),
                         ],
                       ),
@@ -1533,6 +1604,125 @@ class _WorkspacePageState extends State<WorkspacePage> {
         }),
     ],
   );
+  Widget harnessEditor() {
+    final profiles = config['harnesses'] as List? ?? [];
+    return FoldPanel(
+      title: '本机 Agent / Harness',
+      subtitle: '显式配置可执行文件；直接参数调用，不通过 shell',
+      icon: Icons.terminal_outlined,
+      children: [
+        for (final p in profiles)
+          SurfacePanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text('${p['name'] ?? p['id']}')),
+                    SettingSwitch(
+                      value: p['enabled'] == true,
+                      onChanged: (v) => redraw(() => p['enabled'] = v),
+                    ),
+                    IconButton(
+                      tooltip: '移除配置',
+                      onPressed: () => redraw(
+                        () => config['harnesses'] = profiles
+                            .where((x) => x != p)
+                            .toList(),
+                      ),
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                    ),
+                  ],
+                ),
+                input(
+                  '名称',
+                  'harness:${p['id']}:name',
+                  p['name'],
+                  changed: (v) => p['name'] = v,
+                ),
+                input(
+                  '绝对可执行文件路径',
+                  'harness:${p['id']}:exe',
+                  p['executable'],
+                  changed: (v) => p['executable'] = v,
+                ),
+                input(
+                  '工作目录（可选）',
+                  'harness:${p['id']}:cwd',
+                  p['cwd'],
+                  changed: (v) => p['cwd'] = v,
+                ),
+                input(
+                  '参数（每行一个，可用 {prompt}）',
+                  'harness:${p['id']}:args',
+                  (p['args'] as List? ?? []).join('\n'),
+                  lines: 3,
+                  changed: (v) => p['args'] = v
+                      .split('\n')
+                      .where((s) => s.isNotEmpty)
+                      .toList(),
+                ),
+                SettingSwitchTile(
+                  title: const Text('通过标准输入传递需求'),
+                  value: p['stdin'] == true,
+                  onChanged: (v) => redraw(() => p['stdin'] = v),
+                ),
+                Row(
+                  children: [
+                    button(
+                      '保存配置',
+                      () async =>
+                          saveConfig({'harnesses': config['harnesses']}),
+                    ),
+                    const SizedBox(width: 8),
+                    button('测试需求', () async {
+                      final prompt = await ask('交给本机 Agent 的需求');
+                      if (prompt == null || prompt.isEmpty) return;
+                      await saveConfig({'harnesses': config['harnesses']});
+                      final result = object(
+                        await post('/harness/test', {
+                          'account': widget.account,
+                          'id': p['id'],
+                          'prompt': prompt,
+                        }),
+                      );
+                      redraw(
+                        () => notice =
+                            '退出码 ${result['code']}\n${result['stdout']}\n${result['stderr']}',
+                      );
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        button('添加本机 Agent', () async {
+          final id = 'agent-${DateTime.now().microsecondsSinceEpoch}';
+          redraw(
+            () => config['harnesses'] = [
+              ...profiles,
+              {
+                'id': id,
+                'name': '本机 Agent',
+                'enabled': false,
+                'executable': '',
+                'cwd': '',
+                'args': <String>[],
+                'stdin': true,
+                'timeoutSeconds': 120,
+              },
+            ],
+          );
+        }),
+        button(
+          '保存 Agent 配置',
+          () async => saveConfig({'harnesses': config['harnesses']}),
+        ),
+        const Text('允许模型委派需求需同时开启工具 delegate_agent；启用前请自行选择已信任的本机程序。'),
+      ],
+    );
+  }
+
   Widget extensionsPage() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -1597,6 +1787,28 @@ class _WorkspacePageState extends State<WorkspacePage> {
               }),
             ),
           ),
+      if (widget.page == 'tools' || widget.page == 'skills') harnessEditor(),
+      if (widget.page == 'tools') ...[
+        const Text('敏感群操作与 Agent 委派（默认关闭）'),
+        for (final id in [
+          'set_group_ban',
+          'set_group_kick',
+          'set_group_card',
+          'delete_message',
+          'group_poke',
+          'delegate_agent',
+        ])
+          CheckboxListTile(
+            dense: true,
+            title: Text(id),
+            value: object(object(config['tools'])['overrides'])[id] == true,
+            onChanged: (v) => redraw(() {
+              final tools = object(config['tools']);
+              tools['overrides'] = {...object(tools['overrides']), id: v};
+              config['tools'] = tools;
+            }),
+          ),
+      ],
       editor(
         widget.page == 'skills'
             ? 'skills'

@@ -83,7 +83,7 @@ impl Connections {
                         let Some(Ok(message))=incoming else{break;};match message{
                             Message::Text(text)=>{
                                 if let Ok(value)=serde_json::from_str::<Value>(&text){if let Some(echo)=value["echo"].as_str(){if let Some(reply)=pending.remove(echo){let result=if value["status"]=="ok"{Ok(value["data"].clone())}else{Err("OneBot 操作失败".into())};let _=reply.send(result);}}}
-                                if let Ok(Some(event))=parse_message(&text){if event.self_id.to_string()!=account_task{continue;}let record=event.clone();let Ok(cfg)=crate::workspace::load(&databases,&account_task).await else{continue;};if !crate::agent::recordable(&cfg,&event){continue;}if databases.call(account_task.clone(),move|store|store.receive(&record).map_err(|_|"消息写入失败".into())).await==Ok(true){let _=events.send(event);}}
+                                if let Ok(Some(event))=parse_message(&text){if event.self_id.to_string()!=account_task{continue;}let record=event.clone();let wire=serde_json::from_str::<Value>(&text).unwrap_or(Value::Null);let Ok(cfg)=crate::workspace::load(&databases,&account_task).await else{continue;};if !crate::agent::recordable(&cfg,&event){continue;}if databases.call(account_task.clone(),move|store|store.receive_wire(&record,&wire).map_err(|_|"消息写入失败".into())).await==Ok(true){let _=events.send(event);}}
                             }
                             Message::Ping(bytes)=>{if sink.send(Message::Pong(bytes)).await.is_err(){break;}}
                             Message::Close(_)=>break,_=>{}

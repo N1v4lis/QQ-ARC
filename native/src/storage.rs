@@ -44,6 +44,10 @@ impl AccountStore {
              CREATE TABLE IF NOT EXISTS usage(id INTEGER PRIMARY KEY, model TEXT NOT NULL, input INTEGER NOT NULL, output INTEGER NOT NULL, cost REAL NOT NULL, timestamp INTEGER NOT NULL);
              CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,chat TEXT NOT NULL,started INTEGER NOT NULL,finished INTEGER,status TEXT NOT NULL,error TEXT NOT NULL DEFAULT '');
              CREATE INDEX IF NOT EXISTS runs_started ON runs(started DESC);
+             CREATE TABLE IF NOT EXISTS run_events(id INTEGER PRIMARY KEY,run_id TEXT NOT NULL,timestamp INTEGER NOT NULL,kind TEXT NOT NULL,content TEXT NOT NULL);
+             CREATE INDEX IF NOT EXISTS run_events_run ON run_events(run_id,id);
+             CREATE TABLE IF NOT EXISTS memory_documents(id INTEGER PRIMARY KEY,chat TEXT NOT NULL,kind TEXT NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,updated INTEGER NOT NULL);
+             CREATE INDEX IF NOT EXISTS memory_documents_chat ON memory_documents(chat,id);
              PRAGMA user_version=1;",
         )?;
         Ok(Self {
@@ -67,6 +71,13 @@ impl AccountStore {
     }
 
     pub fn receive(&mut self, event: &crate::onebot::IncomingMessage) -> rusqlite::Result<bool> {
+        self.receive_wire(event, &serde_json::Value::Null)
+    }
+    pub fn receive_wire(
+        &mut self,
+        event: &crate::onebot::IncomingMessage,
+        wire: &serde_json::Value,
+    ) -> rusqlite::Result<bool> {
         let chat = event.chat_key();
         let tx = self.connection.transaction()?;
         if tx.execute(
@@ -85,6 +96,27 @@ impl AccountStore {
                 event.time
             ],
         )?;
+        let message_id = tx.last_insert_rowid();
+        for (position, segment) in wire["message"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .enumerate()
+            .take(32)
+        {
+            let kind = segment["type"].as_str().unwrap_or("");
+            let data = &segment["data"];
+            if ["image", "video", "record", "file"].contains(&kind) {
+                tx.execute("INSERT INTO message_media(message_id,position,kind,url,file,summary) VALUES(?1,?2,?3,?4,?5,?6)",params![message_id,position as i64,kind,data["url"].as_str().unwrap_or(""),data["file"].as_str().unwrap_or(""),data["summary"].as_str().unwrap_or("")])?;
+            } else if kind == "reply" {
+                let reply = data["id"]
+                    .as_str()
+                    .map(str::to_owned)
+                    .or_else(|| data["id"].as_i64().map(|v| v.to_string()))
+                    .unwrap_or_default();
+                tx.execute("INSERT OR REPLACE INTO message_replies(message_id,sender,text) VALUES(?1,'',?2)",params![message_id,reply])?;
+            }
+        }
         tx.commit()?;
         Ok(true)
     }
@@ -200,6 +232,27 @@ impl AccountStore {
         stmt.query_map([], |row| row.get(0))?.collect()
     }
 
+    pub fn enrich_messages(
+        &self,
+        mut rows: serde_json::Value,
+    ) -> rusqlite::Result<serde_json::Value> {
+        let Some(rows) = rows.as_array_mut() else {
+            return Ok(rows);
+        };
+        let mut media = self.connection.prepare(
+            "SELECT kind,url,file,summary FROM message_media WHERE message_id=?1 ORDER BY position",
+        )?;
+        let mut reply = self
+            .connection
+            .prepare("SELECT sender,text FROM message_replies WHERE message_id=?1")?;
+        for row in rows.iter_mut() {
+            let id = row["id"].as_i64().unwrap_or(0);
+            let list:Vec<serde_json::Value>=media.query_map([id],|r|Ok(serde_json::json!({"kind":r.get::<_,Option<String>>(0)?,"url":r.get::<_,Option<String>>(1)?,"file":r.get::<_,Option<String>>(2)?,"summary":r.get::<_,Option<String>>(3)?})))?.collect::<Result<_,_>>()?;
+            row["media"] = serde_json::json!(list);
+            match reply.query_row([id],|r|Ok(serde_json::json!({"sender":r.get::<_,Option<String>>(0)?,"text":r.get::<_,Option<String>>(1)?}))){Ok(value)=>row["reply"]=value,Err(rusqlite::Error::QueryReturnedNoRows)=>{},Err(e)=>return Err(e)}
+        }
+        Ok(serde_json::Value::Array(rows.clone()))
+    }
     pub fn remember(&mut self, chat: &str, content: &str) -> rusqlite::Result<()> {
         self.connection.execute(
             "INSERT INTO memories(chat,content) VALUES(?1,?2)",
@@ -340,6 +393,58 @@ impl AccountStore {
         self.connection.execute("INSERT INTO runs(id,chat,started,finished,status,error) VALUES(?1,?2,?3,?4,?5,?6) ON CONFLICT(id) DO UPDATE SET finished=excluded.finished,status=excluded.status,error=excluded.error",params![id,chat,started,finished,status,error])?;
         Ok(())
     }
+    pub fn documents(
+        &self,
+        chat: &str,
+        kind: &str,
+        search: &str,
+    ) -> rusqlite::Result<serde_json::Value> {
+        let mut q=self.connection.prepare("SELECT id,kind,title,content,updated FROM memory_documents WHERE chat=?1 AND (?2='' OR kind=?2) AND (?3='' OR instr(title,?3)>0 OR instr(content,?3)>0) ORDER BY updated DESC,id DESC LIMIT 100")?;
+        let rows: Vec<serde_json::Value>=q.query_map(params![chat,kind,search],|r|Ok(serde_json::json!({"id":r.get::<_,i64>(0)?,"kind":r.get::<_,String>(1)?,"title":r.get::<_,String>(2)?,"content":r.get::<_,String>(3)?,"updated":r.get::<_,i64>(4)?})))?.collect::<Result<_,_>>()?;
+        Ok(serde_json::json!(rows))
+    }
+    pub fn save_document(
+        &mut self,
+        id: Option<i64>,
+        chat: &str,
+        kind: &str,
+        title: &str,
+        content: &str,
+    ) -> rusqlite::Result<i64> {
+        if let Some(id) = id {
+            let changed=self.connection.execute("UPDATE memory_documents SET kind=?1,title=?2,content=?3,updated=?4 WHERE id=?5 AND chat=?6",params![kind,title,content,crate::core::now(),id,chat])?;
+            if changed == 0 {
+                return Err(rusqlite::Error::QueryReturnedNoRows);
+            }
+            Ok(id)
+        } else {
+            self.connection.execute("INSERT INTO memory_documents(chat,kind,title,content,updated) VALUES(?1,?2,?3,?4,?5)",params![chat,kind,title,content,crate::core::now()])?;
+            Ok(self.connection.last_insert_rowid())
+        }
+    }
+    pub fn delete_document(&mut self, id: i64, chat: &str) -> rusqlite::Result<usize> {
+        self.connection.execute(
+            "DELETE FROM memory_documents WHERE id=?1 AND chat=?2",
+            params![id, chat],
+        )
+    }
+    pub fn run_event(&mut self, run_id: &str, kind: &str, content: &str) -> rusqlite::Result<()> {
+        self.connection.execute(
+            "INSERT INTO run_events(run_id,timestamp,kind,content) VALUES(?1,?2,?3,?4)",
+            params![
+                run_id,
+                crate::core::now(),
+                kind,
+                content.chars().take(16000).collect::<String>()
+            ],
+        )?;
+        Ok(())
+    }
+    pub fn run_events(&self, run_id: &str) -> rusqlite::Result<serde_json::Value> {
+        let mut q=self.connection.prepare("SELECT id,timestamp,kind,content FROM run_events WHERE run_id=?1 ORDER BY id LIMIT 1000")?;
+        let rows: Vec<serde_json::Value> = q.query_map([run_id], |r| Ok(serde_json::json!({"id":r.get::<_,i64>(0)?,"timestamp":r.get::<_,i64>(1)?,"kind":r.get::<_,String>(2)?,"content":r.get::<_,String>(3)?})))?.collect::<Result<_,_>>()?;
+        Ok(serde_json::json!(rows))
+    }
     pub fn runs(&self) -> rusqlite::Result<serde_json::Value> {
         let mut q=self.connection.prepare("SELECT id,chat,started,finished,status,error FROM runs ORDER BY started DESC LIMIT 200")?;
         let values:Vec<serde_json::Value>=q.query_map([],|r|Ok(serde_json::json!({"id":r.get::<_,String>(0)?,"chat":r.get::<_,String>(1)?,"started":r.get::<_,i64>(2)?,"finished":r.get::<_,Option<i64>>(3)?,"status":r.get::<_,String>(4)?,"error":r.get::<_,String>(5)?})))?.collect::<Result<_,_>>()?;
@@ -381,7 +486,7 @@ pub fn default_data_root() -> PathBuf {
         return PathBuf::from(root)
             .join("QQARCFOX")
             .join(if cfg!(feature = "clean-release") {
-                "RS0.1"
+                "RS0.2"
             } else {
                 "native-prototype"
             });

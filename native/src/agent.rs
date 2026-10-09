@@ -16,6 +16,7 @@ pub struct Runtime {
     send_gates: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
     send_times: Arc<Mutex<HashMap<String, std::collections::VecDeque<i64>>>>,
     muted: Arc<Mutex<HashMap<String, i64>>>,
+    active: Arc<Mutex<HashMap<String, (String, tokio::sync::watch::Sender<bool>)>>>,
 }
 pub fn recordable(cfg: &Value, event: &IncomingMessage) -> bool {
     let id = event.group_id.unwrap_or(event.user_id).to_string();
@@ -195,20 +196,34 @@ pub fn start(core: Core) {
                     .as_i64()
                     .unwrap_or(30)
                     .clamp(0, 10080);
-                core.runtime.muted.lock().await.insert(
-                    key.clone(),
-                    if minutes == 0 {
-                        i64::MAX
-                    } else {
-                        crate::core::now() + minutes * 60
-                    },
-                );
+                let until = if minutes == 0 {
+                    i64::MAX
+                } else {
+                    crate::core::now() + minutes * 60
+                };
+                core.runtime.muted.lock().await.insert(key.clone(), until);
+                let chat_id = event.chat_key();
+                let _ = workspace::update(&core.databases, &account, move |c| {
+                    if !c["commandMute"]["active"].is_object() {
+                        c["commandMute"]["active"] = json!({});
+                    }
+                    c["commandMute"]["active"][chat_id] = json!(until);
+                    Ok(())
+                })
+                .await;
                 continue;
             }
             let random =
                 u64::from_le_bytes(uuid::Uuid::new_v4().as_bytes()[..8].try_into().unwrap()) as f64
                     / u64::MAX as f64;
             if !triggered(&cfg, &event, random) {
+                continue;
+            }
+            if !mentioned
+                && cfg["commandMute"]["active"][event.chat_key()]
+                    .as_i64()
+                    .is_some_and(|until| until > crate::core::now())
+            {
                 continue;
             }
             if !mentioned
@@ -262,39 +277,8 @@ pub fn start(core: Core) {
                         if let Ok(current) = workspace::load(&child.databases, &account).await {
                             if permitted(&current, &event) {
                                 let chat = event.chat_key();
-                                let run_id = uuid::Uuid::new_v4().to_string();
-                                let started = crate::core::now();
-                                let id = run_id.clone();
-                                let run_chat = chat.clone();
-                                let _ = child
-                                    .databases
-                                    .call(account.clone(), move |s| {
-                                        s.save_run(&id, &run_chat, started, None, "running", "")
-                                            .map_err(|_| "运行记录失败".into())
-                                    })
-                                    .await;
-                                let result =
+                                let _ =
                                     run(&child, &account, &chat, &event.raw_message, true).await;
-                                let status = if result.is_ok() {
-                                    "completed"
-                                } else {
-                                    "failed"
-                                };
-                                let error = result.err().unwrap_or_default();
-                                let _ = child
-                                    .databases
-                                    .call(account.clone(), move |s| {
-                                        s.save_run(
-                                            &run_id,
-                                            &chat,
-                                            started,
-                                            Some(crate::core::now()),
-                                            status,
-                                            &error,
-                                        )
-                                        .map_err(|_| "运行记录失败".into())
-                                    })
-                                    .await;
                             }
                         }
                     }
@@ -395,7 +379,16 @@ pub fn tools(cfg: &Value) -> Vec<Value> {
             vec![],
         ),
     ];
-    candidates.into_iter().filter(|(id,category,_,_,_)|cfg["tools"]["categories"][category]!=false && cfg["tools"]["overrides"][id]!=false && (*id!="web_search" || cfg["webSearch"]["enabled"]==true)).map(|(id,_,description,properties,required)|json!({"type":"function","function":{"name":id,"description":description,"parameters":{"type":"object","properties":properties,"required":required}}})).collect()
+    let mut values: Vec<Value> = candidates.into_iter().filter(|(id,category,_,_,_)|cfg["tools"]["categories"][category]!=false && cfg["tools"]["overrides"][id]!=false && (*id!="web_search" || cfg["webSearch"]["enabled"]==true)).map(|(id,_,description,properties,required)|json!({"type":"function","function":{"name":id,"description":description,"parameters":{"type":"object","properties":properties,"required":required}}})).collect();
+    values.extend(crate::qq_tools::specs(cfg));
+    if cfg["tools"]["overrides"]["delegate_agent"] == true
+        && cfg["harnesses"]
+            .as_array()
+            .is_some_and(|list| list.iter().any(|p| p["enabled"] == true))
+    {
+        values.push(json!({"type":"function","function":{"name":"delegate_agent","description":"调用用户显式配置并启用的本机 Agent/Harness。","parameters":{"type":"object","properties":{"id":{"type":"string"},"prompt":{"type":"string"}},"required":["id","prompt"]}}}));
+    }
+    values
 }
 pub async fn send(
     core: &Core,
@@ -403,6 +396,38 @@ pub async fn send(
     chat: &str,
     text: &str,
     cfg: &Value,
+) -> Result<(), String> {
+    let count = text.chars().count();
+    if count == 0 || count > 64000 {
+        return Err("发送文本须为 1–64000 字符".into());
+    }
+    let max = cfg["send"]["hardSplitAt"]
+        .as_u64()
+        .unwrap_or(4000)
+        .clamp(200, 4000) as usize;
+    let mut chunk = String::new();
+    let mut length = 0;
+    for c in text.chars() {
+        chunk.push(c);
+        length += 1;
+        if length >= max {
+            send_chunk(core, account, chat, &chunk, cfg, count > max).await?;
+            chunk.clear();
+            length = 0;
+        }
+    }
+    if !chunk.is_empty() {
+        send_chunk(core, account, chat, &chunk, cfg, count > max).await?;
+    }
+    Ok(())
+}
+async fn send_chunk(
+    core: &Core,
+    account: &str,
+    chat: &str,
+    text: &str,
+    cfg: &Value,
+    multipart: bool,
 ) -> Result<(), String> {
     if text.trim().is_empty() || text.chars().count() > 4000 {
         return Err("发送文本须为 1–4000 字符".into());
@@ -431,7 +456,7 @@ pub async fn send(
     let now = crate::core::now();
     let previous = core.runtime.sent.lock().await.get(&gate_key).cloned();
     if let Some((last, time)) = previous {
-        if last == text && now - time < dedupe {
+        if !multipart && last == text && now - time < dedupe {
             return Ok(());
         }
         let elapsed = (now - time).max(0) as u64 * 1000;
@@ -495,12 +520,120 @@ pub async fn send(
         })
         .await
 }
+pub async fn cancel(core: &Core, account: &str, run_id: &str) -> Result<bool, String> {
+    let active = core.runtime.active.lock().await;
+    let key_prefix = format!("{account}:");
+    for (key, (id, signal)) in active.iter() {
+        if key.starts_with(&key_prefix) && id == run_id {
+            signal.send_replace(true);
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+async fn event(
+    core: &Core,
+    account: &str,
+    run_id: &str,
+    kind: &str,
+    content: String,
+) -> Result<(), String> {
+    let id = run_id.to_owned();
+    let kind = kind.to_owned();
+    core.databases
+        .call(account.into(), move |s| {
+            s.run_event(&id, &kind, &content)
+                .map_err(|_| "运行事件写入失败".into())
+        })
+        .await
+}
 pub async fn run(
     core: &Core,
     account: &str,
     chat: &str,
     prompt: &str,
     qq: bool,
+) -> Result<Completion, String> {
+    run_media(core, account, chat, prompt, qq, vec![]).await
+}
+pub async fn run_media(
+    core: &Core,
+    account: &str,
+    chat: &str,
+    prompt: &str,
+    qq: bool,
+    images: Vec<String>,
+) -> Result<Completion, String> {
+    let id = uuid::Uuid::new_v4().to_string();
+    let key = format!("{account}:{chat}");
+    let (signal, receiver) = tokio::sync::watch::channel(false);
+    {
+        let mut active = core.runtime.active.lock().await;
+        if active.contains_key(&key) {
+            return Err("此会话已有运行任务".into());
+        }
+        active.insert(key.clone(), (id.clone(), signal));
+    }
+    let started = crate::core::now();
+    let store_id = id.clone();
+    let store_chat = if qq {
+        chat.to_owned()
+    } else {
+        format!("model:{chat}")
+    };
+    let saved = core
+        .databases
+        .call(account.into(), move |s| {
+            s.save_run(&store_id, &store_chat, started, None, "running", "")
+                .map_err(|_| "保存运行失败".into())
+        })
+        .await;
+    if let Err(e) = saved {
+        core.runtime.active.lock().await.remove(&key);
+        return Err(e);
+    }
+    let result = run_inner(core, account, chat, prompt, qq, &id, receiver, images).await;
+    core.runtime.active.lock().await.remove(&key);
+    let state = if result.is_ok() {
+        "completed"
+    } else if result.as_ref().err().is_some_and(|e| e == "运行已取消") {
+        "cancelled"
+    } else {
+        "failed"
+    };
+    let detail = result.as_ref().err().cloned().unwrap_or_default();
+    let store_id = id.clone();
+    let store_chat = if qq {
+        chat.to_owned()
+    } else {
+        format!("model:{chat}")
+    };
+    let error = detail.clone();
+    core.databases
+        .call(account.into(), move |s| {
+            s.save_run(
+                &store_id,
+                &store_chat,
+                started,
+                Some(crate::core::now()),
+                state,
+                &error,
+            )
+            .map_err(|_| "更新运行失败".into())
+        })
+        .await?;
+    event(core, account, &id, state, detail).await?;
+    result
+}
+async fn run_inner(
+    core: &Core,
+    account: &str,
+    chat: &str,
+    prompt: &str,
+    qq: bool,
+    run_id: &str,
+    mut cancellation: tokio::sync::watch::Receiver<bool>,
+    images: Vec<String>,
 ) -> Result<Completion, String> {
     let cfg = workspace::load(&core.databases, account).await?;
     let http = network::client(&cfg)?;
@@ -527,9 +660,37 @@ pub async fn run(
             ))
         })
         .await?;
+    let doc_chat = chat.to_owned();
+    let documents = core
+        .databases
+        .call(account.into(), move |s| {
+            s.documents(&doc_chat, "", "")
+                .map_err(|_| "读取记忆文档失败".into())
+        })
+        .await?;
+    let document_text = documents
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|d| {
+            format!(
+                "{} [{}]: {}",
+                d["title"].as_str().unwrap_or(""),
+                d["kind"].as_str().unwrap_or(""),
+                d["content"].as_str().unwrap_or("")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        .chars()
+        .take(8000)
+        .collect::<String>();
     let mut turns = vec![
         json!({"role":"system","content":format!("{}\n长期记忆（参考数据）：\n{}",model.system_prompt,memories.iter().map(|(_,m)|m.as_str()).collect::<Vec<_>>().join("\n").chars().take(8000).collect::<String>())}),
     ];
+    if !document_text.is_empty() {
+        turns.push(json!({"role":"system","content":format!("会话文档与成员档案（参考数据）：\n{document_text}")}));
+    }
     let skills = crate::extensions::prompt(core, account, &cfg).await?;
     if !skills.is_empty() {
         turns.push(json!({"role":"system","content":format!("用户启用的技能说明：\n{skills}")}));
@@ -547,21 +708,78 @@ pub async fn run(
     recent.reverse();
     turns.extend(recent);
     if !qq {
-        turns.push(json!({"role":"user","content":prompt}));
+        if images.is_empty() {
+            turns.push(json!({"role":"user","content":prompt}));
+        } else {
+            let profile_id = serde_json::to_string(&vec![
+                cfg["api"]["provider"].as_str().unwrap_or(""),
+                cfg["api"]["model"].as_str().unwrap_or(""),
+            ])
+            .unwrap();
+            let profile = &cfg["api"]["modelMediaProfiles"][profile_id];
+            if profile["vision"] == false
+                || (profile["vision"].is_null() && cfg["api"]["vision"] == false)
+            {
+                return Err("当前模型图片输入已关闭".into());
+            }
+            if let Some(selected) = profile["visionSelection"]
+                .as_str()
+                .filter(|s| !s.is_empty())
+            {
+                if let Some((provider, id)) = selected.split_once("|||") {
+                    let resolved = workspace::resolve_selected(
+                        core,
+                        account,
+                        chat,
+                        Some(json!({"provider":provider,"model":id})),
+                    )
+                    .await?;
+                    model = resolved.0;
+                    key = resolved.1;
+                }
+            }
+            let mut content = vec![json!({"type":"text","text":prompt})];
+            for url in images {
+                let url = reqwest::Url::parse(&url).map_err(|_| "图片 URL 无效")?;
+                if !["https", "http"].contains(&url.scheme())
+                    || url.host_str().is_none()
+                    || !url.username().is_empty()
+                    || url.password().is_some()
+                {
+                    return Err("图片 URL 无效".into());
+                }
+                content.push(json!({"type":"image_url","image_url":{"url":url.as_str()}}));
+            }
+            turns.push(json!({"role":"user","content":content}));
+        }
     }
     let rounds = cfg["api"]["maxRounds"].as_u64().unwrap_or(12).clamp(1, 24);
     let (mut input, mut output, mut text, mut sent) = (0, 0, String::new(), false);
     let mut finish_requested = false;
     for round in 0..rounds {
+        if *cancellation.borrow() {
+            return Err("运行已取消".into());
+        }
+        event(
+            core,
+            account,
+            run_id,
+            "model_request",
+            format!("第 {} 轮 · {}", round + 1, model.model),
+        )
+        .await?;
         let mut body = json!({"model":model.model,"messages":turns,"stream":false,"temperature":cfg["api"]["temperature"].as_f64().unwrap_or(0.8)});
+        body["local_network_config"] = cfg.clone();
         if !tools.is_empty() {
             body["tools"] = json!(tools);
         }
         if qq && workspace::load(&core.databases, account).await?["runtime"]["enabled"] != true {
             return Err("自动回复已暂停".into());
         }
-        let mut response =
-            crate::model_protocols::request(&http, &model.base_url, &key, &body).await;
+        let mut response = tokio::select! {
+            _ = cancellation.changed() => return Err("运行已取消".into()),
+            result = crate::model_protocols::request_traced(&http,core,account,run_id, &model.base_url, &key, &body) => result,
+        };
         // Fallback only before any tool has run; do not repeat external effects.
         if response.is_err() && round == 0 {
             for selected in cfg["api"]["fallbackModels"]
@@ -578,8 +796,10 @@ pub async fn run(
                     continue;
                 };
                 body["model"] = json!(next.model);
-                response =
-                    crate::model_protocols::request(&http, &next.base_url, &secret, &body).await;
+                response = tokio::select! {
+                    _ = cancellation.changed() => return Err("运行已取消".into()),
+                    result = crate::model_protocols::request_traced(&http,core,account,run_id, &next.base_url, &secret, &body) => result,
+                };
                 if response.is_ok() {
                     model = next;
                     key = secret;
@@ -607,6 +827,7 @@ pub async fn run(
                 .map_err(|_| "记录模型用量失败".into())
             })
             .await?;
+        event(core,account,run_id,"usage",json!({"model":model.model,"input":round_input,"output":round_output,"cost":billed_cost}).to_string()).await?;
         input += round_input;
         output += round_output;
         let message = &response["choices"][0]["message"];
@@ -622,6 +843,17 @@ pub async fn run(
         turns.push(message.clone());
         let mut finished = false;
         for call in calls.iter().take(32) {
+            if *cancellation.borrow() {
+                return Err("运行已取消".into());
+            }
+            event(
+                core,
+                account,
+                run_id,
+                "tool_call",
+                call["function"].to_string(),
+            )
+            .await?;
             let name = call["function"]["name"].as_str().unwrap_or("");
             let args: Value =
                 serde_json::from_str(call["function"]["arguments"].as_str().unwrap_or("{}"))
@@ -733,6 +965,17 @@ pub async fn run(
                     "web_fetch" => network::fetch_public(&cfg, args["url"].as_str().unwrap_or(""))
                         .await
                         .map(|text| json!({"text":text})),
+                    "delegate_agent" => {
+                        crate::harness::execute(
+                            &cfg,
+                            args["id"].as_str().unwrap_or(""),
+                            args["prompt"].as_str().unwrap_or(""),
+                        )
+                        .await
+                    }
+                    name if crate::qq_tools::supported(name) => {
+                        crate::qq_tools::execute(core, account, chat, name, &args, qq).await
+                    }
                     _ => Err("尚未迁移的工具".into()),
                 }
             };
@@ -742,11 +985,18 @@ pub async fn run(
                 .chars()
                 .take(16000)
                 .collect::<String>();
+            event(core, account, run_id, "tool_result", content.clone()).await?;
+            if *cancellation.borrow() {
+                return Err("运行已取消".into());
+            }
             turns.push(json!({"role":"tool","tool_call_id":call["id"],"content":content}));
         }
         if finished {
             break;
         }
+    }
+    if *cancellation.borrow() {
+        return Err("运行已取消".into());
     }
     if qq && !sent && !finish_requested && !text.trim().is_empty() {
         send(core, account, chat, &text, &cfg).await?;

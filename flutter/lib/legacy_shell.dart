@@ -217,7 +217,7 @@ class _LegacyShellState extends State<LegacyShell> {
                   ],
                 ),
               const Center(
-                child: Text('0.1.1 · 实验版', style: TextStyle(fontSize: 11)),
+                child: Text('0.2.0 · 实验版', style: TextStyle(fontSize: 11)),
               ),
               const SizedBox(width: 12),
               IconButton(
