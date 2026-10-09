@@ -531,6 +531,11 @@ pub async fn cancel(core: &Core, account: &str, run_id: &str) -> Result<bool, St
     }
     Ok(false)
 }
+pub async fn is_active(core: &Core, account: &str, run_id: &str) -> bool {
+    let active = core.runtime.active.lock().await;
+    let key_prefix = format!("{account}:");
+    active.iter().any(|(key, (id, _))| key.starts_with(&key_prefix) && id == run_id)
+}
 async fn event(
     core: &Core,
     account: &str,

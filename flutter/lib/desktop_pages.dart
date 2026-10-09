@@ -682,6 +682,43 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
   bool busy = false, structure = false;
   int generation = 0;
   Timer? refresh;
+
+  static String _statusLabel(dynamic s) => switch ('$s') {
+    'running'   => '运行中',
+    'completed' => '已完成',
+    'cancelled' => '已取消',
+    'failed'    => '失败',
+    _           => '$s',
+  };
+
+  static Widget _statusIcon(dynamic s) {
+    final (icon, color) = switch ('$s') {
+      'running'   => (Icons.sync, Colors.blue),
+      'completed' => (Icons.check_circle_outline, Colors.green),
+      'cancelled' => (Icons.cancel_outlined, Colors.orange),
+      'failed'    => (Icons.error_outline, Colors.red),
+      _           => (Icons.chat_bubble_outline, Colors.grey),
+    };
+    return Icon(icon, size: 16, color: color);
+  }
+
+  static const _toolMeta = <String, (IconData, String)>{
+    'send_message':        (Icons.send_outlined,         '发送消息'),
+    'remember':            (Icons.bookmark_add_outlined,  '保存记忆'),
+    'recall_memory':       (Icons.bookmark_outlined,      '读取记忆'),
+    'memory_append':       (Icons.person_add_outlined,    '保存印象'),
+    'memory_query':        (Icons.manage_search_outlined, '查询记忆'),
+    'memory_remove':       (Icons.bookmark_remove_outlined,'删除记忆'),
+    'get_recent_messages': (Icons.history_outlined,       '最近消息'),
+    'read_messages':       (Icons.search_outlined,        '查找消息'),
+    'web_search':          (Icons.public_outlined,        '网络搜索'),
+    'web_fetch':           (Icons.link_outlined,          '读取网页'),
+    'finish':              (Icons.stop_circle_outlined,   '结束处理'),
+    'delegate_agent':      (Icons.smart_toy_outlined,     '委派 Agent'),
+    'query_group_member':  (Icons.groups_outlined,        '查询成员'),
+    'send_like':           (Icons.thumb_up_outlined,      '发送点赞'),
+    'get_group_info':      (Icons.info_outline,           '群信息'),
+  };
   @override
   void initState() {
     super.initState();
@@ -771,6 +808,42 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
     unawaited(load());
   }
 
+  List<Widget> _buildEventCards(List<MapData> evts) {
+    final rendered = <String>{};
+    final widgets = <Widget>[];
+    for (int i = 0; i < evts.length; i++) {
+      final e = evts[i];
+      final kind = e['kind'] as String? ?? '';
+      if (kind == 'model_delta') continue;
+      if (kind == 'tool_call') {
+        final callId = '${e['id'] ?? i}';
+        rendered.add(callId);
+        final result = evts.firstWhere(
+          (r) => r['kind'] == 'tool_result' && '${r['id'] ?? ''}' == callId,
+          orElse: () => {},
+        );
+        if (result.isNotEmpty) rendered.add('result:$callId');
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _ToolEventCard(call: e, result: result.isEmpty ? null : result, meta: _toolMeta),
+        ));
+      } else if (kind == 'tool_result') {
+        final resultId = 'result:${e['id'] ?? ''}';
+        if (rendered.contains(resultId)) continue;
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _EventTile(event: e),
+        ));
+      } else {
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _EventTile(event: e),
+        ));
+      }
+    }
+    return widgets;
+  }
+
   Future<void> newChat() async {
     final controller = TextEditingController();
     final id = await showDialog<String>(
@@ -855,13 +928,12 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                       '${r['chat']}',
                       overflow: TextOverflow.ellipsis,
                     ),
-                    subtitle: Text('${stamp(r['started'])}\n${r['status']}'),
-                    trailing: Icon(
-                      r['status'] == 'failed'
-                          ? Icons.error_outline
-                          : Icons.chat_bubble_outline,
-                      size: 16,
+                    subtitle: Text(
+                      '${stamp(r['started'])}  ·  ${_statusLabel(r['status'])}'
+                      '${(r['tool_calls'] as int? ?? 0) > 0 ? "  ·  ${r['tool_calls']} 工具" : ""}'
+                      '${((r['input_tokens'] as int? ?? 0) + (r['output_tokens'] as int? ?? 0)) > 0 ? "  ·  ${(r['input_tokens'] as int? ?? 0) + (r['output_tokens'] as int? ?? 0)} tok" : ""}',
                     ),
+                    trailing: _statusIcon(r['status']),
                     onTap: () => select('${r['chat']}', r),
                   ),
                 if (chats.isNotEmpty)
@@ -897,9 +969,11 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
       detail: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // ── Run header ──────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
@@ -907,36 +981,94 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                     children: [
                       Text(
                         chat ?? '选择会话',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                       ),
-                      if (selectedRun.isNotEmpty)
-                        Text(
-                          '${selectedRun['status']} · ${stamp(selectedRun['started'])}',
-                          style: const TextStyle(fontSize: 11),
-                        ),
+                      if (selectedRun.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          _statusIcon(selectedRun['status']),
+                          const SizedBox(width: 6),
+                          Text(
+                            _statusLabel(selectedRun['status']),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            stamp(selectedRun['started']),
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          if ((selectedRun['finished'] as int?) != null) ...[
+                            Text(
+                              '  →  ${stamp(selectedRun['finished'])}',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ],
+                        ]),
+                        if (((selectedRun['input_tokens'] as int? ?? 0) +
+                                (selectedRun['output_tokens'] as int? ?? 0)) >
+                            0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              '输入 ${selectedRun['input_tokens']} · 输出 ${selectedRun['output_tokens']} Token'
+                              '${(selectedRun['tool_calls'] as int? ?? 0) > 0 ? " · ${selectedRun['tool_calls']} 工具调用" : ""}',
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                          ),
+                      ],
                     ],
                   ),
                 ),
+                // action buttons
                 if (selectedRun['status'] == 'running')
-                  TextButton(
+                  TextButton.icon(
+                    onPressed: () => execute(() async {
+                      await widget.core.request('/runs/cancel', body: {
+                        'account': widget.account,
+                        'run_id': selectedRun['id'],
+                      });
+                      await load();
+                    }),
+                    icon: const Icon(Icons.stop_circle_outlined, size: 16),
+                    label: const Text('取消'),
+                  ),
+                if (selectedRun.isNotEmpty &&
+                    selectedRun['status'] != 'running')
+                  IconButton(
+                    tooltip: '删除运行记录',
+                    icon: const Icon(Icons.delete_outline, size: 18),
                     onPressed: () async {
-                      try {
-                        await widget.core.request(
-                          '/runs/cancel',
-                          body: {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('删除运行记录'),
+                          content: const Text('将永久删除此运行记录及其所有事件，无法恢复。'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('取消'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('删除'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true && mounted) {
+                        await execute(() async {
+                          await widget.core.request('/runs/delete', body: {
                             'account': widget.account,
                             'run_id': selectedRun['id'],
-                          },
-                        );
-                        await load();
-                      } catch (e) {
-                        if (mounted) setState(() => notice = '$e');
+                          });
+                          setState(() {
+                            selectedRun = {};
+                            events = [];
+                          });
+                          await load();
+                        });
                       }
                     },
-                    child: const Text('取消运行'),
                   ),
                 TextButton(
                   onPressed: chat == null
@@ -949,13 +1081,29 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
           ),
           if ('${selectedRun['error'] ?? ''}'.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SelectableText(
-                '${selectedRun['error']}',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: SurfacePanel(
+                padding: const EdgeInsets.all(10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.error_outline, size: 16,
+                        color: Theme.of(context).colorScheme.error),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SelectableText(
+                        '${selectedRun['error']}',
+                        style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           const Divider(height: 1),
+          // ── Detail body ──────────────────────────────────────────────────
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
@@ -963,8 +1111,9 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                 if (chat == null)
                   const Padding(
                     padding: EdgeInsets.all(40),
-                    child: Text('从左侧选择会话或运行。运行状态与消息历史分别展示。'),
+                    child: Text('从左侧选择会话或运行。'),
                   ),
+                // Load earlier messages button
                 if (chat != null)
                   Center(
                     child: TextButton(
@@ -972,41 +1121,41 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                       child: const Text('读取更早消息'),
                     ),
                   ),
-                if (events.any((e) => e['kind'] == 'model_delta'))
-                  SurfacePanel(
-                    child: SelectableText(
-                      events
-                          .where((e) => e['kind'] == 'model_delta')
-                          .map((e) => '${e['content']}')
-                          .join(),
-                    ),
-                  ),
-                for (final event in events.where(
-                  (e) => e['kind'] != 'model_delta',
-                ))
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: SurfacePanel(
-                      padding: const EdgeInsets.all(10),
-                      child: ExpansionTile(
-                        dense: true,
-                        title: Text(
-                          '${event['kind']}',
-                          style: const TextStyle(fontSize: 12),
+                // ── Run events (structured) ──────────────────────────────
+                if (events.isNotEmpty) ...[
+                  // Accumulated model text as a single readable panel
+                  if (events.any((e) => e['kind'] == 'model_delta'))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: SurfacePanel(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.smart_toy_outlined, size: 14),
+                              const SizedBox(width: 6),
+                              Text('模型输出',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: Theme.of(context).hintColor)),
+                            ]),
+                            const SizedBox(height: 8),
+                            SelectableText(
+                              events
+                                  .where((e) => e['kind'] == 'model_delta')
+                                  .map((e) => '${e['content']}')
+                                  .join(),
+                            ),
+                          ],
                         ),
-                        subtitle: Text(
-                          stamp(event['timestamp']),
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: SelectableText('${event['content']}'),
-                          ),
-                        ],
                       ),
                     ),
-                  ),
+                  // Tool call + result pairs and other events
+                  ..._buildEventCards(events),
+                  const SizedBox(height: 12),
+                ],
+                // ── Message history ──────────────────────────────────────
                 if (structure)
                   SelectableText(
                     const JsonEncoder.withIndent('  ').convert(messages),
@@ -1014,7 +1163,7 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                 else
                   for (final row in messages.reversed)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.only(bottom: 12),
                       child: SurfacePanel(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1022,14 +1171,19 @@ class _SessionWorkspaceState extends State<SessionWorkspace> {
                             Text(
                               '${row['sender']} · ${stamp(row['timestamp'])}',
                               style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context).hintColor,
-                              ),
+                                  fontSize: 11,
+                                  color: Theme.of(context).hintColor),
                             ),
                             const SizedBox(height: 8),
                             SelectableText('${row['text']}'),
-                            if (row['media'] is List) for (final media in row['media'] as List) MediaLink(media:asMap(media)),
-                            if(row['reply'] is Map) Text('引用：${row['reply']['text']}',style:const TextStyle(fontSize:11)),
+                            if (row['media'] is List)
+                              for (final media in row['media'] as List)
+                                MediaLink(media: asMap(media)),
+                            if (row['reply'] is Map)
+                              Text(
+                                '引用：${row['reply']['text']}',
+                                style: const TextStyle(fontSize: 11),
+                              ),
                           ],
                         ),
                       ),
@@ -2103,6 +2257,124 @@ class _AccountWorkspaceState extends State<AccountWorkspace> {
       ),
     ],
   );
+}
+
+class _EventTile extends StatelessWidget {
+  const _EventTile({required this.event});
+  final MapData event;
+
+  static const _kindLabel = <String, String>{
+    'run_start':    '运行开始',
+    'run_end':      '运行结束',
+    'tool_call':    '工具调用',
+    'tool_result':  '工具结果',
+    'model_delta':  '模型输出',
+    'send':         '已发送',
+    'error':        '错误',
+    'cancelled':    '已取消',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final kind = '${event['kind'] ?? ''}';
+    final label = _kindLabel[kind] ?? kind;
+    return SurfacePanel(
+      padding: const EdgeInsets.all(10),
+      child: ExpansionTile(
+        dense: true,
+        title: Text(label, style: const TextStyle(fontSize: 12)),
+        subtitle: Text(stamp(event['timestamp']), style: const TextStyle(fontSize: 10)),
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: SelectableText('${event['content'] ?? ''}'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToolEventCard extends StatelessWidget {
+  const _ToolEventCard({required this.call, required this.meta, this.result});
+  final MapData call;
+  final MapData? result;
+  final Map<String, (IconData, String)> meta;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = '${call['content'] ?? ''}';
+    // content is the raw tool name or JSON; try to extract name from JSON
+    String toolName = name;
+    String argsText = '';
+    try {
+      final decoded = jsonDecode(name) as Map<String, dynamic>;
+      toolName = '${decoded['name'] ?? name}';
+      final args = decoded['arguments'];
+      if (args != null) {
+        argsText = args is String ? args : jsonEncode(args);
+      }
+    } catch (_) {}
+
+    final (icon, label) = meta[toolName] ?? (Icons.build_outlined, toolName);
+    final hasResult = result != null && result!.isNotEmpty;
+    final resultText = '${result?['content'] ?? ''}';
+    final isError = resultText.contains('"error"') || resultText.startsWith('{"error"');
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SurfacePanel(
+      padding: EdgeInsets.zero,
+      child: ExpansionTile(
+        leading: Icon(icon, size: 16, color: colorScheme.primary),
+        title: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        subtitle: Text(
+          stamp(call['timestamp']),
+          style: const TextStyle(fontSize: 10),
+        ),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (hasResult)
+            Icon(
+              isError ? Icons.cancel_outlined : Icons.check_circle_outline,
+              size: 14,
+              color: isError ? colorScheme.error : Colors.green,
+            ),
+          const Icon(Icons.expand_more, size: 18),
+        ]),
+        children: [
+          if (argsText.isNotEmpty)
+            _Section(label: '参数', text: argsText),
+          if (hasResult)
+            _Section(label: isError ? '错误' : '结果', text: resultText, error: isError),
+        ],
+      ),
+    );
+  }
+}
+
+class _Section extends StatelessWidget {
+  const _Section({required this.label, required this.text, this.error = false});
+  final String label, text;
+  final bool error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: TextStyle(
+          fontSize: 10,
+          color: error
+              ? Theme.of(context).colorScheme.error
+              : Theme.of(context).hintColor,
+        )),
+        const SizedBox(height: 4),
+        SelectableText(text, style: const TextStyle(fontSize: 12)),
+      ]),
+    );
+  }
 }
 
 class MediaLink extends StatelessWidget {

@@ -446,9 +446,16 @@ impl AccountStore {
         Ok(serde_json::json!(rows))
     }
     pub fn runs(&self) -> rusqlite::Result<serde_json::Value> {
-        let mut q=self.connection.prepare("SELECT id,chat,started,finished,status,error FROM runs ORDER BY started DESC LIMIT 200")?;
-        let values:Vec<serde_json::Value>=q.query_map([],|r|Ok(serde_json::json!({"id":r.get::<_,String>(0)?,"chat":r.get::<_,String>(1)?,"started":r.get::<_,i64>(2)?,"finished":r.get::<_,Option<i64>>(3)?,"status":r.get::<_,String>(4)?,"error":r.get::<_,String>(5)?})))?.collect::<Result<_,_>>()?;
+        let mut q=self.connection.prepare("SELECT r.id,r.chat,r.started,r.finished,r.status,r.error, (SELECT SUM(u.input) FROM usage u WHERE u.timestamp>=r.started AND (?1 OR u.timestamp<=COALESCE(r.finished,9999999999))), (SELECT SUM(u.output) FROM usage u WHERE u.timestamp>=r.started AND (?1 OR u.timestamp<=COALESCE(r.finished,9999999999))), (SELECT COUNT(*) FROM run_events re WHERE re.run_id=r.id AND re.kind='tool_call') FROM runs r ORDER BY r.started DESC LIMIT 200")?;
+        let values:Vec<serde_json::Value>=q.query_map([false],|r|Ok(serde_json::json!({"id":r.get::<_,String>(0)?,"chat":r.get::<_,String>(1)?,"started":r.get::<_,i64>(2)?,"finished":r.get::<_,Option<i64>>(3)?,"status":r.get::<_,String>(4)?,"error":r.get::<_,String>(5)?,"input_tokens":r.get::<_,Option<i64>>(6)?.unwrap_or(0),"output_tokens":r.get::<_,Option<i64>>(7)?.unwrap_or(0),"tool_calls":r.get::<_,Option<i64>>(8)?.unwrap_or(0)})))?.collect::<Result<_,_>>()?;
         Ok(serde_json::json!(values))
+    }
+    pub fn delete_run(&mut self, run_id: &str) -> rusqlite::Result<usize> {
+        let tx = self.connection.transaction()?;
+        tx.execute("DELETE FROM run_events WHERE run_id=?1", [run_id])?;
+        let deleted = tx.execute("DELETE FROM runs WHERE id=?1", [run_id])?;
+        tx.commit()?;
+        Ok(deleted)
     }
     pub fn archive(
         &self,

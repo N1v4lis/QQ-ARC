@@ -253,6 +253,7 @@ pub fn routes() -> Router<Core> {
         .route("/runs", get(runs))
         .route("/runs/events", get(run_events))
         .route("/runs/cancel", post(cancel_run))
+        .route("/runs/delete", post(delete_run))
         .route("/tools", get(tool_list))
         .route("/ui/sound", post(sound))
         .route("/onebot/action", post(action))
@@ -754,6 +755,19 @@ async fn cancel_run(State(core): State<Core>, Json(q): Json<RunQuery>) -> Result
     Ok(Json(
         json!({"cancelled":crate::agent::cancel(&core,&q.account,&q.run_id).await.map_err(error)?}),
     ))
+}
+async fn delete_run(State(core): State<Core>, Json(q): Json<RunQuery>) -> ResultJson {
+    if crate::agent::is_active(&core, &q.account, &q.run_id).await {
+        return Err(error("运行中的任务不能删除，请先取消"));
+    }
+    let deleted = core
+        .databases
+        .call(q.account, move |s| {
+            s.delete_run(&q.run_id).map_err(|_| "删除运行记录失败".into())
+        })
+        .await
+        .map_err(error)?;
+    Ok(Json(json!({"deleted": deleted > 0})))
 }
 #[derive(Deserialize)]
 struct Documents {
