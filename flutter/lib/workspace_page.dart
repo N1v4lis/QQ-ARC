@@ -621,7 +621,41 @@ class _WorkspacePageState extends State<WorkspacePage> {
     ]);
     final right = section('模型配置', [
       const Text('选择默认模型；单独配置请在人设中设置。'),
-      Wrap(spacing:8,children:[button('测试连通性',()async{final selected=selectedModel?.split('|||')??[];if(selected.length!=2)throw StateError('请选择模型');final result=object(await post('/providers/test',{'account':widget.account,'provider':selected[0],'model':selected[1]}));redraw(()=>notice='请求成功 · ${result['milliseconds']}ms · 输入 ${result['input']} / 输出 ${result['output']} · ${result['text']}');}),button('测试图片输入',()async{final selected=selectedModel?.split('|||')??[];if(selected.length!=2)throw StateError('请选择模型');final image=await ask('测试图片 HTTP/HTTPS URL');if(image==null||image.isEmpty)return;final result=object(await post('/providers/test',{'account':widget.account,'provider':selected[0],'model':selected[1],'image':image}));redraw(()=>notice='图片请求成功 · ${result['text']}');})]),
+      Wrap(
+        spacing: 8,
+        children: [
+          button('测试连通性', () async {
+            final selected = selectedModel?.split('|||') ?? [];
+            if (selected.length != 2) throw StateError('请选择模型');
+            final result = object(
+              await post('/providers/test', {
+                'account': widget.account,
+                'provider': selected[0],
+                'model': selected[1],
+              }),
+            );
+            redraw(
+              () => notice =
+                  '请求成功 · ${result['milliseconds']}ms · 输入 ${result['input']} / 输出 ${result['output']} · ${result['text']}',
+            );
+          }),
+          button('测试图片输入', () async {
+            final selected = selectedModel?.split('|||') ?? [];
+            if (selected.length != 2) throw StateError('请选择模型');
+            final image = await ask('测试图片 HTTP/HTTPS URL');
+            if (image == null || image.isEmpty) return;
+            final result = object(
+              await post('/providers/test', {
+                'account': widget.account,
+                'provider': selected[0],
+                'model': selected[1],
+                'image': image,
+              }),
+            );
+            redraw(() => notice = '图片请求成功 · ${result['text']}');
+          }),
+        ],
+      ),
       dropdown(
         '选择模型',
         selectedModel,
@@ -1838,7 +1872,15 @@ class _WorkspacePageState extends State<WorkspacePage> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       const Divider(height: 40),
-      heading('SnowLuma 管理', '启动外部 OneBot 组件；使用它自带的运行时。'),
+      heading('SnowLuma 管理', 'QQAF 安装包未附带 SnowLuma，需单独准备官方 Windows 完整版。'),
+      const Text(
+        '解压后填写组件目录，也可放入 QQAF 程序旁的 components/snowluma 或 snowluma 文件夹。启动由你手动控制。',
+      ),
+      button('获取官方 SnowLuma', () async {
+        await DesktopBridge.openUrl(
+          'https://github.com/SnowLuma/SnowLuma/releases',
+        );
+      }),
       input('SnowLuma 目录', 'snow-dir', object(config['snowluma'])['dir']),
       button('保存组件目录', () async {
         final snow = {
@@ -1856,7 +1898,11 @@ class _WorkspacePageState extends State<WorkspacePage> {
             if (mounted) {
               redraw(() {
                 data = result;
-                notice = result['listening'] == true ? 'WebUI 端口已就绪' : '尚未监听';
+                notice = result['available'] == false
+                    ? '${result['message']}'
+                    : result['listening'] == true
+                    ? 'WebUI 端口已就绪 · ${result['directory']}'
+                    : '组件已找到，尚未启动 · ${result['directory']}';
               });
             }
           }),
@@ -1873,6 +1919,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
           }),
           button('打开 WebUI', () async {
             final result = object(await get('/snow/status'));
+            if (result['available'] == false) {
+              if (mounted) redraw(() => notice = '${result['message']}');
+              return;
+            }
             await DesktopBridge.openUrl('${result['webuiUrl']}');
           }),
           button('查看日志', () async {
@@ -1881,7 +1931,11 @@ class _WorkspacePageState extends State<WorkspacePage> {
           }),
         ],
       ),
-      input('SnowLuma GitHub 来源 / owner/repository', 'snow-repository', ''),
+      input(
+        'SnowLuma GitHub 来源 / owner/repository',
+        'snow-repository',
+        'SnowLuma/SnowLuma',
+      ),
       button('检查 SnowLuma Release', () async {
         final result = await post('/updates/check', {
           'account': widget.account,

@@ -30,16 +30,36 @@ fn error(e: impl Into<String>) -> (axum::http::StatusCode, Json<Value>) {
 struct Account {
     account: String,
 }
-fn directory(cfg: &Value) -> Result<PathBuf, String> {
-    let dir = cfg["snowluma"]["dir"]
+const OFFICIAL_DOWNLOAD_URL: &str = "https://github.com/SnowLuma/SnowLuma/releases";
+fn complete_directory(dir: &std::path::Path) -> bool {
+    dir.is_dir() && dir.join("node.exe").is_file() && dir.join("index.mjs").is_file()
+}
+fn resolve_directory(cfg: &Value, application_dir: &std::path::Path) -> Result<PathBuf, String> {
+    if let Some(dir) = cfg["snowluma"]["dir"]
         .as_str()
-        .filter(|v| !v.is_empty())
-        .ok_or("请填写 SnowLuma 目录")?;
-    let dir = std::fs::canonicalize(dir).map_err(|_| "SnowLuma 目录不存在")?;
-    if !dir.is_dir() {
-        return Err("SnowLuma 路径不是目录".into());
+        .filter(|v| !v.trim().is_empty())
+    {
+        let dir = std::fs::canonicalize(dir).map_err(|_| "SnowLuma 目录不存在")?;
+        if !complete_directory(&dir) {
+            return Err(
+                "请指定完整 SnowLuma Windows 发行目录，需包含 node.exe 和 index.mjs".into(),
+            );
+        }
+        return Ok(dir);
     }
-    Ok(dir)
+    // Discover a manually prepared component next to this app only. Never scan
+    // the previous installation or copy its configuration, caches or accounts.
+    for relative in ["components/snowluma", "snowluma"] {
+        let candidate = application_dir.join(relative);
+        if complete_directory(&candidate) {
+            return std::fs::canonicalize(candidate).map_err(|_| "SnowLuma 目录不可用".into());
+        }
+    }
+    Err("尚未准备 SnowLuma：请从官方发行页获取 Windows 完整版，解压后填写组件目录；本安装包未附带 SnowLuma".into())
+}
+fn directory(cfg: &Value) -> Result<PathBuf, String> {
+    let exe = std::env::current_exe().map_err(|_| "无法定位 QQAF 程序目录")?;
+    resolve_directory(cfg, exe.parent().ok_or("无法定位 QQAF 程序目录")?)
 }
 fn port(dir: &std::path::Path) -> u16 {
     let file = dir.join("config/runtime.json");
@@ -77,7 +97,14 @@ async fn status(State(core): State<Core>, Query(a): Query<Account>) -> ResultJso
     let cfg = workspace::load(&core.databases, &a.account)
         .await
         .map_err(error)?;
-    let dir = directory(&cfg).map_err(error)?;
+    let dir = match directory(&cfg) {
+        Ok(dir) => dir,
+        Err(message) => {
+            return Ok(Json(
+                json!({"available":false,"listening":false,"ownedPid":null,"message":message,"downloadUrl":OFFICIAL_DOWNLOAD_URL,"externalRuntime":true}),
+            ));
+        }
+    };
     let port = port(&dir);
     let listening = listening(port).await;
     let mut children = core.snow.children.lock().map_err(|_| error("进程锁失败"))?;
@@ -89,7 +116,7 @@ async fn status(State(core): State<Core>, Query(a): Query<Account>) -> ResultJso
         }
     });
     Ok(Json(
-        json!({"ownedPid":pid,"listening":listening,"webuiUrl":format!("http://127.0.0.1:{port}/"),"externalRuntime":true}),
+        json!({"available":true,"directory":dir,"ownedPid":pid,"listening":listening,"webuiUrl":format!("http://127.0.0.1:{port}/"),"downloadUrl":OFFICIAL_DOWNLOAD_URL,"externalRuntime":true}),
     ))
 }
 async fn launch(State(core): State<Core>, Json(a): Json<Account>) -> ResultJson {
@@ -197,7 +224,11 @@ async fn update(State(core): State<Core>, Json(q): Json<Update>) -> ResultJson {
     let repo = if q.component == "qqaf" {
         "N1v4lis/QQARCFOX"
     } else if q.component == "snowluma" {
-        q.repository.as_str()
+        if q.repository.trim().is_empty() {
+            "SnowLuma/SnowLuma"
+        } else {
+            q.repository.as_str()
+        }
     } else {
         return Err(error("组件无效"));
     };
@@ -228,4 +259,60 @@ async fn update(State(core): State<Core>, Json(q): Json<Update>) -> ResultJson {
     Ok(Json(
         json!({"tag":data["tag_name"],"name":data["name"],"url":data["html_url"],"publishedAt":data["published_at"],"notes":data["body"],"assets":data["assets"],"installed":if q.component=="qqaf"{env!("CARGO_PKG_VERSION")}else{"unknown"},"experimental":true,"automaticInstall":false}),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn missing_component_reports_unavailable_without_starting_a_process() {
+        let root = std::env::temp_dir().join(format!("qqaf-snow-status-{}", uuid::Uuid::new_v4()));
+        let core = Core::new(root.clone(), "fixture".into());
+        let mut cfg = workspace::load(&core.databases, "123").await.unwrap();
+        cfg["snowluma"]["dir"] = json!(root.join("not-installed"));
+        workspace::store(&core.databases, "123", &cfg).await.unwrap();
+        let Json(result) = status(
+            State(core.clone()),
+            Query(Account {
+                account: "123".into(),
+            }),
+        )
+        .await
+        .unwrap();
+        assert_eq!(result["available"], false);
+        assert_eq!(result["listening"], false);
+        assert!(result["webuiUrl"].is_null());
+        assert_eq!(result["downloadUrl"], OFFICIAL_DOWNLOAD_URL);
+        assert!(core.snow.children.lock().unwrap().is_empty());
+        assert_eq!(
+            workspace::load(&core.databases, "123").await.unwrap()["snowluma"]["dir"],
+            cfg["snowluma"]["dir"]
+        );
+    }
+    #[test]
+    fn discovery_requires_complete_files_and_respects_explicit_directory() {
+        let root =
+            std::env::temp_dir().join(format!("qqaf-snow-discovery-{}", uuid::Uuid::new_v4()));
+        let sibling = root.join("components/snowluma");
+        std::fs::create_dir_all(&sibling).unwrap();
+        assert!(resolve_directory(&json!({}), &root).is_err());
+        std::fs::write(sibling.join("index.mjs"), "fixture only; never execute").unwrap();
+        assert!(resolve_directory(&json!({}), &root).is_err());
+        std::fs::write(sibling.join("node.exe"), "fixture only; never execute").unwrap();
+        assert_eq!(
+            resolve_directory(&json!({}), &root).unwrap(),
+            std::fs::canonicalize(&sibling).unwrap()
+        );
+        let invalid = root.join("missing");
+        assert!(resolve_directory(&json!({"snowluma":{"dir":invalid}}), &root).is_err());
+        let explicit = root.join("explicit");
+        std::fs::create_dir_all(&explicit).unwrap();
+        std::fs::write(explicit.join("node.exe"), "fixture").unwrap();
+        std::fs::write(explicit.join("index.mjs"), "fixture").unwrap();
+        assert_eq!(
+            resolve_directory(&json!({"snowluma":{"dir":explicit}}), &root).unwrap(),
+            std::fs::canonicalize(&explicit).unwrap()
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }

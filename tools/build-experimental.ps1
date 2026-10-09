@@ -59,7 +59,7 @@ try {
         Get-ChildItem -LiteralPath $assetDir -File | Where-Object { $_.Name -match '(?i)license|source|notice|OFL' } |
             ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $licenses }
     }
-    $manifest = @{version=$version;branch=(git branch --show-current);commit=(git rev-parse HEAD);experimental=$true;cleanRelease=[bool]$CleanRelease;workingTreeDirty=[bool](git status --porcelain --untracked-files=no)}
+    $manifest = @{version=$version;branch=(git branch --show-current);commit=(git rev-parse HEAD);experimental=$true;cleanRelease=[bool]$CleanRelease;snowlumaBundled=$false;workingTreeDirty=[bool](git status --porcelain --untracked-files=no)}
     $manifest | ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $bundle 'build-info.json')
     $zip = $bundle + '.zip'
     Compress-Archive -Path (Join-Path $bundle '*') -DestinationPath $zip
