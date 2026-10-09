@@ -28,19 +28,28 @@ class SnowDownloadPanel extends StatefulWidget {
 class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
   final directory = TextEditingController();
   Map<String, dynamic> job = {},
-      release = {},
       compatibility = {},
       component = {};
+  List<Map<String, dynamic>> releases = [];
+  String? selectedTag;
+  String selectedVariant = 'auto';
   String message = '';
   String? notifiedInstall;
-  bool busy = false, polling = false;
+  bool busy = false, polling = false, loadingReleases = false;
   Timer? timer;
+
   bool get active =>
       ['downloading', 'verifying', 'installing'].contains(job['phase']);
-  String get channel => 'compatible';
-  String get targetVersion =>
-      '${compatibility['targetVersion'] ?? compatibility['recommended'] ?? 'v1.14.22'}'
-          .replaceFirst(RegExp(r'^v'), '');
+
+  String get effectiveTag =>
+      selectedTag ??
+      (compatibility['recommended'] as String?) ??
+      (compatibility['targetVersion'] as String?) ??
+      'v1.14.22';
+
+  String get targetVersionDisplay =>
+      effectiveTag.replaceFirst(RegExp(r'^v'), '');
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +70,7 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
       widget.core.request(path, query: {'account': widget.account});
   Future<dynamic> post(String path, Map<String, dynamic> values) =>
       widget.core.request(path, body: {'account': widget.account, ...values});
+
   Future<void> run(Future<void> Function() action) async {
     if (busy) return;
     setState(() {
@@ -90,8 +100,40 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
       }
       setState(() {});
       await refresh();
+      unawaited(fetchReleases());
     } catch (error) {
       if (mounted) setState(() => message = '$error');
+    }
+  }
+
+  Future<void> fetchReleases() async {
+    if (loadingReleases || !mounted) return;
+    setState(() => loadingReleases = true);
+    try {
+      final data = _map(await post('/snow/releases', {}));
+      if (!mounted) return;
+      final list = (data['releases'] as List? ?? [])
+          .map((e) => _map(e))
+          .toList();
+      setState(() {
+        releases = list;
+        compatibility = _map(data['compatibility']);
+        // Default to the manifest recommended version if no selection yet.
+        if (selectedTag == null && list.isNotEmpty) {
+          final recommended =
+              (compatibility['recommended'] as String?) ??
+              (compatibility['targetVersion'] as String?);
+          final hasRecommended =
+              recommended != null && list.any((r) => r['tag'] == recommended);
+          selectedTag = hasRecommended ? recommended : '${list.first['tag']}';
+        }
+      });
+    } catch (error) {
+      if (mounted && message.isEmpty) {
+        setState(() => message = '获取版本列表失败：$error');
+      }
+    } finally {
+      if (mounted) setState(() => loadingReleases = false);
     }
   }
 
@@ -102,17 +144,14 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
       final snapshot = _map(await get('/snow/download/status'));
       if (!mounted) return;
       final next = _map(snapshot['job']);
-      final check = _map(snapshot['check']);
-      final nextRelease = _map(check['release']);
-      if (jsonEncode(next) != jsonEncode(job) ||
-          jsonEncode(nextRelease) != jsonEncode(release)) {
+      if (jsonEncode(next) != jsonEncode(job)) {
         setState(() {
           job = next;
-          release = nextRelease;
           compatibility = _map(snapshot['compatibility']);
         });
       }
       await notifyInstalled(next);
+      final check = _map(snapshot['check']);
       if (check['error'] is String && message.isEmpty) {
         setState(() => message = '${check['error']}');
       }
@@ -138,13 +177,41 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
     if (mounted) setState(() => component = _map(plan['component']));
   }
 
+  bool get _isDefaultDirectory {
+    // Check if the current directory.text is the default (app root / Snowluma).
+    final installed = job['installDirectory'] as String?;
+    if (installed == null) return false;
+    final lower = installed.toLowerCase();
+    return lower.endsWith('\\snowluma') || lower.endsWith('/snowluma');
+  }
+
+  Map<String, dynamic>? get _selectedRelease =>
+      releases.cast<Map<String, dynamic>?>().firstWhere(
+        (r) => r?['tag'] == effectiveTag,
+        orElse: () => null,
+      );
+
+  /// Resolved variant name for display. 'auto' shows as 'Lite' or '完整版' based
+  /// on what the server would pick, but we cannot know without asking — so we
+  /// just label it '自动'.
+  String _variantLabel(String v) => switch (v) {
+        'lite' => 'Lite（需 Node.js）',
+        'full' => '完整版（内置 Node.js）',
+        _ => '自动（推荐）',
+      };
+
   Future<void> begin(bool install) async {
+    final body = <String, dynamic>{
+      'tag': effectiveTag,
+      'variant': selectedVariant == 'auto' ? null : selectedVariant,
+      if (install) 'directory': directory.text.trim(),
+      if (job['tag'] != null && job['tag'] == effectiveTag)
+        'expectedTag': effectiveTag,
+    };
+    // Remove null variant so the backend uses auto-detection.
+    body.removeWhere((k, v) => v == null);
     final result = _map(
-      await post(install ? '/snow/install' : '/snow/download/start', {
-        'channel': channel,
-        if (install) 'directory': directory.text.trim(),
-        if (release['tag'] != null) 'expectedTag': release['tag'],
-      }),
+      await post(install ? '/snow/install' : '/snow/download/start', body),
     );
     if (mounted) setState(() => job = _map(result['job']));
     await notifyInstalled(_map(result['job']));
@@ -153,38 +220,108 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
 
   String size(dynamic bytes) =>
       '${((bytes is num ? bytes : 0) / 1024 / 1024).toStringAsFixed(1)} MB';
+
   String phase() => switch (job['phase']) {
-    'downloading' => '正在下载',
-    'verifying' => '正在校验',
-    'installing' => '正在安装',
-    'completed' => '下载完成，SHA-256 校验通过',
-    'installed' => '安装完成，SHA-256 校验通过',
-    'cancelled' => '已取消',
-    'interrupted' => '上次任务中断，可重新安装',
-    'failed' => '任务失败，可重试',
-    _ => '尚未开始',
-  };
+        'downloading' => '正在下载',
+        'verifying' => '正在校验',
+        'installing' => '正在安装',
+        'completed' => '下载完成，SHA-256 校验通过',
+        'installed' => '安装完成，SHA-256 校验通过',
+        'cancelled' => '已取消',
+        'interrupted' => '上次任务中断，可重新安装',
+        'failed' => '任务失败，可重试',
+        _ => '尚未开始',
+      };
+
+  String _installButtonLabel() {
+    final v = selectedVariant == 'auto'
+        ? ''
+        : '（${_variantLabel(selectedVariant).split('（').first}）';
+    if (component['updateAvailable'] == true) {
+      return '更新 SnowLuma 至 $targetVersionDisplay$v';
+    }
+    return '安装 SnowLuma $targetVersionDisplay$v';
+  }
+
   @override
   Widget build(BuildContext context) {
     final received = job['received'] is num ? job['received'] as num : 0;
     final total = job['total'] is num ? job['total'] as num : 0;
+    final rel = _selectedRelease;
+    final installedVariant =
+        (component['available'] == true)
+            ? (component['variant'] as String? ?? '')
+            : '';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text('获取与安装', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 6),
-        Text(
-          '点击安装后获取官方 v$targetVersion Windows 完整包并校验，默认安装到程序根目录的 Snowluma。组件启动与 QQ 登录由你操作。',
+        const Text(
+          '选择版本和类型后安装。Lite 包体积更小，需要系统预装 Node.js 22.13+ 或 23.4+。完整版内置 Node.js，开箱即用。',
         ),
         const SizedBox(height: 12),
-        Text('固定适配版本：SnowLuma $targetVersion'),
-        if (component['available'] == true)
-          Text('已安装 SL：${component['installedVersion'] ?? '版本未知'}'),
-        if (component['updateAvailable'] == true)
-          const Text('已有 SL 版本低于本版 QQAF 的适配目标，可点击更新。'),
-        if (component['newerInstalled'] == true)
-          const Text('已安装的 SL 高于当前适配目标；不会自动降级。'),
-        const SizedBox(height: 12),
+
+        // ── Version and variant selectors ──────────────────────────────────
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: _VersionDropdown(
+                releases: releases,
+                selected: selectedTag,
+                loading: loadingReleases,
+                enabled: !busy && !active,
+                onChanged: (tag) => setState(() => selectedTag = tag),
+                onRefresh: () => unawaited(run(fetchReleases)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: DropdownButtonFormField<String>(
+                key: ValueKey('variant:$selectedVariant'),
+                initialValue: selectedVariant,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: '类型',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: ['auto', 'lite', 'full']
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(
+                          _variantLabel(v),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: busy || active
+                    ? null
+                    : (v) => setState(() => selectedVariant = v ?? 'auto'),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 8),
+        if (component['available'] == true) ...[
+          Text(
+            '已安装 SL：${component['installedVersion'] ?? '版本未知'}'
+            '${installedVariant.isNotEmpty ? '（$installedVariant）' : ''}',
+          ),
+          if (component['updateAvailable'] == true)
+            const Text('已有 SL 版本低于当前选择，可点击更新。'),
+          if (component['newerInstalled'] == true)
+            const Text('已安装的 SL 高于当前选择；不会自动降级。'),
+          const SizedBox(height: 8),
+        ],
+
+        // ── Install directory ──────────────────────────────────────────────
         TextField(
           controller: directory,
           enabled: !busy && !active,
@@ -214,33 +351,11 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
                     ),
               child: const Text('选择父文件夹'),
             ),
-            OutlinedButton(
-              onPressed: busy || active
-                  ? null
-                  : () => unawaited(
-                      run(() async {
-                        final data = _map(
-                          await post('/snow/releases', {'channel': channel}),
-                        );
-                        if (mounted) {
-                          setState(() {
-                            release = _map(data['release']);
-                            compatibility = _map(data['compatibility']);
-                          });
-                        }
-                      }),
-                    ),
-              child: const Text('获取版本信息'),
-            ),
             FilledButton(
               onPressed: busy || active
                   ? null
                   : () => unawaited(run(() => begin(true))),
-              child: Text(
-                component['updateAvailable'] == true
-                    ? '更新 SnowLuma 至 $targetVersion'
-                    : '安装 SnowLuma',
-              ),
+              child: Text(_installButtonLabel()),
             ),
             OutlinedButton(
               onPressed: busy || active
@@ -262,18 +377,26 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
               ),
           ],
         ),
-        if (release.isNotEmpty) ...[
+
+        // ── Release info ───────────────────────────────────────────────────
+        if (rel != null) ...[
           const SizedBox(height: 12),
           Text(
-            '${release['tag']} · ${size(release['bytes'])} · ${release['compatibility'] == 'validated' ? '已适配' : '当前适配目标 · QQ 接入待验收'}',
+            '${rel['tag']} · '
+            '${rel['compatibility'] == 'validated' ? '已适配' : rel['compatibility'] == 'targeted' ? '当前适配目标' : '未验收'}'
+            '${rel['hasLite'] == true ? ' · 有 Lite' : ''}'
+            '${rel['hasFull'] == true ? ' · 有完整版' : ''}',
           ),
           TextButton(
             onPressed: () => unawaited(
-              run(() => DesktopBridge.openUrl('${release['url']}')),
+              run(() => DesktopBridge.openUrl(
+                  'https://github.com/SnowLuma/SnowLuma/releases/tag/${rel['tag']}')),
             ),
             child: const Text('查看官方版本说明'),
           ),
         ],
+
+        // ── Job progress ───────────────────────────────────────────────────
         if (job.isNotEmpty) ...[
           const SizedBox(height: 12),
           Text('${job['tag']} · ${phase()}'),
@@ -291,6 +414,15 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
             SelectableText('安装位置：${job['installDirectory']}'),
           if (job['backupDirectory'] is String)
             SelectableText('原组件备份：${job['backupDirectory']}'),
+          // Installed to default directory: show restart hint.
+          if (job['phase'] == 'installed' && _isDefaultDirectory)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                '已安装到程序根目录 Snowluma 文件夹，重启 QQAF 后自动发现。',
+                style: TextStyle(fontStyle: FontStyle.italic),
+              ),
+            ),
           Wrap(
             spacing: 8,
             children: [
@@ -331,6 +463,7 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
             ],
           ),
         ],
+
         const SizedBox(height: 10),
         if (busy)
           const Padding(
@@ -344,6 +477,72 @@ class _SnowDownloadPanelState extends State<SnowDownloadPanel> {
           ),
         const Divider(height: 32),
       ],
+    );
+  }
+}
+
+/// Dropdown that lists available release versions, with a refresh button.
+class _VersionDropdown extends StatelessWidget {
+  const _VersionDropdown({
+    required this.releases,
+    required this.selected,
+    required this.loading,
+    required this.enabled,
+    required this.onChanged,
+    required this.onRefresh,
+  });
+
+  final List<Map<String, dynamic>> releases;
+  final String? selected;
+  final bool loading;
+  final bool enabled;
+  final ValueChanged<String?> onChanged;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const SizedBox(
+        height: 48,
+        child: Center(child: LinearProgressIndicator()),
+      );
+    }
+    if (releases.isEmpty) {
+      return OutlinedButton.icon(
+        onPressed: enabled ? onRefresh : null,
+        icon: const Icon(Icons.refresh, size: 14),
+        label: const Text('获取版本列表'),
+      );
+    }
+    final validSelected =
+        releases.any((r) => r['tag'] == selected) ? selected : null;
+    return DropdownButtonFormField<String>(
+      key: ValueKey('version:$selected'),
+      initialValue: validSelected,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: '版本',
+        border: const OutlineInputBorder(),
+        isDense: true,
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.refresh, size: 16),
+          tooltip: '刷新版本列表',
+          onPressed: enabled ? onRefresh : null,
+        ),
+      ),
+      items: releases
+          .map(
+            (r) => DropdownMenuItem<String>(
+              value: '${r['tag']}',
+              child: Text(
+                '${r['tag']}'
+                '${r['compatibility'] == 'targeted' ? ' ★' : r['compatibility'] == 'validated' ? ' ✓' : ''}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: enabled ? onChanged : null,
     );
   }
 }

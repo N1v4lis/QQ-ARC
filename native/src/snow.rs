@@ -33,7 +33,8 @@ struct Account {
 }
 const OFFICIAL_DOWNLOAD_URL: &str = "https://github.com/SnowLuma/SnowLuma/releases";
 fn complete_directory(dir: &std::path::Path) -> bool {
-    dir.is_dir() && dir.join("node.exe").is_file() && dir.join("index.mjs").is_file()
+    // Accept both full (has node.exe) and lite (no node.exe) installs; only index.mjs is required.
+    dir.is_dir() && dir.join("index.mjs").is_file()
 }
 fn resolve_directory(cfg: &Value, application_dir: &std::path::Path) -> Result<PathBuf, String> {
     if let Some(dir) = cfg["snowluma"]["dir"]
@@ -43,7 +44,7 @@ fn resolve_directory(cfg: &Value, application_dir: &std::path::Path) -> Result<P
         let dir = std::fs::canonicalize(dir).map_err(|_| "SnowLuma 目录不存在")?;
         if !complete_directory(&dir) {
             return Err(
-                "请指定完整 SnowLuma Windows 发行目录，需包含 node.exe 和 index.mjs".into(),
+                "请指定完整 SnowLuma 发行目录，需包含 index.mjs（Lite 包需系统安装 Node.js 22.13+）".into(),
             );
         }
         return Ok(dir);
@@ -56,7 +57,49 @@ fn resolve_directory(cfg: &Value, application_dir: &std::path::Path) -> Result<P
             return std::fs::canonicalize(candidate).map_err(|_| "SnowLuma 目录不可用".into());
         }
     }
-    Err("尚未准备 SnowLuma：请从官方发行页获取 Windows 完整版，解压后填写组件目录；本安装包未附带 SnowLuma".into())
+    Err("尚未准备 SnowLuma：请从官方发行页获取发行包，解压后填写组件目录；本安装包未附带 SnowLuma".into())
+}
+
+/// Resolve the Node.js executable: prefer bundled node.exe, fall back to system PATH.
+fn find_node(dir: &std::path::Path) -> Result<std::path::PathBuf, String> {
+    let bundled = dir.join("node.exe");
+    if bundled.is_file() {
+        return Ok(bundled);
+    }
+    // Lite package: find node in system PATH via `where node`.
+    let output = std::process::Command::new("where")
+        .arg("node")
+        .output()
+        .map_err(|_| "Lite 包需要系统安装 Node.js 22.13+ 或 23.4+，但 where 命令失败".to_string())?;
+    if output.status.success() {
+        let path_str = std::str::from_utf8(&output.stdout)
+            .unwrap_or("")
+            .lines()
+            .next()
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        if !path_str.is_empty() {
+            return Ok(std::path::PathBuf::from(path_str));
+        }
+    }
+    Err("Lite 包需要系统安装 Node.js 22.13+ 或 23.4+，未在 PATH 中找到 node.exe".into())
+}
+
+/// Ensure {snow_dir}/config/runtime.json exists with at minimum {"webuiPort": 5099}.
+/// If the file already exists it is left untouched.
+fn ensure_runtime_config(dir: &std::path::Path) {
+    let config_dir = dir.join("config");
+    let config_file = config_dir.join("runtime.json");
+    if config_file.exists() {
+        return;
+    }
+    if std::fs::create_dir_all(&config_dir).is_ok() {
+        let _ = std::fs::write(
+            &config_file,
+            serde_json::to_vec_pretty(&serde_json::json!({"webuiPort": 5099})).unwrap(),
+        );
+    }
 }
 fn directory(cfg: &Value) -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|_| "无法定位 QQAF 程序目录")?;
@@ -169,11 +212,13 @@ async fn launch(State(core): State<Core>, Json(a): Json<Account>) -> ResultJson 
     if listening(port(&dir)).await {
         return Ok(Json(json!({"ok":true,"alreadyRunning":true,"owned":false})));
     }
-    let node = dir.join("node.exe");
     let entry = dir.join("index.mjs");
-    if !node.is_file() || !entry.is_file() {
-        return Err(error("目录需包含 SnowLuma 的 node.exe 和 index.mjs"));
+    if !entry.is_file() {
+        return Err(error("目录需包含 SnowLuma 的 index.mjs"));
     }
+    let node = find_node(&dir).map_err(error)?;
+    // Ensure SnowLuma config exists so its OneBot WS server can start.
+    ensure_runtime_config(&dir);
     let mut children = core.snow.children.lock().map_err(|_| error("进程锁失败"))?;
     if let Some(child) = children.get_mut(&dir) {
         if child.try_wait().ok().flatten().is_none() {
@@ -197,6 +242,10 @@ async fn launch(State(core): State<Core>, Json(a): Json<Account>) -> ResultJson 
     command
         .arg(entry)
         .current_dir(&dir)
+        .env(
+            "NODE_COMPILE_CACHE",
+            dir.join("data").join(".arcfox-compile-cache"),
+        )
         .stdin(Stdio::null())
         .stdout(Stdio::from(
             output.try_clone().map_err(|_| error("日志打开失败"))?,
@@ -464,11 +513,12 @@ pub async fn launch_for_account(core: &Core, account: &str) -> Result<(), String
     if listening(port(&dir)).await {
         return Ok(());
     }
-    let node = dir.join("node.exe");
     let entry = dir.join("index.mjs");
-    if !node.is_file() || !entry.is_file() {
-        return Err("SnowLuma 组件不完整".into());
+    if !entry.is_file() {
+        return Err("SnowLuma 组件不完整：缺少 index.mjs".into());
     }
+    let node = find_node(&dir)?;
+    ensure_runtime_config(&dir);
     let mut children = core
         .snow
         .children
@@ -494,6 +544,10 @@ pub async fn launch_for_account(core: &Core, account: &str) -> Result<(), String
     command
         .arg(entry)
         .current_dir(&dir)
+        .env(
+            "NODE_COMPILE_CACHE",
+            dir.join("data").join(".arcfox-compile-cache"),
+        )
         .stdin(Stdio::null())
         .stdout(Stdio::from(
             output.try_clone().map_err(|_| "日志打开失败")?,
@@ -593,9 +647,15 @@ mod tests {
             std::env::temp_dir().join(format!("qqaf-snow-discovery-{}", uuid::Uuid::new_v4()));
         let sibling = root.join("components/snowluma");
         std::fs::create_dir_all(&sibling).unwrap();
+        // Empty directory: must fail.
         assert!(resolve_directory(&json!({}), &root).is_err());
+        // index.mjs alone is sufficient (lite package without bundled node.exe).
         std::fs::write(sibling.join("index.mjs"), "fixture only; never execute").unwrap();
-        assert!(resolve_directory(&json!({}), &root).is_err());
+        assert_eq!(
+            resolve_directory(&json!({}), &root).unwrap(),
+            std::fs::canonicalize(&sibling).unwrap()
+        );
+        // Adding node.exe (full package) still resolves correctly.
         std::fs::write(sibling.join("node.exe"), "fixture only; never execute").unwrap();
         assert_eq!(
             resolve_directory(&json!({}), &root).unwrap(),
@@ -610,6 +670,14 @@ mod tests {
         assert_eq!(
             resolve_directory(&json!({"snowluma":{"dir":explicit}}), &root).unwrap(),
             std::fs::canonicalize(&explicit).unwrap()
+        );
+        // Explicit directory with only index.mjs (lite) is also accepted.
+        let explicit_lite = root.join("explicit-lite");
+        std::fs::create_dir_all(&explicit_lite).unwrap();
+        std::fs::write(explicit_lite.join("index.mjs"), "fixture").unwrap();
+        assert_eq!(
+            resolve_directory(&json!({"snowluma":{"dir":explicit_lite}}), &root).unwrap(),
+            std::fs::canonicalize(&explicit_lite).unwrap()
         );
         std::fs::remove_dir_all(root).unwrap();
     }

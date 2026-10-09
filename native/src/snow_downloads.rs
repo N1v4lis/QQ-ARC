@@ -1,4 +1,4 @@
-//! Fixed v1.14.22 official archive retrieval and user-requested installation. No scheduled updates.
+//! Dynamic version selection with lite/full variant support. No scheduled updates.
 use crate::{core::Core, network, workspace};
 use axum::{
     Json, Router,
@@ -21,7 +21,6 @@ use tokio::{
 };
 
 const REPOSITORY: &str = "SnowLuma/SnowLuma";
-const SUPPORTED_TAG: &str = "v1.14.22";
 const MAX_ARCHIVE: u64 = 512 * 1024 * 1024;
 const CACHE_KEY: &str = "snowluma-release-check";
 const JOB_KEY: &str = "snowluma-download";
@@ -49,6 +48,7 @@ struct Release {
     bytes: u64,
     sha256: String,
     compatibility: String,
+    variant: String,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -80,15 +80,18 @@ struct Account {
 #[serde(rename_all = "camelCase")]
 struct Request {
     account: String,
-    #[serde(default = "pinned")]
+    #[serde(default)]
     channel: String,
     #[serde(default)]
     expected_tag: Option<String>,
+    /// Explicit version tag, e.g. "v1.14.22". Falls back to manifest recommended.
+    #[serde(default)]
+    tag: Option<String>,
+    /// "lite", "full", or absent for auto-detection via PATH.
+    #[serde(default)]
+    variant: Option<String>,
     #[serde(default)]
     directory: Option<String>,
-}
-fn pinned() -> String {
-    "compatible".into()
 }
 type ResultJson = Result<Json<Value>, (axum::http::StatusCode, Json<Value>)>;
 fn error(message: impl Into<String>) -> (axum::http::StatusCode, Json<Value>) {
@@ -99,12 +102,6 @@ fn error(message: impl Into<String>) -> (axum::http::StatusCode, Json<Value>) {
 }
 fn manifest() -> Value {
     serde_json::from_str(COMPATIBILITY).expect("embedded compatibility manifest")
-}
-fn channel_tag(channel: &str) -> Result<String, String> {
-    match channel {
-        "compatible" | "pinned" => Ok(SUPPORTED_TAG.into()),
-        _ => Err("当前只支持指定适配版本 v1.14.22，不跟随最新版".into()),
-    }
 }
 fn valid_tag(tag: &str) -> bool {
     !tag.is_empty()
@@ -138,7 +135,45 @@ fn client(cfg: &Value) -> Result<reqwest::Client, String> {
         .build()
         .map_err(|_| "下载客户端配置失败".into())
 }
-fn parse_release(data: &Value, channel: &str) -> Result<Release, String> {
+
+/// Detect whether `node` is available in the system PATH (Windows: `where node`).
+fn node_in_path() -> bool {
+    std::process::Command::new("where")
+        .arg("node")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success())
+}
+
+/// Resolve a caller-supplied variant preference to "lite" or "full".
+/// Auto-detection: if node is on PATH, prefer lite; otherwise full.
+fn resolve_variant(variant: Option<&str>) -> String {
+    match variant {
+        Some("lite") => "lite".into(),
+        Some("full") => "full".into(),
+        _ => {
+            if node_in_path() {
+                "lite".into()
+            } else {
+                "full".into()
+            }
+        }
+    }
+}
+
+/// Canonical asset filename for a tag + variant pair.
+fn asset_name_for(tag: &str, variant: &str) -> String {
+    if variant == "lite" {
+        format!("SnowLuma-{tag}-win-x64-lite.zip")
+    } else {
+        format!("SnowLuma-{tag}-win-x64.zip")
+    }
+}
+
+/// Select and validate an asset from a GitHub release JSON object.
+/// Returns a validated `Release` ready for download.
+fn select_asset(data: &Value, variant: &str) -> Result<Release, String> {
     if data["draft"] == true || data["prerelease"] == true {
         return Err("不自动下载草稿或预发布版".into());
     }
@@ -146,18 +181,21 @@ fn parse_release(data: &Value, channel: &str) -> Result<Release, String> {
         .as_str()
         .filter(|s| valid_tag(s))
         .ok_or("官方版本号无效")?;
-    if tag != SUPPORTED_TAG {
-        return Err("官方返回了非指定适配版本".into());
-    }
-    let name = format!("SnowLuma-{tag}-win-x64.zip");
+    let asset_name = asset_name_for(tag, variant);
     let asset = data["assets"]
         .as_array()
         .and_then(|assets| {
             assets
                 .iter()
-                .find(|a| a["name"] == name && a["state"] == "uploaded")
+                .find(|a| a["name"] == asset_name && a["state"] == "uploaded")
         })
-        .ok_or("该发行版没有 Windows x64 完整包；不使用 Lite 包替代")?;
+        .ok_or_else(|| {
+            if variant == "lite" {
+                "该发行版没有 Windows x64 Lite 包".to_string()
+            } else {
+                "该发行版没有 Windows x64 完整包".to_string()
+            }
+        })?;
     let bytes = asset["size"]
         .as_u64()
         .filter(|n| *n > 0 && *n <= MAX_ARCHIVE)
@@ -168,40 +206,43 @@ fn parse_release(data: &Value, channel: &str) -> Result<Release, String> {
         .filter(|s| s.len() == 64 && s.bytes().all(|c| c.is_ascii_hexdigit()))
         .ok_or("官方未提供有效 SHA-256，无法自动校验；请使用官方发行页")?
         .to_ascii_lowercase();
-    let pinned_asset = manifest()["asset"].clone();
-    if pinned_asset["sha256"] != sha256 || pinned_asset["bytes"] != bytes {
-        return Err("官方包已变化，与本版 QQAF 适配记录不一致，请等待重新验收".into());
+    // Validate against the pinned manifest entry when the asset name matches exactly.
+    let pinned = manifest();
+    if pinned["asset"]["name"] == asset_name {
+        if pinned["asset"]["sha256"] != sha256 || pinned["asset"]["bytes"] != bytes {
+            return Err("官方包已变化，与本版 QQAF 适配记录不一致，请等待重新验收".into());
+        }
     }
     let download_url = asset["browser_download_url"]
         .as_str()
         .ok_or("缺少官方下载地址")?;
-    let expected = format!("https://github.com/{REPOSITORY}/releases/download/{tag}/{name}");
+    let expected = format!("https://github.com/{REPOSITORY}/releases/download/{tag}/{asset_name}");
     if download_url != expected {
         return Err("下载地址不属于指定官方仓库和版本".into());
     }
-    if channel_tag(channel)? != tag {
-        return Err("发行版与适配记录不一致".into());
-    }
-    let compatibility = if manifest()["validated"]
+    let compatibility = if pinned["validated"]
         .as_array()
         .is_some_and(|list| list.iter().any(|v| v["tag"] == tag))
+        || pinned["asset"]["name"] == asset_name
     {
-        "validated"
-    } else {
         "targeted"
+    } else {
+        "unverified"
     };
     Ok(Release {
         tag: tag.into(),
         name: data["name"].as_str().unwrap_or(tag).into(),
         url: format!("https://github.com/{REPOSITORY}/releases/tag/{tag}"),
         published_at: data["published_at"].as_str().unwrap_or("").into(),
-        asset_name: name,
+        asset_name,
         download_url: download_url.into(),
         bytes,
         sha256,
         compatibility: compatibility.into(),
+        variant: variant.into(),
     })
 }
+
 async fn read(core: &Core, account: &str, key: &'static str) -> Result<Value, String> {
     core.databases
         .call(account.into(), move |s| {
@@ -220,17 +261,12 @@ async fn write(core: &Core, account: &str, key: &'static str, value: Value) -> R
         })
         .await
 }
-async fn fetch_release(
-    core: &Core,
-    account: &str,
-    cfg: &Value,
-    channel: &str,
-) -> Result<Release, String> {
-    let tag = channel_tag(channel)?;
-    let endpoint = format!("tags/{tag}");
+
+/// Fetch a list of up to 20 stable releases from GitHub, returning summary info for each.
+async fn fetch_releases_list(cfg: &Value) -> Result<Vec<Value>, String> {
     let response = client(cfg)?
         .get(format!(
-            "https://api.github.com/repos/{REPOSITORY}/releases/{endpoint}"
+            "https://api.github.com/repos/{REPOSITORY}/releases?per_page=20"
         ))
         .timeout(Duration::from_secs(30))
         .header("User-Agent", "QQARCFOX")
@@ -243,16 +279,85 @@ async fn fetch_release(
     {
         return Err("GitHub 请求限流，请稍后重试".into());
     }
-    let release = parse_release(&network::json(response).await?, channel)?;
+    let list = network::json(response).await?;
+    let entries = list.as_array().ok_or("GitHub 返回了非列表数据")?;
+    let pinned = manifest();
+    let mut result = Vec::new();
+    for entry in entries {
+        if entry["draft"] == true || entry["prerelease"] == true {
+            continue;
+        }
+        let tag = match entry["tag_name"].as_str().filter(|s| valid_tag(s)) {
+            Some(t) => t,
+            None => continue,
+        };
+        let assets = entry["assets"].as_array().map(|a| a.as_slice()).unwrap_or(&[]);
+        let has_full = assets.iter().any(|a| {
+            a["name"] == asset_name_for(tag, "full")
+                && a["state"] == "uploaded"
+                && a["digest"].as_str().is_some_and(|d| d.starts_with("sha256:"))
+        });
+        let has_lite = assets.iter().any(|a| {
+            a["name"] == asset_name_for(tag, "lite")
+                && a["state"] == "uploaded"
+                && a["digest"].as_str().is_some_and(|d| d.starts_with("sha256:"))
+        });
+        if !has_full && !has_lite {
+            continue;
+        }
+        let is_targeted = pinned["asset"]["name"]
+            .as_str()
+            .is_some_and(|n| n.starts_with(&format!("SnowLuma-{tag}-")));
+        let is_validated = pinned["validated"]
+            .as_array()
+            .is_some_and(|l| l.iter().any(|v| v["tag"] == tag));
+        result.push(json!({
+            "tag": tag,
+            "name": entry["name"].as_str().unwrap_or(tag),
+            "publishedAt": entry["published_at"].as_str().unwrap_or(""),
+            "hasLite": has_lite,
+            "hasFull": has_full,
+            "compatibility": if is_validated { "validated" } else if is_targeted { "targeted" } else { "unverified" },
+        }));
+    }
+    Ok(result)
+}
+
+/// Fetch and validate a specific tag+variant from GitHub.
+async fn fetch_release_for_tag(
+    core: &Core,
+    account: &str,
+    cfg: &Value,
+    tag: &str,
+    variant: &str,
+) -> Result<Release, String> {
+    let response = client(cfg)?
+        .get(format!(
+            "https://api.github.com/repos/{REPOSITORY}/releases/tags/{tag}"
+        ))
+        .timeout(Duration::from_secs(30))
+        .header("User-Agent", "QQARCFOX")
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|_| "无法连接官方 GitHub，可检查代理后重试")?;
+    if response.status() == reqwest::StatusCode::FORBIDDEN
+        || response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS
+    {
+        return Err("GitHub 请求限流，请稍后重试".into());
+    }
+    let data = network::json(response).await?;
+    let release = select_asset(&data, variant)?;
     write(
         core,
         account,
         CACHE_KEY,
-        json!({"checkedAt":chrono::Utc::now().timestamp(),"channel":channel,"release":release}),
+        json!({"checkedAt":chrono::Utc::now().timestamp(),"tag":tag,"variant":variant,"release":release}),
     )
     .await?;
     Ok(release)
 }
+
 pub fn routes() -> Router<Core> {
     Router::new()
         .route("/snow/releases", post(releases))
@@ -262,15 +367,17 @@ pub fn routes() -> Router<Core> {
         .route("/snow/install/plan", get(plan))
         .route("/snow/install", post(install))
 }
+
 async fn releases(State(core): State<Core>, Json(q): Json<Request>) -> ResultJson {
     let cfg = workspace::load(&core.databases, &q.account)
         .await
         .map_err(error)?;
-    let release = fetch_release(&core, &q.account, &cfg, &q.channel)
-        .await
-        .map_err(error)?;
-    Ok(Json(json!({"release":release,"compatibility":manifest()})))
+    let list = fetch_releases_list(&cfg).await.map_err(error)?;
+    Ok(Json(
+        json!({"releases": list, "compatibility": manifest()}),
+    ))
 }
+
 async fn status(State(core): State<Core>, Query(q): Query<Account>) -> ResultJson {
     workspace::load(&core.databases, &q.account)
         .await
@@ -299,14 +406,30 @@ async fn status(State(core): State<Core>, Query(q): Query<Account>) -> ResultJso
         json!({"job":job,"check":read(&core,&q.account,CACHE_KEY).await.map_err(error)?,"compatibility":manifest(),"automaticInstall":false}),
     ))
 }
+
 async fn start(State(core): State<Core>, Json(q): Json<Request>) -> ResultJson {
     let cfg = workspace::load(&core.databases, &q.account)
         .await
         .map_err(error)?;
-    let release = fetch_release(&core, &q.account, &cfg, &q.channel)
+    let tag = {
+        let m = manifest();
+        q.tag
+            .as_deref()
+            .filter(|t| valid_tag(t))
+            .map(str::to_string)
+            .unwrap_or_else(|| {
+                m["recommended"]
+                    .as_str()
+                    .or_else(|| m["targetVersion"].as_str())
+                    .unwrap_or("v1.14.22")
+                    .to_string()
+            })
+    };
+    let variant = resolve_variant(q.variant.as_deref());
+    let release = fetch_release_for_tag(&core, &q.account, &cfg, &tag, &variant)
         .await
         .map_err(error)?;
-    if q.expected_tag.is_some_and(|tag| tag != release.tag) {
+    if q.expected_tag.is_some_and(|t| t != release.tag) {
         return Err(error("官方版本已变化，请重新检查后下载"));
     }
     let job = start_transfer(core, &q.account, cfg, release, None)
@@ -314,6 +437,7 @@ async fn start(State(core): State<Core>, Json(q): Json<Request>) -> ResultJson {
         .map_err(error)?;
     Ok(Json(json!({"job":job,"automaticInstall":false})))
 }
+
 async fn cancel(State(core): State<Core>, Json(q): Json<Account>) -> ResultJson {
     workspace::load(&core.databases, &q.account)
         .await
@@ -331,6 +455,7 @@ async fn cancel(State(core): State<Core>, Json(q): Json<Account>) -> ResultJson 
     }
     Ok(Json(json!({"ok":true})))
 }
+
 fn progress(manager: &Manager, account: &str, id: &str, received: u64, phase: &str) {
     if let Ok(mut jobs) = manager.jobs.lock() {
         if let Some(t) = jobs.get_mut(account).filter(|t| t.job.id == id) {
@@ -339,6 +464,7 @@ fn progress(manager: &Manager, account: &str, id: &str, received: u64, phase: &s
         }
     }
 }
+
 async fn hash_file(path: &Path) -> Result<(u64, String), String> {
     let mut file = tokio::fs::File::open(path)
         .await
@@ -362,14 +488,24 @@ async fn hash_file(path: &Path) -> Result<(u64, String), String> {
     }
     Ok((bytes, format!("{:x}", hash.finalize())))
 }
+
 async fn plan(State(core): State<Core>, Query(q): Query<Account>) -> ResultJson {
     let cfg = workspace::load(&core.databases, &q.account)
         .await
         .map_err(error)?;
+    let recommended = {
+        let m = manifest();
+        m["recommended"]
+            .as_str()
+            .or_else(|| m["targetVersion"].as_str())
+            .unwrap_or("v1.14.22")
+            .to_string()
+    };
     Ok(Json(
-        json!({"defaultDirectory":crate::snow_install::default_directory().map_err(error)?,"configuredDirectory":cfg["snowluma"]["dir"],"component":crate::snow::component_info(&cfg,SUPPORTED_TAG),"compatibility":manifest()}),
+        json!({"defaultDirectory":crate::snow_install::default_directory().map_err(error)?,"configuredDirectory":cfg["snowluma"]["dir"],"component":crate::snow::component_info(&cfg,&recommended),"compatibility":manifest()}),
     ))
 }
+
 async fn install(State(core): State<Core>, Json(q): Json<Request>) -> ResultJson {
     let cfg = workspace::load(&core.databases, &q.account)
         .await
@@ -380,10 +516,25 @@ async fn install(State(core): State<Core>, Json(q): Json<Request>) -> ResultJson
             "所选 SnowLuma 的 WebUI 仍在运行，请先停止组件再安装更新",
         ));
     }
-    let release = fetch_release(&core, &q.account, &cfg, &q.channel)
+    let tag = {
+        let m = manifest();
+        q.tag
+            .as_deref()
+            .filter(|t| valid_tag(t))
+            .map(str::to_string)
+            .unwrap_or_else(|| {
+                m["recommended"]
+                    .as_str()
+                    .or_else(|| m["targetVersion"].as_str())
+                    .unwrap_or("v1.14.22")
+                    .to_string()
+            })
+    };
+    let variant = resolve_variant(q.variant.as_deref());
+    let release = fetch_release_for_tag(&core, &q.account, &cfg, &tag, &variant)
         .await
         .map_err(error)?;
-    if q.expected_tag.is_some_and(|tag| tag != release.tag) {
+    if q.expected_tag.is_some_and(|t| t != release.tag) {
         return Err(error("官方版本已变化，请重新检查后安装"));
     }
     let job = start_transfer(core, &q.account, cfg, release, Some(target))
@@ -391,6 +542,7 @@ async fn install(State(core): State<Core>, Json(q): Json<Request>) -> ResultJson
         .map_err(error)?;
     Ok(Json(json!({"job":job,"userRequestedInstall":true})))
 }
+
 fn install_key(target: &Path) -> PathBuf {
     #[cfg(windows)]
     {
@@ -401,6 +553,7 @@ fn install_key(target: &Path) -> PathBuf {
         target.to_path_buf()
     }
 }
+
 async fn start_transfer(
     core: Core,
     account: &str,
@@ -534,10 +687,11 @@ async fn start_transfer(
                 let target = target.clone();
                 let tag = release.tag.clone();
                 let digest = release.sha256.clone();
+                let variant = release.variant.clone();
                 let cancel = receiver.clone();
                 let shutdown = core.shutdown.subscribe();
                 let installed = tokio::task::spawn_blocking(move || {
-                    crate::snow_install::install(&path, &target, &tag, &digest, || {
+                    crate::snow_install::install(&path, &target, &tag, &digest, &variant, || {
                         *cancel.borrow() || *shutdown.borrow()
                     })
                 })
@@ -572,8 +726,6 @@ async fn start_transfer(
             .into();
             final_job.error = Some(e);
         }
-        // Persist completion before releasing reservations, so a new transfer
-        // cannot have its durable record overwritten by this worker.
         let _ = write(&core, &account, JOB_KEY, json!(final_job)).await;
         if let Ok(mut jobs) = core.snow_downloads.jobs.lock() {
             if let Some(t) = jobs.get_mut(&account).filter(|t| t.job.id == id) {
@@ -588,6 +740,7 @@ async fn start_transfer(
     });
     Ok(job)
 }
+
 async fn retrieve(
     core: &Core,
     account: &str,
@@ -635,6 +788,7 @@ async fn retrieve(
     }
     result
 }
+
 async fn stream_archive(
     response: reqwest::Response,
     path: &Path,
@@ -689,6 +843,7 @@ async fn stream_archive(
     file.sync_all().await.map_err(|_| "下载文件保存失败")?;
     Ok(())
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -703,39 +858,60 @@ mod tests {
             bytes,
             sha256: sha256.into(),
             compatibility: "unverified".into(),
+            variant: "full".into(),
         }
     }
-    fn metadata() -> Value {
+    fn metadata_full() -> Value {
         json!({"tag_name":"v1.14.22","draft":false,"prerelease":false,"assets":[{"name":"SnowLuma-v1.14.22-win-x64.zip","state":"uploaded","size":37866010,"digest":"sha256:c8076ba2fbcdc19afeb8e8bf9b2956eaab3605e5fa4618c4db702749ae501681","browser_download_url":"https://github.com/SnowLuma/SnowLuma/releases/download/v1.14.22/SnowLuma-v1.14.22-win-x64.zip"}]})
+    }
+    fn metadata_lite() -> Value {
+        // Simulate a release with both full and lite assets. The lite asset has a
+        // different digest (not in the pinned manifest), which is accepted for lite.
+        json!({"tag_name":"v1.14.22","draft":false,"prerelease":false,"assets":[
+            {"name":"SnowLuma-v1.14.22-win-x64.zip","state":"uploaded","size":37866010,"digest":"sha256:c8076ba2fbcdc19afeb8e8bf9b2956eaab3605e5fa4618c4db702749ae501681","browser_download_url":"https://github.com/SnowLuma/SnowLuma/releases/download/v1.14.22/SnowLuma-v1.14.22-win-x64.zip"},
+            {"name":"SnowLuma-v1.14.22-win-x64-lite.zip","state":"uploaded","size":20000000,"digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","browser_download_url":"https://github.com/SnowLuma/SnowLuma/releases/download/v1.14.22/SnowLuma-v1.14.22-win-x64-lite.zip"}
+        ]})
     }
     #[test]
     fn release_selection_requires_official_complete_verified_asset() {
-        let good = metadata();
+        // Full package for the pinned v1.14.22 must match the manifest exactly.
+        let good = metadata_full();
         assert_eq!(
-            parse_release(&good, "compatible").unwrap().compatibility,
+            select_asset(&good, "full").unwrap().compatibility,
             "targeted"
         );
-        let mut bad = good.clone();
-        bad["assets"][0]["name"] = json!("SnowLuma-v1.14.22-win-x64-lite.zip");
-        assert!(parse_release(&bad, "compatible").is_err());
+        // Lite package is accepted (no manifest entry for lite, uses GitHub digest).
+        let with_lite = metadata_lite();
+        let lite = select_asset(&with_lite, "lite").unwrap();
+        assert_eq!(lite.variant, "lite");
+        assert_eq!(lite.tag, "v1.14.22");
+        // Full must still be rejected when digest is missing.
         let mut bad = good.clone();
         bad["assets"][0]["digest"] = Value::Null;
-        assert!(parse_release(&bad, "compatible").is_err());
+        assert!(select_asset(&bad, "full").is_err());
+        // Reject non-official download URL.
         let mut bad = good.clone();
         bad["assets"][0]["browser_download_url"] = json!("https://untrusted.invalid/file.zip");
-        assert!(parse_release(&bad, "compatible").is_err());
-        let mut bad = good.clone();
-        bad["tag_name"] = json!("../escape");
-        assert!(parse_release(&bad, "compatible").is_err());
+        assert!(select_asset(&bad, "full").is_err());
+        // Reject prerelease.
         let mut bad = good.clone();
         bad["prerelease"] = json!(true);
-        assert!(parse_release(&bad, "compatible").is_err());
-        assert_eq!(channel_tag("compatible").unwrap(), SUPPORTED_TAG);
-        assert!(channel_tag("latest").is_err());
-        assert!(channel_tag("arbitrary/tag").is_err());
+        assert!(select_asset(&bad, "full").is_err());
+        // Reject invalid tag.
+        let mut bad = good.clone();
+        bad["tag_name"] = json!("../escape");
+        assert!(select_asset(&bad, "full").is_err());
+        // Reject unknown filename formats (neither -lite nor plain win-x64).
+        let mut bad = good.clone();
+        bad["assets"][0]["name"] = json!("SnowLuma-v1.14.22-x64-random.zip");
+        assert!(select_asset(&bad, "full").is_err());
+        // Official-host validator still works.
         assert!(!official_host(
             &reqwest::Url::parse("https://github.com.attacker.invalid/foo").unwrap()
         ));
+        // resolve_variant respects explicit choices without PATH check.
+        assert_eq!(resolve_variant(Some("lite")), "lite");
+        assert_eq!(resolve_variant(Some("full")), "full");
     }
     async fn server(payload: Vec<u8>) -> (String, tokio::task::JoinHandle<()>) {
         use axum::{body::Body, http::Response};

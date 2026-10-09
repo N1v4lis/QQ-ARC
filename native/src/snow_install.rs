@@ -1,4 +1,5 @@
 //! Transactional installation of an already verified official archive.
+//! Supports both full (includes node.exe) and lite (requires system Node.js) variants.
 //! Installation requires a user action; no background updater is registered.
 use std::{
     collections::HashSet,
@@ -48,8 +49,10 @@ pub fn target_directory(value: Option<&str>) -> Result<PathBuf, String> {
             .ok()
             .and_then(|b| serde_json::from_slice(&b).ok())
             .unwrap_or_default();
+        // Accept both full (has node.exe) and lite (no node.exe) installs.
+        let has_index = target.join("index.mjs").is_file();
         if !empty
-            && (!(target.join("node.exe").is_file() && target.join("index.mjs").is_file())
+            && (!has_index
                 || (package["name"] != "@snowluma/runtime" && marker["component"] != "SnowLuma"))
         {
             return Err("所选目录非空且不是 SnowLuma，拒绝覆盖其他程序或用户文件".into());
@@ -149,6 +152,7 @@ pub fn install(
     target: &Path,
     tag: &str,
     digest: &str,
+    variant: &str,
     cancelled: impl Fn() -> bool,
 ) -> Result<Installed, String> {
     let parent = target.parent().ok_or("安装目录无效")?;
@@ -231,16 +235,29 @@ pub fn install(
             }
             inventory.push(relative.to_string_lossy().replace('\\', "/"));
         }
-        for name in [
-            "node.exe",
-            "index.mjs",
-            "native/snowluma-win32-x64.node",
-            "native/snowluma-win32-x64.dll",
-            "EULA.md",
-            "PRIVACY.md",
-        ] {
-            if !stage.join(name).is_file() {
-                return Err(format!("官方完整包缺少 {name}，原组件未替换"));
+        // Full variant requires node.exe; lite variant only requires index.mjs + native addon.
+        let required: &[&str] = if variant == "lite" {
+            &[
+                "index.mjs",
+                "native/snowluma-win32-x64.node",
+                "EULA.md",
+                "PRIVACY.md",
+            ]
+        } else {
+            &[
+                "node.exe",
+                "index.mjs",
+                "native/snowluma-win32-x64.node",
+                "EULA.md",
+                "PRIVACY.md",
+            ]
+        };
+        for name in required {
+            if !stage.join(name).is_file()
+                && !(name == &"native/snowluma-win32-x64.node"
+                    && stage.join("native/snowluma-win32-x64.dll").is_file())
+            {
+                return Err(format!("发行包缺少 {name}，原组件未替换"));
             }
         }
         if target.exists() {
@@ -256,7 +273,7 @@ pub fn install(
                 .collect();
             copy_existing(target, &stage, Path::new(""), &prior_files, &cancelled)?;
         }
-        let marker = serde_json::json!({"component":"SnowLuma","version":tag,"sha256":digest,"repository":"SnowLuma/SnowLuma","files":inventory});
+        let marker = serde_json::json!({"component":"SnowLuma","version":tag,"variant":variant,"sha256":digest,"repository":"SnowLuma/SnowLuma","files":inventory});
         fs::write(
             stage.join("qqaf-component.json"),
             serde_json::to_vec_pretty(&marker).unwrap(),
@@ -367,7 +384,7 @@ mod tests {
                 ("LICENSE", "fixture license"),
             ],
         );
-        let installed = install(&zip, &target, "v1-fixture", "fixture-digest", || false).unwrap();
+        let installed = install(&zip, &target, "v1-fixture", "fixture-digest", "full", || false).unwrap();
         assert_eq!(
             fs::read_to_string(target.join("index.mjs")).unwrap(),
             "new program fixture"
@@ -408,13 +425,13 @@ mod tests {
             )
             .unwrap();
             let zip = archive(&root, &extra);
-            assert!(install(&zip, &target, "v-fixture", "fixture", || false).is_err());
+            assert!(install(&zip, &target, "v-fixture", "fixture", "full", || false).is_err());
             assert_eq!(
                 fs::read_to_string(target.join("index.mjs")).unwrap(),
                 "old source"
             );
             assert!(!root.join("outside.txt").exists());
-            assert!(install(&zip, &target, "v-fixture", "fixture", || true).is_err());
+            assert!(install(&zip, &target, "v-fixture", "fixture", "full", || true).is_err());
             assert_eq!(
                 fs::read_to_string(target.join("index.mjs")).unwrap(),
                 "old source"

@@ -2188,6 +2188,20 @@ class _WorkspacePageState extends State<WorkspacePage> {
               await DesktopBridge.openUrl('https://github.com/SnowLuma/SnowLuma/releases');
             }),
             const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: saving
+                  ? null
+                  : () => run(() async {
+                        final webuiUrl =
+                            '${object(data['snowluma'])['webuiUrl'] ?? 'http://127.0.0.1:5099'}';
+                        await DesktopBridge.openUrl(
+                          webuiUrl.isNotEmpty ? webuiUrl : 'http://127.0.0.1:5099',
+                        );
+                      }),
+              icon: const Icon(Icons.open_in_browser, size: 14),
+              label: const Text('在 WebUI 配置 OneBot'),
+            ),
+            const SizedBox(height: 8),
             input('SnowLuma 目录', 'snow-dir', object(config['snowluma'])['dir']),
             Align(
               alignment: Alignment.centerLeft,
