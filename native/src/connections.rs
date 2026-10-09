@@ -115,6 +115,13 @@ impl Connections {
             .map(|(id, _)| id.clone())
             .collect()
     }
+    pub async fn connected(&self, account: &str) -> bool {
+        self.sessions
+            .lock()
+            .await
+            .get(account)
+            .is_some_and(|s| !s.task.is_finished())
+    }
     pub async fn action(&self, account: &str, action: Value) -> Result<Value, String> {
         let sender = self
             .sessions

@@ -20,6 +20,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "{}",
         serde_json::json!({"port":listener.local_addr()?.port()})
     );
+    // Auto-launch SnowLuma for accounts that have opted in.
+    let auto_core = core.clone();
+    tokio::spawn(async move {
+        for account in auto_core.databases.accounts() {
+            let Ok(cfg) = qqaf_native::workspace::load(&auto_core.databases, &account).await
+            else {
+                continue;
+            };
+            if cfg["snowluma"]["autoLaunch"] == true {
+                let child = auto_core.clone();
+                let acct = account.clone();
+                tokio::spawn(async move {
+                    let _ = qqaf_native::snow::launch_for_account(&child, &acct).await;
+                });
+            }
+        }
+    });
     axum::serve(listener, router(core))
         .with_graceful_shutdown(async move {
             tokio::select! { _=tokio::signal::ctrl_c()=>{},_=shutdown.changed()=>{} }

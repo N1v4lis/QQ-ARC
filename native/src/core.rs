@@ -189,9 +189,31 @@ async fn authenticate(State(core): State<Core>, request: Request, next: Next) ->
     }
     next.run(request).await
 }
-async fn status(State(core): State<Core>) -> Json<Value> {
+async fn status(State(core): State<Core>, Query(a): Query<Account>) -> Json<Value> {
+    let account = a.account.trim().to_string();
+    let (snow_status, qq_status) = if !account.is_empty() {
+        tokio::join!(
+            crate::snow::snow_account_status(&core, &account),
+            crate::snow::qq_portable_account_status(&core, &account)
+        )
+    } else {
+        (
+            serde_json::json!({"available":false,"running":false,"pid":null,"dir":"","webuiUrl":"","listening":false,"embedded":false}),
+            serde_json::json!({"ready":false,"running":false,"pid":null,"dir":""}),
+        )
+    };
+    let onebot_connected = if !account.is_empty() {
+        core.connections.connected(&account).await
+    } else {
+        false
+    };
+    let onebot = serde_json::json!({
+        "connected": onebot_connected,
+        "self": null,
+        "error": null
+    });
     Json(
-        json!({"architecture":"Flutter + Rust","clean_release":cfg!(feature = "clean-release"),"connected_accounts":core.connections.status().await,"winefox":{"enabled":false,"available":false,"implementation":"undecided: Slint or native 3D"}}),
+        json!({"architecture":"Flutter + Rust","clean_release":cfg!(feature = "clean-release"),"connected_accounts":core.connections.status().await,"winefox":{"enabled":false,"available":false,"implementation":"undecided: Slint or native 3D"},"snowluma":snow_status,"onebot":onebot,"qqPortable":qq_status}),
     )
 }
 async fn accounts(State(core): State<Core>) -> Json<Value> {

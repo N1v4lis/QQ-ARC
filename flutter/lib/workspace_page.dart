@@ -40,6 +40,9 @@ class _WorkspacePageState extends State<WorkspacePage> {
   String? provider, selectedModel;
   String target = '', tab = 'body', notice = '';
   bool loading = true, saving = false;
+  Timer? _snowTimer;
+  bool _oneClickRunning = false;
+  String _oneClickStatus = '';
   final Map<String, TextEditingController> controllers = {};
   TextEditingController control(String key, [dynamic initial]) =>
       controllers.putIfAbsent(
@@ -54,12 +57,43 @@ class _WorkspacePageState extends State<WorkspacePage> {
   void initState() {
     super.initState();
     unawaited(load());
+    if (widget.page == 'snow') {
+      _startSnowTimer();
+    }
   }
 
   @override
   void dispose() {
+    _snowTimer?.cancel();
     if (!saving) releaseControllers();
     super.dispose();
+  }
+
+  void _startSnowTimer() {
+    _snowTimer?.cancel();
+    unawaited(_fetchSnowStatus());
+    _snowTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) unawaited(_fetchSnowStatus());
+    });
+  }
+
+  Future<void> _fetchSnowStatus() async {
+    if (widget.account == null) return;
+    try {
+      final result = object(
+        await widget.core.request(
+          '/status',
+          query: {'account': widget.account!},
+        ),
+      );
+      if (mounted) {
+        redraw(() {
+          data['snowluma'] = result['snowluma'];
+          data['onebot'] = result['onebot'];
+          data['qqPortable'] = result['qqPortable'];
+        });
+      }
+    } catch (_) {}
   }
 
   void redraw(VoidCallback update) {
@@ -1871,148 +1905,13 @@ class _WorkspacePageState extends State<WorkspacePage> {
       }),
     ],
   );
-  Widget snowPage() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      const Divider(height: 40),
-      heading('SnowLuma 管理', 'QQAF 安装包未内置组件；可在此获取官方完整包并安装。'),
-      _snowStatusPanel(),
-      const SizedBox(height: 16),
-      SnowDownloadPanel(
-        core: widget.core,
-        account: widget.account!,
-        installed: (directory) {
-          if (mounted) {
-            redraw(() {
-              control('snow-dir').text = directory;
-              widget.onSnowInstalled?.call();
-              config['snowluma'] = {
-                ...object(config['snowluma']),
-                'dir': directory,
-              };
-            });
-          }
-        },
-      ),
-      const Text('已有组件也可手动填写目录；安装后默认识别程序根目录的 Snowluma。启动由你控制。'),
-      button('获取官方 SnowLuma', () async {
-        await DesktopBridge.openUrl(
-          'https://github.com/SnowLuma/SnowLuma/releases',
-        );
-      }),
-      input('SnowLuma 目录', 'snow-dir', object(config['snowluma'])['dir']),
-      button('保存组件目录', () async {
-        final snow = {
-          ...object(config['snowluma']),
-          'dir': control('snow-dir').text.trim(),
-        };
-        config['snowluma'] = snow;
-        await saveConfig({'snowluma': snow});
-      }),
-      Wrap(
-        spacing: 8,
-        children: [
-          button('检测状态', () async {
-            final result = object(await get('/snow/status'));
-            if (mounted) {
-              redraw(() {
-                data = result;
-                notice = result['available'] == false
-                    ? '${result['message']}'
-                    : result['listening'] == true
-                    ? 'WebUI 端口已就绪 · ${result['directory']}'
-                    : '组件已找到，尚未启动 · ${result['directory']}';
-              });
-            }
-          }),
-          button('启动 SnowLuma', () async {
-            final result = await post('/snow/launch', {
-              'account': widget.account,
-            });
-            if (mounted) redraw(() => notice = '$result');
-          }),
-          button('停止本实例启动的组件', () async {
-            if (!await confirm('停止本实例启动的 SnowLuma？')) return;
-            await post('/snow/stop', {'account': widget.account});
-            if (mounted) redraw(() => notice = '已停止');
-          }),
-          button('打开 WebUI', () async {
-            final result = object(await get('/snow/status'));
-            if (result['available'] == false) {
-              if (mounted) redraw(() => notice = '${result['message']}');
-              return;
-            }
-            await DesktopBridge.openUrl('${result['webuiUrl']}');
-          }),
-          button('查看日志', () async {
-            final result = await get('/snow/logs');
-            if (mounted) redraw(() => notice = '${result['text']}');
-          }),
-        ],
-      ),
-    ],
+  // ── Snow page helpers ────────────────────────────────────────────────────
+
+  Widget _statusDot(Color color) => Container(
+    width: 10,
+    height: 10,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
   );
-
-  Widget _snowStatusPanel() {
-    final available = data['available'];
-    final listening = data['listening'] == true;
-    final directory = '${data['directory'] ?? ''}';
-    final webuiUrl = '${data['webuiUrl'] ?? ''}';
-    final logText = '${data['log'] ?? data['message'] ?? ''}';
-
-    Color dotColor;
-    String statusLabel;
-    if (available == false) {
-      dotColor = Colors.red;
-      statusLabel = '未找到组件';
-    } else if (listening) {
-      dotColor = Colors.green;
-      statusLabel = 'WebUI 已就绪';
-    } else if (available == true) {
-      dotColor = Colors.orange;
-      statusLabel = '已找到，未启动';
-    } else {
-      dotColor = Colors.grey;
-      statusLabel = '未检测';
-    }
-
-    return SurfacePanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: dotColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                statusLabel,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          if (directory.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _snowField('目录', directory),
-          ],
-          if (webuiUrl.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            _snowField('地址', webuiUrl),
-          ],
-          if (logText.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _SnowLogSection(logText: logText),
-          ],
-        ],
-      ),
-    );
-  }
 
   Widget _snowField(String label, String value) => Padding(
     padding: const EdgeInsets.only(bottom: 2),
@@ -2020,13 +1919,10 @@ class _WorkspacePageState extends State<WorkspacePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 40,
+          width: 48,
           child: Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).hintColor,
-            ),
+            style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
           ),
         ),
         const SizedBox(width: 8),
@@ -2036,6 +1932,338 @@ class _WorkspacePageState extends State<WorkspacePage> {
       ],
     ),
   );
+
+  // One-click launch: QQ → wait 3s → SL → poll 30s for OneBot
+  Future<void> _oneClickLaunch() async {
+    if (_oneClickRunning) return;
+    redraw(() {
+      _oneClickRunning = true;
+      _oneClickStatus = '正在启动…';
+    });
+    try {
+      final qq = object(data['qqPortable']);
+      if (qq['running'] != true && qq['ready'] == true) {
+        redraw(() => _oneClickStatus = '正在启动便携 QQ…');
+        await post('/qq-portable/launch', {'account': widget.account});
+        await Future<void>.delayed(const Duration(seconds: 3));
+      }
+      final sl = object(data['snowluma']);
+      if (sl['running'] != true) {
+        redraw(() => _oneClickStatus = '正在启动 SnowLuma…');
+        await post('/snow/launch', {'account': widget.account});
+      }
+      redraw(() => _oneClickStatus = '等待 OneBot 连接…');
+      for (var i = 0; i < 30; i++) {
+        await Future<void>.delayed(const Duration(seconds: 1));
+        await _fetchSnowStatus();
+        if (object(data['onebot'])['connected'] == true) {
+          redraw(() => _oneClickStatus = 'OneBot 已连接');
+          return;
+        }
+      }
+      redraw(() => _oneClickStatus = '超时：OneBot 未连接，请手动检查日志');
+    } catch (e) {
+      redraw(() => _oneClickStatus = '启动失败：$e');
+    } finally {
+      redraw(() => _oneClickRunning = false);
+    }
+  }
+
+  // ── Main snow page ────────────────────────────────────────────────────────
+
+  Widget snowPage() {
+    final sl = object(data['snowluma']);
+    final ob = object(data['onebot']);
+    final qq = object(data['qqPortable']);
+    final obConnected = ob['connected'] == true;
+
+    // Derive quick-start hint
+    String quickHint;
+    if (qq['ready'] != true) {
+      quickHint = '未设置便携 QQ 目录，或目录中缺少 QQ.exe';
+    } else if (qq['running'] != true) {
+      quickHint = '便携 QQ 未运行，点击一键启动可自动依次启动';
+    } else if (sl['running'] != true) {
+      quickHint = 'QQ 已运行，等待启动 SnowLuma…';
+    } else if (!obConnected) {
+      quickHint = 'SnowLuma 已启动，等待 OneBot 连接…';
+    } else {
+      quickHint = 'OneBot 已连接';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Quick-start area ─────────────────────────────────────────────
+        if (!obConnected) ...[
+          SurfacePanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _statusDot(Colors.orange),
+                    const SizedBox(width: 8),
+                    Text(
+                      'OneBot 未连接',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(quickHint, style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    FilledButton.icon(
+                      onPressed: (_oneClickRunning || saving) ? null : _oneClickLaunch,
+                      icon: _oneClickRunning
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.play_arrow, size: 16),
+                      label: const Text('一键启动'),
+                    ),
+                    if (_oneClickStatus.isNotEmpty) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _oneClickStatus,
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // ── Portable QQ card ─────────────────────────────────────────────
+        _QqPortableCard(
+          status: qq,
+          logFetcher: () async {
+            final r = object(await get('/qq-portable/logs'));
+            return '${r['text'] ?? ''}';
+          },
+          onLaunch: saving
+              ? null
+              : () => run(() async {
+                  await post('/qq-portable/launch', {'account': widget.account});
+                  await _fetchSnowStatus();
+                }),
+          onStop: (qq['running'] != true || saving)
+              ? null
+              : () => run(() async {
+                  await post('/qq-portable/stop', {'account': widget.account});
+                  await _fetchSnowStatus();
+                }),
+        ),
+        const SizedBox(height: 12),
+
+        // ── SnowLuma card ─────────────────────────────────────────────────
+        SurfacePanel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // SL running state
+              Row(
+                children: [
+                  _statusDot(
+                    sl['running'] == true
+                        ? Colors.green
+                        : sl['available'] == true
+                        ? Colors.orange
+                        : Colors.grey,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    sl['running'] == true
+                        ? 'SnowLuma 运行中${sl['pid'] != null ? ' (PID ${sl['pid']})' : ''}'
+                        : sl['available'] == true
+                        ? 'SnowLuma 未启动'
+                        : '未找到 SnowLuma',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              // OneBot connection state
+              Row(
+                children: [
+                  _statusDot(obConnected ? Colors.green : Colors.grey),
+                  const SizedBox(width: 8),
+                  Text(
+                    obConnected
+                        ? 'OneBot 已连接'
+                        : '${ob['error'] ?? 'OneBot 未连接'}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+              if ('${sl['dir'] ?? ''}'.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _snowField('目录', '${sl['dir']}'),
+              ],
+              if ('${sl['webuiUrl'] ?? ''}'.isNotEmpty)
+                _snowField('地址', '${sl['webuiUrl']}'),
+              const SizedBox(height: 10),
+              // Button row
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  button('启动 SnowLuma', () async {
+                    final r = object(
+                      await post('/snow/launch', {'account': widget.account}),
+                    );
+                    redraw(() => notice = r['alreadyRunning'] == true ? '已在运行' : '已启动');
+                    await _fetchSnowStatus();
+                  }),
+                  button('停止本实例', () async {
+                    if (!await confirm('停止本实例启动的 SnowLuma？')) return;
+                    await post('/snow/stop', {'account': widget.account});
+                    redraw(() => notice = '已停止');
+                    await _fetchSnowStatus();
+                  }),
+                  button('打开 WebUI', () async {
+                    final url = '${sl['webuiUrl'] ?? ''}';
+                    if (url.isEmpty) {
+                      redraw(() => notice = 'SnowLuma 尚未启动');
+                      return;
+                    }
+                    await DesktopBridge.openUrl(url);
+                  }),
+                  button('打开目录', () async {
+                    await post('/snow/open-folder', {'account': widget.account});
+                  }),
+                  OutlinedButton.icon(
+                    onPressed: saving ? null : () => run(_fetchSnowStatus),
+                    icon: const Icon(Icons.refresh, size: 14),
+                    label: const Text('刷新状态'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // SL log
+              _SnowLogSection(
+                label: 'SnowLuma 日志',
+                logFetcher: () async {
+                  final r = object(await get('/snow/logs'));
+                  return '${r['text'] ?? ''}';
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Config area ───────────────────────────────────────────────────
+        FoldPanel(
+          title: '配置',
+          subtitle: 'SnowLuma 目录、便携 QQ 目录、OneBot 连接',
+          icon: Icons.settings_outlined,
+          children: [
+            SnowDownloadPanel(
+              core: widget.core,
+              account: widget.account!,
+              installed: (directory) {
+                if (mounted) {
+                  redraw(() {
+                    control('snow-dir').text = directory;
+                    widget.onSnowInstalled?.call();
+                    config['snowluma'] = {
+                      ...object(config['snowluma']),
+                      'dir': directory,
+                    };
+                  });
+                }
+              },
+            ),
+            button('获取官方 SnowLuma', () async {
+              await DesktopBridge.openUrl('https://github.com/SnowLuma/SnowLuma/releases');
+            }),
+            const SizedBox(height: 8),
+            input('SnowLuma 目录', 'snow-dir', object(config['snowluma'])['dir']),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: button('保存 SL 目录', () async {
+                final snow = {
+                  ...object(config['snowluma']),
+                  'dir': control('snow-dir').text.trim(),
+                };
+                config['snowluma'] = snow;
+                await saveConfig({'snowluma': snow});
+              }),
+            ),
+            const SizedBox(height: 12),
+            input(
+              '便携 QQ 目录',
+              'portable-qq-dir',
+              object(config['qqPortable'])['dir'],
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: button('保存 QQ 目录', () async {
+                final dir = control('portable-qq-dir').text.trim();
+                await saveConfig({'qqPortable': {'dir': dir}});
+                redraw(() => config['qqPortable'] = {'dir': dir});
+              }),
+            ),
+            const SizedBox(height: 12),
+            input(
+              'OneBot WS 地址',
+              'ob-ws-url',
+              object(config['snowluma'])['wsUrl'],
+            ),
+            input(
+              'OneBot Access Token',
+              'ob-token',
+              '',
+              secret: true,
+            ),
+            Wrap(
+              spacing: 8,
+              children: [
+                button('连接 OneBot', () async {
+                  await post('/onebot/connect', {
+                    'account': widget.account,
+                    'address': control('ob-ws-url').text.trim(),
+                    'access_token': control('ob-token').text.trim(),
+                  });
+                  redraw(() => notice = '连接中…');
+                  await _fetchSnowStatus();
+                }),
+                button('断开 OneBot', () async {
+                  await post('/onebot/disconnect', {'account': widget.account});
+                  await _fetchSnowStatus();
+                }),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SettingSwitchTile(
+              title: const Text('自动启动 SnowLuma'),
+              subtitle: const Text('启动 QQAF 时自动启动 SnowLuma'),
+              value: object(config['snowluma'])['autoLaunch'] == true,
+              onChanged: (v) => run(() async {
+                await saveConfig({'snowluma': {'autoLaunch': v}});
+                redraw(() {
+                  config['snowluma'] = {
+                    ...object(config['snowluma']),
+                    'autoLaunch': v,
+                  };
+                });
+              }),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
   Widget desktopPage() {
     if (widget.page == 'personalize') {
       return Column(
@@ -2625,55 +2853,226 @@ class _WorkspacePageState extends State<WorkspacePage> {
   }
 }
 
+class _QqPortableCard extends StatefulWidget {
+  const _QqPortableCard({
+    required this.status,
+    required this.logFetcher,
+    required this.onLaunch,
+    required this.onStop,
+  });
+  final JsonMap status;
+  final Future<String> Function() logFetcher;
+  final VoidCallback? onLaunch;
+  final VoidCallback? onStop;
+  @override
+  State<_QqPortableCard> createState() => _QqPortableCardState();
+}
+
+class _QqPortableCardState extends State<_QqPortableCard> {
+  String _log = '';
+  bool _logLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final running = widget.status['running'] == true;
+    final ready = widget.status['ready'] == true;
+    final pid = widget.status['pid'];
+    final dir = '${widget.status['dir'] ?? ''}';
+
+    Color dotColor;
+    String label;
+    if (!ready) {
+      dotColor = Colors.red;
+      label = '未设置便携 QQ 目录';
+    } else if (running) {
+      dotColor = Colors.green;
+      label = '运行中${pid != null ? ' (PID $pid)' : ''}';
+    } else {
+      dotColor = Colors.grey;
+      label = '未启动';
+    }
+
+    return SurfacePanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '便携 QQ · $label',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          if (dir.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 48,
+                  child: Text(
+                    '目录',
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SelectableText(dir, style: const TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              OutlinedButton(
+                onPressed: widget.onLaunch,
+                child: const Text('启动 QQ'),
+              ),
+              OutlinedButton(
+                onPressed: widget.onStop,
+                child: const Text('关闭 QQ'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _logLoading
+                    ? null
+                    : () async {
+                        setState(() => _logLoading = true);
+                        try {
+                          final text = await widget.logFetcher();
+                          setState(() => _log = text);
+                        } finally {
+                          setState(() => _logLoading = false);
+                        }
+                      },
+                icon: _logLoading
+                    ? const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.article_outlined, size: 14),
+                label: const Text('QQ 日志'),
+              ),
+            ],
+          ),
+          if (_log.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _SnowLogSection(label: 'QQ 日志', logFetcher: widget.logFetcher, initialText: _log),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _SnowLogSection extends StatefulWidget {
-  const _SnowLogSection({required this.logText});
-  final String logText;
+  const _SnowLogSection({
+    required this.label,
+    required this.logFetcher,
+    this.initialText = '',
+  });
+  final String label;
+  final Future<String> Function() logFetcher;
+  final String initialText;
   @override
   State<_SnowLogSection> createState() => _SnowLogSectionState();
 }
 
 class _SnowLogSectionState extends State<_SnowLogSection> {
   bool _expanded = false;
+  bool _loading = false;
+  late String _text;
+
+  @override
+  void initState() {
+    super.initState();
+    _text = widget.initialText;
+    if (_text.isEmpty) _refresh();
+  }
+
+  Future<void> _refresh() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      final text = await widget.logFetcher();
+      if (mounted) setState(() => _text = text);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final lines = widget.logText.split('\n');
-    final preview = lines.take(3).join('\n');
+    final lines = _text.split('\n');
+    final displayLines = _expanded
+        ? lines.take(500).toList()
+        : lines.reversed.where((l) => l.isNotEmpty).take(5).toList().reversed.toList();
+    final displayText = displayLines.join('\n');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: Row(
-            children: [
-              Icon(
-                _expanded ? Icons.expand_less : Icons.expand_more,
-                size: 16,
-                color: Theme.of(context).hintColor,
+        Row(
+          children: [
+            InkWell(
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Row(
+                children: [
+                  Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    size: 16,
+                    color: Theme.of(context).hintColor,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _expanded ? '收起 ${widget.label}' : '显示 ${widget.label}（最近 ${lines.where((l) => l.isNotEmpty).length} 行）',
+                    style: TextStyle(fontSize: 12, color: Theme.of(context).hintColor),
+                  ),
+                ],
               ),
-              const SizedBox(width: 4),
-              Text(
-                '日志',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).hintColor,
-                ),
+            ),
+            const Spacer(),
+            if (_loading)
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              IconButton(
+                iconSize: 14,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                tooltip: '刷新日志',
+                onPressed: _refresh,
+                icon: const Icon(Icons.refresh),
               ),
-            ],
-          ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(4),
+        if (_expanded || _text.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: SelectableText(
+              displayText.isEmpty ? '（暂无日志）' : displayText,
+              style: const TextStyle(fontSize: 11, fontFamily: 'Consolas'),
+            ),
           ),
-          child: SelectableText(
-            _expanded ? widget.logText : preview,
-            style: const TextStyle(fontSize: 11, fontFamily: 'Consolas'),
-          ),
-        ),
+        ],
       ],
     );
   }

@@ -18,6 +18,7 @@ use std::{
 #[derive(Clone, Default)]
 pub struct Manager {
     children: Arc<Mutex<HashMap<PathBuf, Child>>>,
+    qq_children: Arc<Mutex<HashMap<String, Child>>>,
 }
 type ResultJson = Result<Json<Value>, (axum::http::StatusCode, Json<Value>)>;
 fn error(e: impl Into<String>) -> (axum::http::StatusCode, Json<Value>) {
@@ -127,6 +128,11 @@ pub fn routes() -> Router<Core> {
         .route("/snow/launch", post(launch))
         .route("/snow/stop", post(stop))
         .route("/snow/logs", get(logs))
+        .route("/snow/open-folder", post(open_folder))
+        .route("/qq-portable/launch", post(qq_launch))
+        .route("/qq-portable/stop", post(qq_stop))
+        .route("/qq-portable/logs", get(qq_logs))
+        .route("/qq-portable/status", get(qq_status))
         .route("/updates/check", post(update))
 }
 async fn status(State(core): State<Core>, Query(a): Query<Account>) -> ResultJson {
@@ -249,6 +255,260 @@ async fn logs(State(core): State<Core>, Query(a): Query<Account>) -> ResultJson 
     };
     Ok(Json(json!({"text":text})))
 }
+async fn open_folder(State(core): State<Core>, Json(a): Json<Account>) -> ResultJson {
+    let cfg = workspace::load(&core.databases, &a.account)
+        .await
+        .map_err(error)?;
+    let dir = directory(&cfg).map_err(error)?;
+    #[cfg(windows)]
+    std::process::Command::new("explorer.exe")
+        .arg(&dir)
+        .spawn()
+        .map_err(|_| error("打开目录失败"))?;
+    Ok(Json(json!({"ok":true})))
+}
+
+fn find_qq_exe(dir: &std::path::Path) -> Option<std::path::PathBuf> {
+    for name in ["QQ.exe", "qq.exe"] {
+        let p = dir.join(name);
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.filter_map(Result::ok) {
+            let p = entry.path();
+            if p.extension().and_then(|e| e.to_str()).map(|e| e.eq_ignore_ascii_case("exe")) == Some(true) {
+                return Some(p);
+            }
+        }
+    }
+    None
+}
+
+fn qq_portable_dir(cfg: &Value) -> Result<std::path::PathBuf, String> {
+    let dir = cfg["qqPortable"]["dir"]
+        .as_str()
+        .filter(|v| !v.trim().is_empty())
+        .ok_or_else(|| "未设置便携 QQ 目录".to_string())?;
+    let path = std::path::PathBuf::from(dir);
+    if !path.is_dir() {
+        return Err("便携 QQ 目录不存在".into());
+    }
+    Ok(path)
+}
+
+async fn qq_launch(State(core): State<Core>, Json(a): Json<Account>) -> ResultJson {
+    let cfg = workspace::load(&core.databases, &a.account)
+        .await
+        .map_err(error)?;
+    let dir = qq_portable_dir(&cfg).map_err(|e| error(e))?;
+    let exe = find_qq_exe(&dir).ok_or_else(|| error("在便携 QQ 目录中未找到可执行文件"))?;
+    let mut children = core.snow.qq_children.lock().map_err(|_| error("进程锁失败"))?;
+    if let Some(child) = children.get_mut(&a.account) {
+        if child.try_wait().ok().flatten().is_none() {
+            return Ok(Json(json!({"ok":true,"alreadyRunning":true,"pid":child.id()})));
+        }
+    }
+    let log_path = core
+        .data_root
+        .join("accounts")
+        .join(&a.account)
+        .join("qq-portable.log");
+    std::fs::create_dir_all(log_path.parent().unwrap()).map_err(|_| error("日志目录创建失败"))?;
+    let output = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .map_err(|_| error("日志打开失败"))?;
+    let mut command = std::process::Command::new(&exe);
+    command
+        .current_dir(&dir)
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(output.try_clone().map_err(|_| error("日志打开失败"))?))
+        .stderr(Stdio::from(output));
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+    let child = command.spawn().map_err(|_| error("便携 QQ 启动失败"))?;
+    let pid = child.id();
+    children.insert(a.account, child);
+    Ok(Json(json!({"ok":true,"pid":pid})))
+}
+
+async fn qq_stop(State(core): State<Core>, Json(a): Json<Account>) -> ResultJson {
+    let mut children = core.snow.qq_children.lock().map_err(|_| error("进程锁失败"))?;
+    if let Some(mut child) = children.remove(&a.account) {
+        if child.try_wait().ok().flatten().is_none() {
+            child.kill().map_err(|_| error("停止失败"))?;
+            let _ = child.wait();
+        }
+    }
+    Ok(Json(json!({"ok":true})))
+}
+
+async fn qq_logs(State(core): State<Core>, Query(a): Query<Account>) -> ResultJson {
+    workspace::load(&core.databases, &a.account)
+        .await
+        .map_err(error)?;
+    let file = core
+        .data_root
+        .join("accounts")
+        .join(&a.account)
+        .join("qq-portable.log");
+    let text = if let Ok(mut f) = std::fs::File::open(file) {
+        let len = f.metadata().map_err(|_| error("日志读取失败"))?.len();
+        let _ = f.seek(SeekFrom::Start(len.saturating_sub(65536)));
+        let mut bytes = Vec::new();
+        f.take(65536)
+            .read_to_end(&mut bytes)
+            .map_err(|_| error("日志读取失败"))?;
+        String::from_utf8_lossy(&bytes).into_owned()
+    } else {
+        String::new()
+    };
+    Ok(Json(json!({"text":text})))
+}
+
+async fn qq_status(State(core): State<Core>, Query(a): Query<Account>) -> ResultJson {
+    let cfg = workspace::load(&core.databases, &a.account)
+        .await
+        .map_err(error)?;
+    let dir_result = qq_portable_dir(&cfg);
+    let dir_str = dir_result
+        .as_ref()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let ready = dir_result.as_ref().map(|d| find_qq_exe(d).is_some()).unwrap_or(false);
+    let mut children = core.snow.qq_children.lock().map_err(|_| error("进程锁失败"))?;
+    let (running, pid) = if let Some(child) = children.get_mut(&a.account) {
+        if child.try_wait().ok().flatten().is_none() {
+            (true, Some(child.id()))
+        } else {
+            (false, None)
+        }
+    } else {
+        (false, None)
+    };
+    Ok(Json(json!({"ready":ready,"running":running,"pid":pid,"dir":dir_str})))
+}
+
+pub async fn snow_account_status(core: &Core, account: &str) -> Value {
+    let cfg = match workspace::load(&core.databases, account).await {
+        Ok(c) => c,
+        Err(e) => {
+            return json!({"available":false,"listening":false,"ownedPid":null,"running":false,"pid":null,"dir":"","webuiUrl":"","message":e});
+        }
+    };
+    let dir = match directory(&cfg) {
+        Ok(d) => d,
+        Err(message) => {
+            return json!({"available":false,"listening":false,"ownedPid":null,"running":false,"pid":null,"dir":"","webuiUrl":"","embedded":false,"message":message});
+        }
+    };
+    let p = port(&dir);
+    let is_listening = listening(p).await;
+    let dir_str = dir.to_string_lossy().into_owned();
+    let webui = format!("http://127.0.0.1:{p}/");
+    let pid = match core.snow.children.lock() {
+        Ok(mut children) => children.get_mut(&dir).and_then(|c| {
+            if c.try_wait().ok().flatten().is_none() { Some(c.id()) } else { None }
+        }),
+        Err(_) => None,
+    };
+    json!({
+        "available": true,
+        "running": pid.is_some(),
+        "pid": pid,
+        "ownedPid": pid,
+        "dir": dir_str,
+        "webuiUrl": webui,
+        "listening": is_listening,
+        "embedded": false
+    })
+}
+
+pub async fn qq_portable_account_status(core: &Core, account: &str) -> Value {
+    let cfg = match workspace::load(&core.databases, account).await {
+        Ok(c) => c,
+        Err(_) => return json!({"ready":false,"running":false,"pid":null,"dir":""}),
+    };
+    let dir_result = qq_portable_dir(&cfg);
+    let dir_str = dir_result
+        .as_ref()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let ready = dir_result.as_ref().map(|d| find_qq_exe(d).is_some()).unwrap_or(false);
+    let (running, pid) = match core.snow.qq_children.lock() {
+        Ok(mut children) => {
+            if let Some(child) = children.get_mut(account) {
+                if child.try_wait().ok().flatten().is_none() {
+                    (true, Some(child.id()))
+                } else {
+                    (false, None)
+                }
+            } else {
+                (false, None)
+            }
+        }
+        Err(_) => (false, None),
+    };
+    json!({"ready":ready,"running":running,"pid":pid,"dir":dir_str})
+}
+
+pub async fn launch_for_account(core: &Core, account: &str) -> Result<(), String> {
+    let cfg = workspace::load(&core.databases, account).await?;
+    let dir = directory(&cfg)?;
+    if listening(port(&dir)).await {
+        return Ok(());
+    }
+    let node = dir.join("node.exe");
+    let entry = dir.join("index.mjs");
+    if !node.is_file() || !entry.is_file() {
+        return Err("SnowLuma 组件不完整".into());
+    }
+    let mut children = core
+        .snow
+        .children
+        .lock()
+        .map_err(|_| "进程锁失败".to_string())?;
+    if let Some(child) = children.get_mut(&dir) {
+        if child.try_wait().ok().flatten().is_none() {
+            return Ok(());
+        }
+    }
+    let logs = core
+        .data_root
+        .join("accounts")
+        .join(account)
+        .join("snowluma.log");
+    std::fs::create_dir_all(logs.parent().unwrap()).map_err(|_| "日志目录创建失败")?;
+    let output = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&logs)
+        .map_err(|_| "日志打开失败")?;
+    let mut command = Command::new(node);
+    command
+        .arg(entry)
+        .current_dir(&dir)
+        .stdin(Stdio::null())
+        .stdout(Stdio::from(
+            output.try_clone().map_err(|_| "日志打开失败")?,
+        ))
+        .stderr(Stdio::from(output));
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
+    let child = command.spawn().map_err(|_| "SnowLuma 启动失败")?;
+    children.insert(dir, child);
+    Ok(())
+}
+
 #[derive(Deserialize)]
 struct Update {
     account: String,
