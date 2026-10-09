@@ -129,9 +129,10 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
-  test('window close defaults to taskbar and supports explicit actions', () {
-    expect(closeAction({}), 'taskbar');
+  test('window close defaults to tray and supports explicit actions', () {
+    expect(closeAction({}), 'tray');
     expect(closeAction({'closeToTray': true}), 'tray');
+    expect(closeAction({'closeToTray': false}), 'taskbar');
     expect(closeAction({'closeAction': 'exit'}), 'exit');
     expect(closeAction({'closeAction': 'taskbar'}), 'taskbar');
   });

@@ -46,7 +46,12 @@ Future<void> main() async {
 String closeAction(Map prefs) {
   final action = prefs['closeAction'];
   if (['taskbar', 'tray', 'exit'].contains(action)) return action as String;
-  return prefs['closeToTray'] == true ? 'tray' : 'taskbar';
+  // Legacy boolean field — respect it when explicitly set.
+  if (prefs.containsKey('closeToTray')) {
+    return prefs['closeToTray'] == true ? 'tray' : 'taskbar';
+  }
+  // Default: hide to system notification area (right-click tray icon to exit).
+  return 'tray';
 }
 
 class CoreLifecycle extends StatefulWidget {
@@ -94,7 +99,7 @@ class _CoreLifecycleState extends State<CoreLifecycle> with WindowListener {
         await windowManager.hide();
         return;
       } catch (_) {
-        /* Keep the app reachable on the taskbar if tray creation fails. */
+        /* Tray creation failed — fall through to minimize so the window stays reachable. */
       }
     }
     await windowManager.minimize();

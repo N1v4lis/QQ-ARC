@@ -2338,13 +2338,16 @@ class _WorkspacePageState extends State<WorkspacePage> {
             dropdown(
               '关闭窗口时',
               data['closeAction'] as String? ??
-                  (data['closeToTray'] == true ? 'tray' : 'taskbar'),
+                  (data['closeToTray'] == true ? 'tray' : 'tray'),
               [
                 const DropdownMenuItem(
-                  value: 'taskbar',
-                  child: Text('最小化到任务栏（默认）'),
+                  value: 'tray',
+                  child: Text('隐藏到系统托盘（默认）'),
                 ),
-                const DropdownMenuItem(value: 'tray', child: Text('隐藏到系统托盘')),
+                const DropdownMenuItem(
+                  value: 'taskbar',
+                  child: Text('最小化到任务栏'),
+                ),
                 const DropdownMenuItem(value: 'exit', child: Text('退出程序')),
               ],
               (v) => redraw(() => data['closeAction'] = v),
