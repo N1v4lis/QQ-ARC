@@ -64,7 +64,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final core = FakeCore();
-    await tester.pumpWidget(QqafApp(core: core));
+    await tester.pumpWidget(QqafApp(core: core, animateStartup: false));
     await tester.pumpAndSettle();
     expect(find.text('Rust 核心已连接 · 独立迁移数据目录'), findsOneWidget);
     expect(
@@ -112,7 +112,9 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(QqafApp(core: FakeCore(minecraft: true)));
+    await tester.pumpWidget(
+      QqafApp(core: FakeCore(minecraft: true), animateStartup: false),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('收起导航'));
     await tester.pumpAndSettle();

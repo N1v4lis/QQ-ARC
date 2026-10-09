@@ -8,6 +8,7 @@ import 'core_client.dart';
 import 'app_style.dart';
 import 'desktop_bridge.dart';
 import 'price_catalogue.dart';
+import 'desktop_pages.dart';
 
 typedef JsonMap = Map<String, dynamic>;
 JsonMap object(dynamic value) =>
@@ -196,21 +197,42 @@ class _WorkspacePageState extends State<WorkspacePage> {
         onPressed: saving ? null : () => run(operation),
         child: Text(text),
       );
-  Widget columns(Widget left, Widget right) => LayoutBuilder(
-    builder: (context, constraints) => constraints.maxWidth < 780
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [left, const SizedBox(height: 24), right],
-          )
-        : Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: left),
-              const SizedBox(width: 20),
-              Expanded(child: right),
-            ],
-          ),
-  );
+  Widget columns(Widget left, Widget right, {bool bounded = false}) =>
+      LayoutBuilder(
+        builder: (context, constraints) => constraints.maxWidth < 780
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [left, const SizedBox(height: 24), right],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: bounded
+                        ? SizedBox(
+                            height: 450,
+                            child: ListView(
+                              padding: const EdgeInsets.all(4),
+                              children: [left],
+                            ),
+                          )
+                        : left,
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: bounded
+                        ? SizedBox(
+                            height: 450,
+                            child: ListView(
+                              padding: const EdgeInsets.all(4),
+                              children: [right],
+                            ),
+                          )
+                        : right,
+                  ),
+                ],
+              ),
+      );
   Widget section(String title, List<Widget> children) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [heading(title), ...children],
@@ -244,6 +266,15 @@ class _WorkspacePageState extends State<WorkspacePage> {
       );
     }
     if (loading) return const Center(child: CircularProgressIndicator());
+    if (widget.page == 'persona') {
+      return CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyS, control: true): () =>
+              unawaited(run(() => commitPersona(tab))),
+        },
+        child: Focus(autofocus: true, child: personaPage()),
+      );
+    }
     final content = switch (widget.page) {
       'api' => apiPage(),
       'archive' => archivePage(),
@@ -369,140 +400,224 @@ class _WorkspacePageState extends State<WorkspacePage> {
       });
     }
 
-    final left = section('提供商与模型目录', [
-      Row(
-        children: [
-          Expanded(
-            child: dropdown('提供商', provider, [
-              for (final p in providers)
-                DropdownMenuItem(
-                  value: '${p['id']}',
-                  child: Text('${p['name'] ?? p['id']}'),
+    final activeId = selectedParts.length == 2 ? selectedParts[1] : '';
+    final activeProvider = object(selectedProvider);
+    final activeModels = activeProvider['models'] as List? ?? [];
+    final activeEntry = activeModels
+        .where((m) => (m is String ? m : m['id']) == activeId)
+        .firstOrNull;
+    String capability(dynamic value) => value == true
+        ? '支持'
+        : value == false
+        ? '不支持'
+        : '未知';
+    final providerList = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        button('+ 添加提供商', () async {
+          final name = await ask('提供商名称');
+          if (name == null || name.isEmpty) return;
+          final id = 'provider-${DateTime.now().microsecondsSinceEpoch}';
+          redraw(() {
+            config['providers'] = [
+              ...providers,
+              {'id': id, 'name': name, 'baseUrl': '', 'models': []},
+            ];
+            provider = id;
+          });
+          await saveConfig({'providers': providers});
+        }),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 330,
+          child: ListView(
+            padding: const EdgeInsets.all(4),
+            children: [
+              for (final item in providers)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Material(
+                    color: provider == item['id']
+                        ? Theme.of(context).colorScheme.primary
+                              .withValues(alpha: .12)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    child: InkWell(
+                      onTap: () => redraw(() => provider = '${item['id']}'),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          '${item['name'] ?? item['id']}',
+                          style: const TextStyle(fontSize: 11),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-            ], (value) => redraw(() => provider = value)),
+            ],
           ),
-          const SizedBox(width: 8),
-          button('+', () async {
-            final name = await ask('提供商名称');
-            if (name == null || name.isEmpty) return;
-            final id = 'provider-${DateTime.now().microsecondsSinceEpoch}';
-            redraw(() {
-              config['providers'] = [
-                ...providers,
-                {'id': id, 'name': name, 'baseUrl': '', 'models': []},
-              ];
-              provider = id;
-            });
-            await saveConfig({'providers': providers});
-          }),
-        ],
-      ),
-      if (provider != null) ...[
-        input('Base URL', 'base:$provider', p['baseUrl']),
-        input('API Key', 'key:$provider', '', secret: true),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            button('保存连接', () async {
-              for (final item in providers) {
-                if (item['id'] == provider) {
-                  item['baseUrl'] = control('base:$provider').text.trim();
-                }
-              }
-              await saveConfig({'providers': providers});
-              if (control('key:$provider').text.isNotEmpty) {
-                await post('/credentials', {
-                  'account': widget.account,
-                  'slot': provider,
-                  'value': control('key:$provider').text,
-                });
-                control('key:$provider').clear();
-              }
-            }),
-            button('清除密钥', () async {
-              if (await confirm('清除该提供商密钥？')) {
-                await post('/credentials', {
-                  'account': widget.account,
-                  'slot': provider,
-                  'value': '',
-                });
-              }
-            }),
-            button('删除提供商', () async {
-              if (!await confirm('删除提供商及目录？')) return;
-              redraw(() {
-                config['providers'] = providers
-                    .where((v) => v['id'] != provider)
-                    .toList();
-                provider = providers.isEmpty
-                    ? null
-                    : '${providers.first['id']}';
-              });
-              await saveConfig({'providers': providers});
-            }),
-          ],
         ),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          children: [
-            button('添加模型', () async {
-              final id = await ask('模型 ID');
-              if (id == null || id.isEmpty) return;
-              if (models.any((m) => (m is String ? m : m['id']) == id)) return;
-              p['models'] = [
-                ...models,
-                {'id': id, 'name': id},
-              ];
-              for (final item in providers) {
-                if (item['id'] == provider) {
-                  item['models'] = p['models'];
-                }
-              }
-              await saveConfig({'providers': providers});
-              redraw(() {});
-            }),
-            button('拉取模型列表', () async {
-              final result = await post('/providers/fetch-models', {
-                'account': widget.account,
-                'provider': provider,
-              });
-              for (final item in providers) {
-                if (item['id'] == provider) {
-                  item['models'] = result;
-                }
-              }
-              redraw(() {});
-            }),
-          ],
-        ),
-        for (final m in models)
-          ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            title: Text('${m is String ? m : m['name'] ?? m['id']}'),
-            subtitle: Text(
-              '图片：${m is Map && m['vision'] == true ? '支持' : '未知'} · 视频：${m is Map && m['video'] == true ? '支持' : '未知'}',
-            ),
-            leading: ModelLogo('${m is String ? m : m['id']}'),
-            trailing: IconButton(
-              icon: const Icon(Icons.delete_outline, size: 18),
-              onPressed: saving
-                  ? null
-                  : () => run(() async {
-                      p['models'] = models.where((v) => v != m).toList();
-                      for (final item in providers) {
-                        if (item['id'] == provider) {
-                          item['models'] = p['models'];
-                        }
-                      }
-                      await saveConfig({'providers': providers});
-                      redraw(() {});
-                    }),
-            ),
-          ),
       ],
+    );
+    final providerForm = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (provider != null) ...[
+          input('Base URL', 'base:$provider', p['baseUrl']),
+          input('API Key', 'key:$provider', '', secret: true),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              button('保存连接', () async {
+                for (final item in providers) {
+                  if (item['id'] == provider) {
+                    item['baseUrl'] = control('base:$provider').text.trim();
+                  }
+                }
+                await saveConfig({'providers': providers});
+                if (control('key:$provider').text.isNotEmpty) {
+                  await post('/credentials', {
+                    'account': widget.account,
+                    'slot': provider,
+                    'value': control('key:$provider').text,
+                  });
+                  control('key:$provider').clear();
+                }
+              }),
+              button('清除密钥', () async {
+                if (await confirm('清除该提供商密钥？')) {
+                  await post('/credentials', {
+                    'account': widget.account,
+                    'slot': provider,
+                    'value': '',
+                  });
+                }
+              }),
+              button('删除提供商', () async {
+                if (!await confirm('删除提供商及目录？')) return;
+                redraw(() {
+                  config['providers'] = providers
+                      .where((v) => v['id'] != provider)
+                      .toList();
+                  provider = providers.isEmpty
+                      ? null
+                      : '${providers.first['id']}';
+                });
+                await saveConfig({'providers': providers});
+              }),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            children: [
+              button('添加模型', () async {
+                final id = await ask('模型 ID');
+                if (id == null || id.isEmpty) return;
+                if (models.any((m) => (m is String ? m : m['id']) == id)) {
+                  return;
+                }
+                p['models'] = [
+                  ...models,
+                  {'id': id, 'name': id},
+                ];
+                for (final item in providers) {
+                  if (item['id'] == provider) {
+                    item['models'] = p['models'];
+                  }
+                }
+                await saveConfig({'providers': providers});
+                redraw(() {});
+              }),
+              button('拉取模型列表', () async {
+                final result = await post('/providers/fetch-models', {
+                  'account': widget.account,
+                  'provider': provider,
+                });
+                for (final item in providers) {
+                  if (item['id'] == provider) {
+                    item['models'] = result;
+                  }
+                }
+                redraw(() {});
+              }),
+            ],
+          ),
+          for (final m in models)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text('${m is String ? m : m['name'] ?? m['id']}'),
+              subtitle: Text(
+                '图片：${m is Map && m['vision'] == true ? '支持' : '未知'} · 视频：${m is Map && m['video'] == true ? '支持' : '未知'}',
+              ),
+              leading: ModelLogo('${m is String ? m : m['id']}'),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline, size: 18),
+                onPressed: saving
+                    ? null
+                    : () => run(() async {
+                        p['models'] = models.where((v) => v != m).toList();
+                        for (final item in providers) {
+                          if (item['id'] == provider) {
+                            item['models'] = p['models'];
+                          }
+                        }
+                        await saveConfig({'providers': providers});
+                        redraw(() {});
+                      }),
+              ),
+            ),
+        ],
+      ],
+    );
+    final left = section('提供商与模型目录', [
+      LayoutBuilder(
+        builder: (context, box) => box.maxWidth >= 420
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: 112, child: providerList),
+                  const SizedBox(width: 12),
+                  Expanded(child: providerForm),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  dropdown('提供商', provider, [
+                    for (final item in providers)
+                      DropdownMenuItem(
+                        value: '${item['id']}',
+                        child: Text('${item['name'] ?? item['id']}'),
+                      ),
+                  ], (v) => redraw(() => provider = v)),
+                  button('+ 添加提供商', () async {
+                    final name = await ask('提供商名称');
+                    if (name == null || name.isEmpty) return;
+                    final id =
+                        'provider-${DateTime.now().microsecondsSinceEpoch}';
+                    redraw(() {
+                      config['providers'] = [
+                        ...providers,
+                        {'id': id, 'name': name, 'baseUrl': '', 'models': []},
+                      ];
+                      provider = id;
+                    });
+                    await saveConfig({'providers': providers});
+                  }),
+                  const SizedBox(height: 12),
+                  providerForm,
+                ],
+              ),
+      ),
     ]);
     final right = section('模型配置', [
       const Text('选择默认模型；单独配置请在人设中设置。'),
@@ -564,8 +679,36 @@ class _WorkspacePageState extends State<WorkspacePage> {
       children: [
         heading('API与搜索', '模型连接、输入配置、备选顺序与成本统一管理。'),
         const Text('当前文本对话与工具已接通；图片/视频配置按模型保存，媒体执行链路仍在迁移。'),
+        Row(
+          children: [
+            ModelLogo(activeId),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activeId.isEmpty ? '未选择默认模型' : activeId,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '图片：${capability(activeEntry is Map ? activeEntry['vision'] : null)} · 视频：${capability(activeEntry is Map ? activeEntry['video'] : null)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).hintColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 16),
-        columns(left, right),
+        columns(left, right, bounded: true),
         const Divider(height: 40),
         columns(
           section('成本核算', [
@@ -846,160 +989,341 @@ class _WorkspacePageState extends State<WorkspacePage> {
       ...chats.where((c) => !c.startsWith('model:')),
       ...object(config['personaByChat']).keys,
     };
-    return Column(
+    final names = {'body': '角色正文', 'rules': '附加规则', 'identity': '身份与模型设置'};
+    Future<void> choose(String value) async {
+      if (value == target || !await confirm('切换编辑对象？请先保存需要保留的草稿。')) return;
+      await run(() async {
+        target = value;
+        await loadPersona();
+        redraw(() {});
+      });
+    }
+
+    final list = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        heading('人设', '正文、附加规则、身份与模型分别保存；未配置的会话继承默认人设。'),
-        dropdown(
-          '编辑对象',
-          target,
-          [
-            const DropdownMenuItem(value: '', child: Text('默认人设')),
-            for (final chat in directory)
-              DropdownMenuItem(value: chat, child: Text(chat)),
-          ],
-          (value) async {
-            if (await confirm('切换对象？未保存的草稿不会提交。')) {
-              await run(() async {
-                target = value!;
-                await loadPersona();
-                redraw(() {});
-              });
-            }
-          },
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: heading('人设', '选择要编辑的对象'),
         ),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final entry in {
-              'body': '角色正文',
-              'rules': '附加规则',
-              'identity': '身份与模型设置',
-            }.entries)
-              ChoiceChip(
-                label: Text(entry.value),
-                selected: tab == entry.key,
-                onSelected: (_) => redraw(() => tab = entry.key),
-              ),
-            button('全部保存', () async {
-              await commitPersona('all');
-            }),
-          ],
-        ),
-        const SizedBox(height: 20),
-        if (tab == 'body') ...[
-          if (locked) const Text('内置人设正文只读。可复制为自定义模板后修改。'),
-          IgnorePointer(
-            ignoring: locked,
-            child: input('角色正文', 'persona:roleText', '', lines: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: TextField(
+            controller: control('persona-search'),
+            onChanged: (_) => redraw(() {}),
+            decoration: const InputDecoration(hintText: '查找群聊或私聊'),
           ),
-        ],
-        if (tab == 'rules')
-          IgnorePointer(
-            ignoring: locked,
-            child: Column(
-              children: [
-                input('附加规则', 'persona:customRules', '', lines: 6),
-                input('系统提示词覆盖', 'persona:systemPromptOverride', '', lines: 6),
-              ],
-            ),
-          ),
-        if (tab == 'identity') ...[
-          input('人设名称', 'persona:botName', ''),
-          input('群展示名', 'persona:selfNickname', ''),
-          dropdown('参与度', '${persona['participation'] ?? 'medium'}', [
-            for (final entry in {
-              'low': '安静型',
-              'medium': '普通群友',
-              'high': '活跃型',
-            }.entries)
-              DropdownMenuItem(value: entry.key, child: Text(entry.value)),
-          ], (v) => redraw(() => persona['participation'] = v)),
-          if (target.isNotEmpty)
-            dropdown(
-              '当前会话模型',
-              modelValue(
-                object(object(api['apiByChat'])['byChat'])[target] is Map
-                    ? object(object(object(api['apiByChat'])['byChat'])[target])
-                    : {},
-              ),
-              modelItems(empty: true),
-              (value) => redraw(() {
-                final parts = value!.split('|||');
-                final byChat = object(object(api['apiByChat'])['byChat']);
-                byChat[target] = parts.length == 2
-                    ? {'provider': parts[0], 'model': parts[1]}
-                    : {'model': '', 'provider': ''};
-                config['api'] = {
-                  ...api,
-                  'apiByChat': {'byChat': byChat},
-                };
-              }),
-            ),
-        ],
-        Wrap(
-          spacing: 8,
-          children: [
-            button('保存当前栏', () async {
-              await commitPersona(tab);
-            }),
-            dropdownHistory(),
-          ],
         ),
-        const Divider(height: 36),
-        heading('人设库'),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final entry in builtin.entries)
-              button('${entry.value['name']} · 内置', () async {
-                if (!await confirm('选用模板会替换当前草稿，继续？')) return;
-                redraw(() {
-                  persona['templateRef'] = {'id': entry.key, 'builtin': true};
-                  control('persona:roleText').text = '${entry.value['text']}';
-                  control('persona:customRules').clear();
-                  control('persona:systemPromptOverride').clear();
-                });
-              }),
-            for (final entry in custom)
-              button('${entry['name']}', () async {
-                if (!await confirm('选用模板会替换当前草稿，继续？')) return;
-                redraw(() {
-                  persona['templateRef'] = {
-                    'id': entry['id'],
-                    'builtin': false,
-                  };
-                  for (final key in [
-                    'roleText',
-                    'customRules',
-                    'systemPromptOverride',
-                  ]) {
-                    control('persona:$key').text = '${entry[key] ?? ''}';
-                  }
-                });
-              }),
-            button('新建 / 复制草稿为模板', () async {
-              final name = await ask('模板名称');
-              if (name == null || name.isEmpty) return;
-              final item = {
-                'id': 'persona-${DateTime.now().microsecondsSinceEpoch}',
-                'name': name,
-                for (final key in [
-                  'roleText',
-                  'customRules',
-                  'systemPromptOverride',
-                ])
-                  key: control('persona:$key').text,
-              };
-              templates['custom'] = [...custom, item];
-              await post('/persona/templates', templates['custom']);
-              redraw(() {});
-            }),
-          ],
+        const SizedBox(height: 16),
+        Expanded(
+          child: ListView(
+            children: [
+              ListTile(
+                selected: target.isEmpty,
+                title: const Text('默认人设'),
+                subtitle: const Text('所有会话的起点'),
+                onTap: () => choose(''),
+              ),
+              const Divider(),
+              for (final chat in directory.where(
+                (c) => c.contains(control('persona-search').text),
+              ))
+                ListTile(
+                  selected: target == chat,
+                  title: Text(chat, overflow: TextOverflow.ellipsis),
+                  subtitle: Text(chat.startsWith('group:') ? '群聊' : '私聊'),
+                  onTap: () => choose(chat),
+                ),
+            ],
+          ),
         ),
       ],
     );
+    final detail = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      target.isEmpty ? '默认人设' : target,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      locked ? '选用内置人设 · 正文与规则只读' : '正文、附加规则和身份分别保存',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).hintColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              OutlinedButton(
+                onPressed: saving
+                    ? null
+                    : () => run(() => commitPersona('all')),
+                child: const Text('全部保存'),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, box) => Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: ListView(
+                    key: ValueKey('persona-editor:$target:$tab'),
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              names[tab]!,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          button('保存当前栏', () => commitPersona(tab)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      dropdownHistory(),
+                      const SizedBox(height: 20),
+                      if (box.maxWidth < 660)
+                        Wrap(
+                          spacing: 6,
+                          children: [
+                            for (final entry in names.entries)
+                              ChoiceChip(
+                                label: Text(entry.value),
+                                selected: tab == entry.key,
+                                onSelected: (_) =>
+                                    redraw(() => tab = entry.key),
+                              ),
+                          ],
+                        ),
+                      const SizedBox(height: 12),
+                      if (tab == 'body')
+                        TextField(
+                          controller: control('persona:roleText'),
+                          readOnly: locked,
+                          minLines: 15,
+                          maxLines: null,
+                          decoration: const InputDecoration(
+                            labelText: '角色正文',
+                            alignLabelWithHint: true,
+                          ),
+                        ),
+                      if (tab == 'rules') ...[
+                        TextField(
+                          controller: control('persona:customRules'),
+                          readOnly: locked,
+                          minLines: 8,
+                          maxLines: null,
+                          decoration: const InputDecoration(
+                            labelText: '附加规则',
+                            alignLabelWithHint: true,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: control('persona:systemPromptOverride'),
+                          readOnly: locked,
+                          minLines: 8,
+                          maxLines: null,
+                          decoration: const InputDecoration(
+                            labelText: '系统提示词覆盖',
+                            alignLabelWithHint: true,
+                          ),
+                        ),
+                      ],
+                      if (tab == 'identity') ...[
+                        input('人设名称', 'persona:botName', ''),
+                        input('群展示名', 'persona:selfNickname', ''),
+                        section('角色行为', [
+                          dropdown(
+                            '参与度',
+                            '${persona['participation'] ?? 'medium'}',
+                            [
+                              for (final entry in {
+                                'low': '安静型',
+                                'medium': '普通群友',
+                                'high': '活跃型',
+                              }.entries)
+                                DropdownMenuItem(
+                                  value: entry.key,
+                                  child: Text(entry.value),
+                                ),
+                            ],
+                            (v) => redraw(() => persona['participation'] = v),
+                          ),
+                        ]),
+                        const Divider(height: 36),
+                        if (target.startsWith('group:')) ...[
+                          section('群响应档位', [activityEditor(group: true)]),
+                          const Divider(height: 32),
+                        ],
+                        section('模型', [
+                          if (target.isEmpty)
+                            const Text('默认模型在 API 与搜索中配置。')
+                          else
+                            dropdown(
+                              '当前会话模型',
+                              modelValue(
+                                object(
+                                          object(api['apiByChat'])['byChat'],
+                                        )[target]
+                                        is Map
+                                    ? object(
+                                        object(
+                                          object(api['apiByChat'])['byChat'],
+                                        )[target],
+                                      )
+                                    : {},
+                              ),
+                              modelItems(empty: true),
+                              (value) => redraw(() {
+                                final parts = value!.split('|||');
+                                final byChat = object(
+                                  object(api['apiByChat'])['byChat'],
+                                );
+                                byChat[target] = parts.length == 2
+                                    ? {'provider': parts[0], 'model': parts[1]}
+                                    : {'model': '', 'provider': ''};
+                                config['api'] = {
+                                  ...api,
+                                  'apiByChat': {'byChat': byChat},
+                                };
+                              }),
+                            ),
+                        ]),
+                      ],
+                      if (notice.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: SelectableText(notice),
+                        ),
+                      const Divider(height: 32),
+                      ExpansionTile(
+                        title: const Text('选用或新建人设模板'),
+                        children: [
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final entry in builtin.entries)
+                                button(entry.key, () async {
+                                  if (!await confirm('选用内置模板会替换当前正文草稿，继续？')) {
+                                    return;
+                                  }
+                                  redraw(() {
+                                    persona['templateRef'] = {
+                                      'id': entry.key,
+                                      'builtin': true,
+                                    };
+                                    control('persona:roleText').text =
+                                        '${entry.value}';
+                                    control('persona:customRules').clear();
+                                    control('persona:systemPromptOverride')
+                                        .clear();
+                                  });
+                                }),
+                              for (final entry in custom)
+                                button('${entry['name']}', () async {
+                                  if (!await confirm('选用模板会替换当前草稿，继续？')) return;
+                                  redraw(() {
+                                    persona['templateRef'] = {
+                                      'id': entry['id'],
+                                      'builtin': false,
+                                    };
+                                    for (final key in [
+                                      'roleText',
+                                      'customRules',
+                                      'systemPromptOverride',
+                                    ]) {
+                                      control('persona:$key').text =
+                                          '${entry[key] ?? ''}';
+                                    }
+                                  });
+                                }),
+                              button('新建 / 复制草稿为模板', () async {
+                                final name = await ask('模板名称');
+                                if (name == null || name.isEmpty) return;
+                                final item = {
+                                  'id':
+                                      'persona-${DateTime.now().microsecondsSinceEpoch}',
+                                  'name': name,
+                                  for (final key in [
+                                    'roleText',
+                                    'customRules',
+                                    'systemPromptOverride',
+                                  ])
+                                    key: control('persona:$key').text,
+                                };
+                                templates['custom'] = [...custom, item];
+                                await post(
+                                  '/persona/templates',
+                                  templates['custom'],
+                                );
+                                redraw(() {});
+                              }),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (box.maxWidth >= 660)
+                  SizedBox(
+                    width: 155,
+                    child: Material(
+                      color: Theme.of(context).cardColor,
+                      child: ListView(
+                        padding: const EdgeInsets.only(top: 20),
+                        children: [
+                          for (final entry in names.entries)
+                            ListTile(
+                              selected: tab == entry.key,
+                              dense: true,
+                              title: Text(entry.value),
+                              subtitle: Text(
+                                entry.key == 'body'
+                                    ? 'TA 是谁'
+                                    : entry.key == 'rules'
+                                    ? 'TA 如何回应'
+                                    : '称呼、行为与模型',
+                              ),
+                              onTap: () => redraw(() => tab = entry.key),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+    return SplitWorkspace(width: 250, directory: list, detail: detail);
   }
 
   Widget dropdownHistory() => SizedBox(
@@ -1065,6 +1389,20 @@ class _WorkspacePageState extends State<WorkspacePage> {
     if (section == 'identity' || section == 'all') {
       await saveConfig({
         'api': {'apiByChat': api['apiByChat']},
+        if (target.startsWith('group:'))
+          'store': {
+            'unifiedTier': object(config['store'])['unifiedTier'],
+            'groupSliderPos': {
+              target.substring(6): object(
+                object(config['store'])['groupSliderPos'],
+              )[target.substring(6)],
+            },
+            'groupPeakPos': {
+              target.substring(6): object(
+                object(config['store'])['groupPeakPos'],
+              )[target.substring(6)],
+            },
+          },
       });
     }
     // Fetch history without replacing unrelated unsaved controllers.
@@ -1076,41 +1414,102 @@ class _WorkspacePageState extends State<WorkspacePage> {
     });
   }
 
-  Widget whitelistPage() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      heading('聊天白名单', '群聊和私聊按账号隔离。空白名单默认不响应。'),
-      editor('allow', config['allow']),
-      editor('deny', config['deny']),
-      editor('allowAllWhenEmpty', config['allowAllWhenEmpty']),
-      const SizedBox(height: 12),
-      button('从 OneBot 获取群与好友', () async {
-        data = object(await get('/roster'));
-        redraw(() {});
-      }),
-      for (final group in data['groups'] as List? ?? [])
-        CheckboxListTile(
-          title: Text('${group['group_name']}'),
-          subtitle: Text('${group['group_id']}'),
-          value: (object(config['allow'])['groups'] as List? ?? [])
-              .map((v) => '$v')
-              .contains('${group['group_id']}'),
-          onChanged: (value) {
-            final allow = object(config['allow']);
-            final groups = List<dynamic>.from(allow['groups'] as List? ?? []);
-            groups.removeWhere((v) => '$v' == '${group['group_id']}');
-            if (value == true) groups.add('${group['group_id']}');
-            redraw(() => config['allow'] = {...allow, 'groups': groups});
-          },
+  Widget whitelistPage() {
+    Widget roster(
+      String title,
+      String field,
+      String idField,
+      String nameField,
+      List<dynamic> list,
+    ) => SurfacePanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          heading(title),
+          if (list.isEmpty) const Text('尚未加载名单。请连接 OneBot 后获取群与好友。'),
+          for (final item in list)
+            CheckboxListTile(
+              dense: true,
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+              title: Text('${item[nameField] ?? item[idField]}'),
+              subtitle: Text('${item[idField]}'),
+              value: (object(config['allow'])[field] as List? ?? [])
+                  .map((v) => '$v')
+                  .contains('${item[idField]}'),
+              onChanged: (v) => redraw(() {
+                final allow = object(config['allow']);
+                final values = List<dynamic>.from(allow[field] as List? ?? []);
+                values.removeWhere((x) => '$x' == '${item[idField]}');
+                if (v == true) values.add(item[idField]);
+                config['allow'] = {...allow, field: values};
+              }),
+            ),
+        ],
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        heading('聊天白名单', '勾选允许参与的群聊与私聊；名单按账号隔离。'),
+        Row(
+          children: [
+            Expanded(
+              child: SettingSwitchTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('空白名单允许响应'),
+                subtitle: const Text('首次默认关闭'),
+                value: config['allowAllWhenEmpty'] == true,
+                onChanged: (v) => redraw(() => config['allowAllWhenEmpty'] = v),
+              ),
+            ),
+            button('获取群与好友', () async {
+              final result = object(await get('/roster'));
+              redraw(() => data = result);
+            }),
+          ],
         ),
-      button('保存名单', () async {
-        await saveConfig({
-          for (final key in ['allow', 'deny', 'allowAllWhenEmpty'])
-            key: config[key],
-        });
-      }),
-    ],
-  );
+        const SizedBox(height: 16),
+        columns(
+          roster(
+            '群聊',
+            'groups',
+            'group_id',
+            'group_name',
+            data['groups'] as List? ?? [],
+          ),
+          roster(
+            '私聊',
+            'private',
+            'user_id',
+            'nickname',
+            data['friends'] as List? ?? [],
+          ),
+        ),
+        const SizedBox(height: 16),
+        FoldPanel(
+          title: '手动编辑名单',
+          subtitle: '已选账号 / 排除名单',
+          icon: Icons.edit_note,
+          children: [
+            editor('allow', config['allow']),
+            editor('deny', config['deny']),
+          ],
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: button(
+            '保存名单',
+            () async => saveConfig({
+              for (final k in ['allow', 'deny', 'allowAllWhenEmpty'])
+                k: config[k],
+            }),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget accountsPage() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -1283,38 +1682,126 @@ class _WorkspacePageState extends State<WorkspacePage> {
       }),
     ],
   );
-  Widget desktopPage() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      heading(widget.page == 'personalize' ? '个性化' : '桌面端'),
-      SettingSwitchTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('关闭窗口时留在托盘'),
-        value: data['closeToTray'] == true,
-        onChanged: (v) => redraw(() => data['closeToTray'] = v),
-      ),
-      SettingSwitchTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('实验版开机启动'),
-        value: data['autoStart'] == true,
-        onChanged: (v) => redraw(() => data['autoStart'] = v),
-      ),
-      dropdown('颜色模式', data['theme'] as String? ?? 'light', [
-        for (final e in {'light': '亮色', 'dark': '暗色', 'auto': '跟随系统'}.entries)
-          DropdownMenuItem(value: e.key, child: Text(e.value)),
-      ], (v) => redraw(() => data['theme'] = v)),
-      button('保存桌面设置', () async {
-        await DesktopBridge.setStartup(data['autoStart'] == true);
-        await widget.core.request('/preferences', body: data);
-        if (mounted) redraw(() => notice = '已保存；颜色模式在刷新后同步。');
-      }),
-      const SizedBox(height: 20),
-      editor('proxy', config['proxy']),
-      button('保存网络代理', () async {
-        await saveConfig({'proxy': config['proxy']});
-      }),
-    ],
-  );
+  Widget desktopPage() {
+    if (widget.page == 'personalize') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          heading('个性化', '字体与显示偏好；Minecraft 的像素字体在主题页配置。'),
+          FoldPanel(
+            title: '界面字体',
+            subtitle: '默认皮肤 / 字号 / 预览',
+            icon: Icons.text_fields,
+            initiallyExpanded: true,
+            children: [
+              dropdown('字体', '${data['fontFamily'] ?? 'Segoe UI'}', [
+                for (final font in [
+                  'Segoe UI',
+                  'Microsoft YaHei',
+                  'Arial',
+                  'Consolas',
+                ])
+                  DropdownMenuItem(value: font, child: Text(font)),
+              ], (v) => redraw(() => data['fontFamily'] = v)),
+              Row(
+                children: [
+                  const SizedBox(width: 60, child: Text('字号')),
+                  Expanded(
+                    child: Slider(
+                      value: ((data['fontSize'] as num?)?.toDouble() ?? 13)
+                          .clamp(11, 18),
+                      min: 11,
+                      max: 18,
+                      divisions: 7,
+                      onChanged: (v) => redraw(() => data['fontSize'] = v),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 40,
+                    child: Text('${(data['fontSize'] as num? ?? 13).round()}'),
+                  ),
+                ],
+              ),
+              SurfacePanel(
+                child: Text(
+                  'QQ Agent ARCFØX\n你好，这是字体与字号预览。0123456789',
+                  style: TextStyle(
+                    fontFamily: '${data['fontFamily'] ?? 'Segoe UI'}',
+                    fontSize: (data['fontSize'] as num? ?? 13).toDouble(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: button('保存显示偏好', () async {
+              await widget.core.request('/preferences', body: data);
+              redraw(() => notice = '已保存，界面将同步显示偏好。');
+            }),
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        heading('桌面端', '窗口、托盘、开机启动与本地代理。'),
+        FoldPanel(
+          title: '窗口与启动',
+          subtitle: '关闭行为 / 实验版开机启动',
+          icon: Icons.desktop_windows_outlined,
+          initiallyExpanded: true,
+          children: [
+            SettingSwitchTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('关闭窗口时留在托盘'),
+              value: data['closeToTray'] == true,
+              onChanged: (v) => redraw(() => data['closeToTray'] = v),
+            ),
+            SettingSwitchTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('实验版开机启动'),
+              value: data['autoStart'] == true,
+              onChanged: (v) => redraw(() => data['autoStart'] = v),
+            ),
+            dropdown('颜色模式', data['theme'] as String? ?? 'light', [
+              for (final e in {
+                'light': '亮色',
+                'dark': '暗色',
+                'auto': '跟随系统',
+              }.entries)
+                DropdownMenuItem(value: e.key, child: Text(e.value)),
+            ], (v) => redraw(() => data['theme'] = v)),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: button('保存桌面设置', () async {
+                await DesktopBridge.setStartup(data['autoStart'] == true);
+                await widget.core.request('/preferences', body: data);
+                if (mounted) redraw(() => notice = '已保存桌面设置。');
+              }),
+            ),
+          ],
+        ),
+        FoldPanel(
+          title: '本地网络代理',
+          subtitle: '通过 HTTP/HTTPS 本地代理访问网络',
+          icon: Icons.public,
+          children: [
+            editor('proxy', config['proxy']),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: button(
+                '保存网络代理',
+                () async => saveConfig({'proxy': config['proxy']}),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget marketsPage() => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
@@ -1401,57 +1888,280 @@ class _WorkspacePageState extends State<WorkspacePage> {
         ),
     ],
   );
-  Widget settingsPage() {
-    final sections = switch (widget.page) {
-      'chat-settings' => [
-        'runtime',
-        'send',
-        'store',
-        'commandMute',
-        'proactive',
-        'chatActive',
-        'sticker',
-      ],
-      'desktop' => ['server', 'ui'],
-      'advanced' => [
-        'wakeDelayMs',
-        'drainDelayMs',
-        'maxConcurrentRuns',
-        'sessionRetryAttempts',
-        'security',
-        'memory',
-        'personaHistory',
-      ],
-      'personalize' => ['persona'],
-      _ => ['snowluma'],
-    };
+  Widget activityEditor({bool group = false}) {
+    final store = object(config['store']);
+    final groupId = target.startsWith('group:') ? target.substring(6) : target;
+    final overrides = object(store['groupSliderPos']);
+    double pos = (group ? overrides[groupId] : store['contextSliderPos']) is num
+        ? ((group ? overrides[groupId] : store['contextSliderPos']) as num)
+              .toDouble()
+        : switch ((store['contextTier'] as num?)?.toInt() ?? 1) {
+            4 => 100,
+            3 => 20 + (store['randomPercent'] as num? ?? 10) / 100 * 70,
+            2 => 15,
+            _ => 5,
+          };
+    pos = pos.clamp(0, 100);
+    final tier = pos <= 10
+        ? 1
+        : pos <= 20
+        ? 2
+        : pos <= 90
+        ? 3
+        : 4;
+    final probability = tier == 3
+        ? (pos - 20) / 70 * 100
+        : tier == 4
+        ? 100
+        : 0;
+    void change(double v) {
+      redraw(() {
+        if (group) {
+          store['groupSliderPos'] = {...overrides, groupId: v};
+        } else {
+          store['contextSliderPos'] = v;
+        }
+        config['store'] = store;
+      });
+    }
+
+    final peak = object(store['peakSchedule']);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        heading(switch (widget.page) {
-          'chat-settings' => '聊天设置',
-          'desktop' => '桌面端',
-          'advanced' => '进阶',
-          'personalize' => '个性化',
-          _ => 'OneBot 设置',
-        }),
-        for (final key in sections) ...[
-          if ({
-            'proactive',
-            'chatActive',
-            'sticker',
-            'memory',
-            'drainDelayMs',
-            'sessionRetryAttempts',
-          }.contains(key))
-            Text('${labels[key] ?? key}：执行链路尚未迁移，暂不开放设置。')
-          else
-            editor(key, config[key]),
-          const Divider(height: 32),
+        if (group) ...[
+          SettingSwitchTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('使用群独立档位'),
+            subtitle: const Text('关闭统一设置后，未单独配置的群继续沿用默认档位。'),
+            value: store['unifiedTier'] == false,
+            onChanged: (v) => redraw(() {
+              store['unifiedTier'] = !v;
+              config['store'] = store;
+            }),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => redraw(() {
+                store['groupSliderPos'] = {...overrides, groupId: null};
+                store['groupPeakPos'] = {
+                  ...object(store['groupPeakPos']),
+                  groupId: null,
+                };
+                config['store'] = store;
+              }),
+              child: const Text('清除本群单独设置（保存后生效）'),
+            ),
+          ),
         ],
-        button('保存设置', () async {
-          await saveConfig({for (final key in sections) key: config[key]});
-        }),
+
+        Row(
+          children: [
+            for (final n in [1, 2, 3, 4])
+              Expanded(
+                flex: n == 3 ? 7 : 1,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  color: Theme.of(context).colorScheme.primary
+                      .withValues(alpha: tier == n ? .2 : .05),
+                  child: Text(
+                    n == 3 ? '3 · 随机概率线性' : '$n',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        Slider(value: pos, min: 0, max: 100, onChanged: change),
+        Row(
+          children: [
+            Text(
+              '$tier 档',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                tier == 1
+                    ? '被 @ 时响应'
+                    : tier == 2
+                    ? '被 @ 或命中关键词响应'
+                    : tier == 3
+                    ? '每条普通消息 ${probability.toStringAsFixed(1)}% 概率响应'
+                    : '响应每条普通消息',
+              ),
+            ),
+          ],
+        ),
+
+        if (group && peak['enabled'] == true) ...[
+          for (final entry in {'peak': '高峰档位', 'valley': '低谷档位'}.entries)
+            Row(
+              children: [
+                SizedBox(width: 80, child: Text(entry.value)),
+                Expanded(
+                  child: Slider(
+                    value:
+                        ((object(object(store['groupPeakPos'])[groupId])[entry
+                                            .key]
+                                        as num?)
+                                    ?.toDouble() ??
+                                (object(peak[entry.key])['sliderPos'] as num? ??
+                                        10)
+                                    .toDouble())
+                            .clamp(0, 100),
+                    min: 0,
+                    max: 100,
+                    onChanged: (v) => redraw(() {
+                      final all = object(store['groupPeakPos']);
+                      all[groupId] = {...object(all[groupId]), entry.key: v};
+                      store['groupPeakPos'] = all;
+                      config['store'] = store;
+                    }),
+                  ),
+                ),
+              ],
+            ),
+        ],
+        if (!group) ...[
+          const SizedBox(height: 14),
+          SettingSwitchTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('统一设置'),
+            value: store['unifiedTier'] != false,
+            onChanged: (v) => redraw(() {
+              store['unifiedTier'] = v;
+              config['store'] = store;
+            }),
+          ),
+          SettingSwitchTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('峰谷时段'),
+            value: peak['enabled'] == true,
+            onChanged: (v) => redraw(() {
+              store['peakSchedule'] = {...peak, 'enabled': v};
+              config['store'] = store;
+            }),
+          ),
+          if (peak['enabled'] == true) ...[
+            editor(
+              'store.peakSchedule.peak',
+              valueAt('store.peakSchedule.peak'),
+            ),
+            editor(
+              'store.peakSchedule.valley',
+              valueAt('store.peakSchedule.valley'),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Widget settingsPage() {
+    if (widget.page == 'chat-settings') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          heading('聊天设置', '选择默认响应档位；单独配置前往人设中的身份与模型设置。'),
+          FoldPanel(
+            title: '信息发送配置',
+            subtitle: '自动回复 / 发送节奏 / 上下文',
+            icon: Icons.message_outlined,
+            children: [
+              editor('runtime', config['runtime']),
+              editor('send', config['send']),
+              editor('store.historyCount', valueAt('store.historyCount')),
+              editor('store.keywords', valueAt('store.keywords')),
+            ],
+          ),
+          FoldPanel(
+            title: '活跃设置',
+            subtitle: '响应档位 / 峰谷 · 默认档位',
+            icon: Icons.bolt_outlined,
+            children: [activityEditor()],
+          ),
+          FoldPanel(
+            title: '指令禁言',
+            subtitle: '收到指定指令后暂停响应',
+            icon: Icons.volume_off_outlined,
+            children: [editor('commandMute', config['commandMute'])],
+          ),
+          const FoldPanel(
+            title: '主动开话题',
+            subtitle: '冷场时主动参与',
+            icon: Icons.forum_outlined,
+            children: [Text('原生执行链路尚未迁移，暂不开放设置。')],
+          ),
+          const FoldPanel(
+            title: '表情包',
+            subtitle: '收藏同步 / 发送积极度',
+            icon: Icons.emoji_emotions_outlined,
+            children: [Text('原生执行链路尚未迁移，暂不开放设置。')],
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: button(
+              '保存聊天设置',
+              () async => saveConfig({
+                for (final k in ['runtime', 'send', 'store', 'commandMute'])
+                  k: config[k],
+              }),
+            ),
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        heading('进阶', '网络边界、并发和保存记录。'),
+        FoldPanel(
+          title: '响应调度',
+          subtitle: '唤醒延迟 / 最大并发',
+          icon: Icons.tune,
+          children: [
+            editor('wakeDelayMs', config['wakeDelayMs']),
+            editor('maxConcurrentRuns', config['maxConcurrentRuns']),
+          ],
+        ),
+        FoldPanel(
+          title: '网络访问',
+          subtitle: '域名锁 / 安全边界',
+          icon: Icons.security_outlined,
+          children: [editor('security', config['security'])],
+        ),
+        FoldPanel(
+          title: '人设保存记录',
+          subtitle: '保留天数 / 记录上限',
+          icon: Icons.history,
+          children: [editor('personaHistory', config['personaHistory'])],
+        ),
+        const FoldPanel(
+          title: '记忆整合与重试',
+          subtitle: '执行链路待迁移',
+          icon: Icons.memory_outlined,
+          children: [Text('自动记忆整合、运行重试和定时清理尚未迁移。')],
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: button(
+            '保存设置',
+            () async => saveConfig({
+              for (final k in [
+                'wakeDelayMs',
+                'maxConcurrentRuns',
+                'security',
+                'personaHistory',
+              ])
+                k: config[k],
+            }),
+          ),
+        ),
       ],
     );
   }

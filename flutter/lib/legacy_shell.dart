@@ -44,6 +44,8 @@ class LegacyShell extends StatefulWidget {
     required this.busy,
     required this.model,
     required this.refresh,
+    this.overlay,
+    this.collapseChanged,
   });
   final int section;
   final ValueChanged<int> select;
@@ -51,12 +53,19 @@ class LegacyShell extends StatefulWidget {
   final Widget toolbar, content;
   final String notice, model;
   final VoidCallback refresh;
+  final Widget? overlay;
+  final ValueChanged<bool>? collapseChanged;
   @override
   State<LegacyShell> createState() => _LegacyShellState();
 }
 
 class _LegacyShellState extends State<LegacyShell> {
   bool collapsed = false;
+  void toggle() {
+    setState(() => collapsed = !collapsed);
+    widget.collapseChanged?.call(collapsed);
+  }
+
   bool get settings =>
       [2, 3, 5, 12, 13, 14, 15, 16, 17].contains(widget.section);
 
@@ -123,8 +132,7 @@ class _LegacyShellState extends State<LegacyShell> {
               .$2;
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.keyB, control: true): () =>
-            setState(() => collapsed = !collapsed),
+        const SingleActivator(LogicalKeyboardKey.keyB, control: true): toggle,
       },
       child: Focus(
         autofocus: true,
@@ -200,131 +208,167 @@ class _LegacyShellState extends State<LegacyShell> {
               ),
             ],
           ),
-          body: Column(
+          body: Stack(
             children: [
-              SizedBox(
-                key: const ValueKey('status-toolbar'),
-                height: 44,
-                child: widget.toolbar,
-              ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) => Row(
-                    children: [
-                      SizedBox(
-                        key: const ValueKey('navigation-width'),
-                        width: collapsed
-                            ? 60
-                            : widget.minecraft
-                            ? 168
-                            : 152,
-                        child: ListView(
-                          key: const ValueKey('main-nav'),
+              Positioned.fill(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      key: const ValueKey('status-toolbar'),
+                      height: 44,
+                      child: widget.toolbar,
+                    ),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) => Row(
                           children: [
-                            Tooltip(
-                              message: collapsed ? '展开导航' : '收起导航',
-                              child: TextButton(
-                                onPressed: () =>
-                                    setState(() => collapsed = !collapsed),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.menu, size: 18),
-                                    if (!collapsed) ...[
-                                      const SizedBox(width: 12),
-                                      const Text('收起导航'),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            for (final p in primaryPages)
-                              nav(context, p.$1, p.$2, icon: p.$3),
-                          ],
-                        ),
-                      ),
-                      if (settings && constraints.maxWidth >= 1050)
-                        SizedBox(
-                          width: widget.minecraft ? 188 : 202,
-                          child: ListView(
-                            key: const ValueKey('settings-nav'),
-                            children: [
-                              Card(
-                                margin: const EdgeInsets.fromLTRB(8, 12, 8, 14),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                            AnimatedContainer(
+                              duration: MediaQuery.disableAnimationsOf(context)
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 260),
+                              curve: Curves.easeOutCubic,
+                              key: const ValueKey('navigation-width'),
+                              width: collapsed
+                                  ? 60
+                                  : widget.minecraft
+                                  ? 168
+                                  : 152,
+                              child: ClipRect(
+                                child: OverflowBox(
+                                  alignment: Alignment.topLeft,
+                                  minWidth: collapsed
+                                      ? 60
+                                      : widget.minecraft
+                                      ? 168
+                                      : 152,
+                                  maxWidth: collapsed
+                                      ? 60
+                                      : widget.minecraft
+                                      ? 168
+                                      : 152,
+                                  child: ListView(
+                                    key: const ValueKey('main-nav'),
                                     children: [
-                                      const Text('机器人运行状态'),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        widget.notice,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 11),
+                                      Tooltip(
+                                        message: collapsed ? '展开导航' : '收起导航',
+                                        child: TextButton(
+                                          onPressed: toggle,
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.menu, size: 18),
+                                              if (!collapsed) ...[
+                                                const SizedBox(width: 12),
+                                                const Text('收起导航'),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        '模型：${widget.model}',
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 11),
-                                      ),
+                                      const SizedBox(height: 12),
+                                      for (final p in primaryPages)
+                                        nav(context, p.$1, p.$2, icon: p.$3),
                                     ],
                                   ),
                                 ),
                               ),
-                              for (final p in settingsPages)
-                                nav(context, p.$1, p.$2),
-                            ],
-                          ),
-                        ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            if (settings && constraints.maxWidth < 1050)
+                            ),
+                            if (settings && constraints.maxWidth >= 1050)
                               SizedBox(
-                                height: 40,
+                                width: widget.minecraft ? 188 : 202,
                                 child: ListView(
-                                  scrollDirection: Axis.horizontal,
+                                  key: const ValueKey('settings-nav'),
                                   children: [
-                                    for (final p in settingsPages)
-                                      TextButton(
-                                        onPressed: () => widget.select(p.$1),
-                                        child: Text(p.$2),
+                                    Card(
+                                      margin: const EdgeInsets.fromLTRB(
+                                        8,
+                                        12,
+                                        8,
+                                        14,
                                       ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('机器人运行状态'),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              widget.notice,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '模型：${widget.model}',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    for (final p in settingsPages)
+                                      nav(context, p.$1, p.$2),
                                   ],
                                 ),
                               ),
-                            Expanded(child: widget.content),
-                            if (widget.busy)
-                              const LinearProgressIndicator(minHeight: 2),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 5,
-                              ),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  widget.notice,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Theme.of(context).hintColor,
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  if (settings && constraints.maxWidth < 1050)
+                                    SizedBox(
+                                      height: 40,
+                                      child: ListView(
+                                        scrollDirection: Axis.horizontal,
+                                        children: [
+                                          for (final p in settingsPages)
+                                            TextButton(
+                                              onPressed: () =>
+                                                  widget.select(p.$1),
+                                              child: Text(p.$2),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  Expanded(child: widget.content),
+                                  if (widget.busy)
+                                    const LinearProgressIndicator(minHeight: 2),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 5,
+                                    ),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        widget.notice,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Theme.of(context).hintColor,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+              if (widget.overlay != null)
+                Positioned.fill(child: widget.overlay!),
             ],
           ),
         ),

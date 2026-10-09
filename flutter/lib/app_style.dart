@@ -4,11 +4,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
 
 class SkinStyle extends ThemeExtension<SkinStyle> {
-  const SkinStyle(this.minecraft);
+  const SkinStyle(this.minecraft, [this.toggleSound]);
   final bool minecraft;
+  final ValueChanged<bool>? toggleSound;
   @override
   SkinStyle copyWith({bool? minecraft}) =>
-      SkinStyle(minecraft ?? this.minecraft);
+      SkinStyle(minecraft ?? this.minecraft, toggleSound);
   @override
   SkinStyle lerp(covariant SkinStyle? other, double t) =>
       t < 0.5 ? this : other ?? this;
@@ -46,7 +47,15 @@ class SettingSwitch extends StatelessWidget {
         child: Opacity(
           opacity: onChanged == null ? 0.4 : 1,
           child: InkWell(
-            onTap: onChanged == null ? null : () => onChanged!(!value),
+            onTap: onChanged == null
+                ? null
+                : () {
+                    onChanged!(!value);
+                    Theme.of(context)
+                        .extension<SkinStyle>()
+                        ?.toggleSound
+                        ?.call(!value);
+                  },
             child: SizedBox(
               width: 80,
               height: 64,
@@ -216,10 +225,11 @@ ThemeData appTheme({
   required bool dark,
   required bool minecraft,
   required Map<String, dynamic> prefs,
+  ValueChanged<bool>? toggleSound,
 }) {
   final brightness = dark ? Brightness.dark : Brightness.light;
   final accent = minecraft
-      ? const Color(0xff2f7d32)
+      ? (dark ? const Color(0xffa8d88a) : const Color(0xff2f7d32))
       : Color(
           int.tryParse(
                 '${prefs['accent'] ?? '4176e6'}',
@@ -236,7 +246,7 @@ ThemeData appTheme({
   );
   final background = minecraft && prefs['background'] == true;
   final theme = ThemeData(
-    extensions: [SkinStyle(minecraft)],
+    extensions: [SkinStyle(minecraft, toggleSound)],
     useMaterial3: true,
     brightness: brightness,
     colorScheme: ColorScheme.fromSeed(seedColor: accent, brightness: brightness)
@@ -252,17 +262,22 @@ ThemeData appTheme({
         : const Color(0xfff7f8fa),
     fontFamily: minecraft && prefs['mcFont'] != false
         ? 'Monocraft'
-        : 'Segoe UI',
+        : '${prefs['fontFamily'] ?? 'Segoe UI'}',
     fontFamilyFallback: minecraft && prefs['mcFont'] != false
         ? ['MinecraftAE']
         : ['Microsoft YaHei', 'sans-serif'],
     visualDensity: VisualDensity.compact,
-    textTheme: const TextTheme(
-      bodyMedium: TextStyle(fontSize: 13),
-      bodyLarge: TextStyle(fontSize: 13),
-      titleMedium: TextStyle(fontSize: 13),
-      labelLarge: TextStyle(fontSize: 12),
-    ),
+    textTheme:
+        const TextTheme(
+          bodyMedium: TextStyle(fontSize: 13),
+          bodyLarge: TextStyle(fontSize: 13),
+          titleMedium: TextStyle(fontSize: 13),
+          labelLarge: TextStyle(fontSize: 12),
+        ).apply(
+          fontSizeFactor:
+              ((prefs['fontSize'] as num?)?.toDouble() ?? 13).clamp(11, 18) /
+              13,
+        ),
     dividerColor: dark ? const Color(0x1fffffff) : const Color(0x1a000000),
     appBarTheme: AppBarTheme(
       backgroundColor: background
@@ -296,6 +311,11 @@ ThemeData appTheme({
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
+        foregroundColor: dark
+            ? const Color(0xfff9fafb)
+            : const Color(0xff0f1115),
+        backgroundColor: (dark ? const Color(0xff232324) : Colors.white)
+            .withValues(alpha: background ? .88 : 1),
         minimumSize: const Size(0, 32),
         side: BorderSide(
           color: dark ? const Color(0x33ffffff) : const Color(0x1a000000),
@@ -326,6 +346,48 @@ class ThemeWorkspace extends StatelessWidget {
     Widget volume(String title, String key) => Row(
       children: [
         SizedBox(width: 100, child: Text(title)),
+        if (['clickVolume', 'toggleVolume', 'sliderVolume'].contains(key)) ...[
+          SizedBox(
+            width: 170,
+            child: DropdownButtonFormField<String>(
+              initialValue:
+                  '${prefs[key.replaceFirst('Volume', 'Sound')] ?? (key == 'clickVolume'
+                          ? 'hit'
+                          : key == 'toggleVolume'
+                          ? 'piston'
+                          : 'none')}',
+              isExpanded: true,
+              decoration: const InputDecoration(isDense: true),
+              items: [
+                for (final entry
+                    in (key == 'clickVolume'
+                            ? {
+                                'hit': '击打（三种随机）',
+                                'menu': '菜单点击',
+                                'pop': '轻响',
+                                'none': '不播放',
+                              }
+                            : key == 'toggleVolume'
+                            ? {
+                                'piston': '活塞推出 / 收回',
+                                'beacon': '信标开启 / 关闭',
+                                'none': '不播放',
+                              }
+                            : {'none': '不播放', 'bow': '弓弦', 'pop': '轻响'})
+                        .entries)
+                  DropdownMenuItem(
+                    value: entry.key,
+                    child: Text(
+                      entry.value,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+              ],
+              onChanged: (v) => set(key.replaceFirst('Volume', 'Sound'), v),
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
         Expanded(
           child: Slider(
             value: ((prefs[key] as num?)?.toDouble() ?? 1).clamp(0, 1),

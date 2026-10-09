@@ -147,4 +147,38 @@ void main() {
     expect(find.byType(SettingSwitch), findsWidgets);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('Minecraft colour panel expands but cannot change accent', (
+    tester,
+  ) async {
+    Map<String, dynamic> prefs = {
+      'skin': 'minecraft',
+      'theme': 'light',
+      'accent': '4176e6',
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: appTheme(dark: false, minecraft: true, prefs: {}),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ThemeWorkspace(prefs: prefs, changed: (v) => prefs = v),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('自定义配色'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AbsorbPointer), findsWidgets);
+    expect(
+      tester
+          .widgetList<AbsorbPointer>(find.byType(AbsorbPointer))
+          .any((w) => w.absorbing),
+      isTrue,
+    );
+    await tester.tap(find.text('自定义配色'));
+    await tester.pumpAndSettle();
+    expect(prefs['accent'], '4176e6');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
 }

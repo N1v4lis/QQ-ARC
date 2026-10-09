@@ -7,31 +7,28 @@ import 'workspace_page.dart';
 import 'app_style.dart';
 
 import 'legacy_shell.dart';
+import 'desktop_pages.dart';
+import 'startup_animation.dart';
 
 class QqafApp extends StatefulWidget {
-  const QqafApp({super.key, required this.core});
+  const QqafApp({super.key, required this.core, this.animateStartup = true});
   final CoreApi core;
+  final bool animateStartup;
   @override
   State<QqafApp> createState() => _QqafAppState();
 }
 
 class _QqafAppState extends State<QqafApp> {
   int section = 0;
+  bool startupFinished = false, coldStartup = true;
   bool dark = false, minecraft = false, busy = false;
-  String? account, chat;
-  List<String> accounts = [], chats = [];
-  List<Map<String, dynamic>> messages = [];
+  String? account;
+  List<String> accounts = [];
   Map<String, dynamic> status = {}, usage = {};
   Map<String, dynamic> uiPrefs = {};
-  List<dynamic> memories = [];
-  final memory = TextEditingController();
-  String notice = '正在连接 Rust 核心…', answer = '', activeModel = '';
+  String notice = '正在连接 Rust 核心…', activeModel = '';
   final qq = TextEditingController(), ws = TextEditingController();
-  final token = TextEditingController(), message = TextEditingController();
-  final base = TextEditingController(), model = TextEditingController();
-  final key = TextEditingController(), prompt = TextEditingController();
-  final inputPrice = TextEditingController(),
-      outputPrice = TextEditingController();
+  final token = TextEditingController();
   Timer? refresh;
   Timer? preferenceSave;
   Future<void> preferenceQueue = Future<void>.value();
@@ -40,9 +37,10 @@ class _QqafAppState extends State<QqafApp> {
   @override
   void initState() {
     super.initState();
+    startupFinished = !widget.animateStartup;
     unawaited(boot());
     refresh = Timer.periodic(const Duration(seconds: 3), (_) {
-      if (!busy) unawaited(updateMessages());
+      if (!busy) unawaited(refreshSnapshot());
     });
   }
 
@@ -50,19 +48,7 @@ class _QqafAppState extends State<QqafApp> {
   void dispose() {
     refresh?.cancel();
     preferenceSave?.cancel();
-    for (final controller in [
-      qq,
-      ws,
-      token,
-      message,
-      base,
-      model,
-      key,
-      prompt,
-      inputPrice,
-      outputPrice,
-      memory,
-    ]) {
+    for (final controller in [qq, ws, token]) {
       controller.dispose();
     }
     super.dispose();
@@ -103,29 +89,9 @@ class _QqafAppState extends State<QqafApp> {
     });
   }
 
-  Future<void> loadAccount() async {
-    final id = account;
-    if (id == null) return;
-    final config = await widget.core.request(
-      '/model/config',
-      query: {'account': id},
-    ) as Map<String, dynamic>;
-    if (!mounted || id != account) return;
-    base.text = '${config['base_url'] ?? ''}';
-    model.text = '${config['model'] ?? ''}';
-    prompt.text = '${config['system_prompt'] ?? ''}';
-    key.clear();
-    inputPrice.text = '${config['input_per_million'] ?? 0}';
-    outputPrice.text = '${config['output_per_million'] ?? 0}';
-    setState(() {
-      chat = null;
-      messages = [];
-      answer = '';
-    });
-    await updateMessages();
-  }
+  Future<void> loadAccount() async => refreshSnapshot();
 
-  Future<void> updateMessages() async {
+  Future<void> refreshSnapshot() async {
     try {
       final state =
           await widget.core.request('/status') as Map<String, dynamic>;
@@ -137,12 +103,8 @@ class _QqafAppState extends State<QqafApp> {
           ? null
           : await widget.core.request('/preferences') as Map<String, dynamic>;
       final id = account;
-      final selected = chat;
-      List<String> items = [];
-      List<Map<String, dynamic>> rows = [];
       Map<String, dynamic> nextUsage = {};
-      String nextModel = model.text;
-      List<dynamic> nextMemories = [];
+      String nextModel = '';
       if (id != null) {
         final config = await widget.core.request(
           '/config',
@@ -151,24 +113,11 @@ class _QqafAppState extends State<QqafApp> {
         if (config is Map && config['api'] is Map) {
           nextModel = '${config['api']['model'] ?? ''}';
         }
-        items = List<String>.from(
-          await widget.core.request('/chats', query: {'account': id}) as List,
-        );
         nextUsage = Map<String, dynamic>.from(
           await widget.core.request('/stats', query: {'account': id}) as Map,
         );
-        nextMemories = await widget.core.request(
-          '/memory',
-          query: {'account': id, 'chat': selected ?? 'scratch'},
-        ) as List;
-        if (selected != null) {
-          rows = (await widget.core.request(
-            '/messages',
-            query: {'account': id, 'chat': selected},
-          ) as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
-        }
       }
-      if (!mounted || id != account || selected != chat) return;
+      if (!mounted || id != account) return;
       setState(() {
         status = state;
         accounts = ids;
@@ -178,11 +127,8 @@ class _QqafAppState extends State<QqafApp> {
           minecraft = prefs['skin'] == 'minecraft';
         }
         if (account == null && ids.isNotEmpty) account = ids.first;
-        chats = items;
-        messages = rows;
         usage = nextUsage;
         activeModel = nextModel;
-        memories = nextMemories;
       });
     } catch (_) {
       /* Explicit actions report errors; periodic refresh leaves the last snapshot. */
@@ -210,9 +156,19 @@ class _QqafAppState extends State<QqafApp> {
   );
   void playSound(String name, String channel) {
     if (!minecraft || uiPrefs['sound'] != true) return;
+    final category = channel == 'switch' ? 'toggle' : channel;
+    final selected = uiPrefs['${category}Sound'];
+    if (selected == 'none') return;
+    if (category == 'click') {
+      name = selected == 'hit'
+          ? 'hit${DateTime.now().millisecondsSinceEpoch % 3 + 1}'
+          : selected as String? ?? name;
+    } else if (category == 'toggle' && selected == 'beacon') {
+      name = name == 'pistonout' ? 'beaconactivate' : 'beacondeactivate';
+    }
     final volume =
         ((uiPrefs['masterVolume'] as num?)?.toDouble() ?? 1) *
-        ((uiPrefs['${channel}Volume'] as num?)?.toDouble() ?? 1);
+        ((uiPrefs['${category}Volume'] as num?)?.toDouble() ?? 1);
     unawaited(
       widget.core
           .request('/ui/sound', body: {'name': name, 'volume': volume})
@@ -228,8 +184,18 @@ class _QqafAppState extends State<QqafApp> {
     );
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: appTheme(dark: false, minecraft: minecraft, prefs: uiPrefs),
-      darkTheme: appTheme(dark: true, minecraft: minecraft, prefs: uiPrefs),
+      theme: appTheme(
+        dark: false,
+        minecraft: minecraft,
+        prefs: uiPrefs,
+        toggleSound: (v) => playSound(v ? 'pistonout' : 'pistonin', 'toggle'),
+      ),
+      darkTheme: appTheme(
+        dark: true,
+        minecraft: minecraft,
+        prefs: uiPrefs,
+        toggleSound: (v) => playSound(v ? 'pistonout' : 'pistonin', 'toggle'),
+      ),
       themeMode: uiPrefs['theme'] == 'auto'
           ? ThemeMode.system
           : dark
@@ -261,12 +227,30 @@ class _QqafAppState extends State<QqafApp> {
       ),
       home: Builder(
         builder: (pageContext) => LegacyShell(
+          overlay: startupFinished
+              ? null
+              : ArcfoxStartup(
+                  ready: !busy,
+                  duration: Duration(milliseconds: coldStartup ? 2000 : 1000),
+                  status: notice,
+                  complete: () {
+                    if (mounted) setState(() => startupFinished = true);
+                  },
+                ),
+          collapseChanged: (collapsed) =>
+              playSound(collapsed ? 'pistonin' : 'pistonout', 'switch'),
           section: section,
           minecraft: minecraft,
           busy: busy,
           notice: notice,
           model: activeModel.isEmpty ? '未配置' : activeModel,
-          refresh: () => unawaited(perform(updateMessages)),
+          refresh: () {
+            setState(() {
+              coldStartup = false;
+              startupFinished = !widget.animateStartup;
+            });
+            unawaited(perform(refreshSnapshot));
+          },
           select: (id) {
             playSound('menu', 'click');
             setState(() => section = id);
@@ -348,12 +332,75 @@ class _QqafAppState extends State<QqafApp> {
               ],
             ),
           ),
-          content: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            children: content(pageContext, connected),
-          ),
+          content: desktopContent(pageContext, connected),
         ),
       ),
+    );
+  }
+
+  Widget desktopContent(BuildContext context, List<String> connected) {
+    if ([0, 7].contains(section)) {
+      return UsageWorkspace(
+        key: ValueKey('$account:$section'),
+        core: widget.core,
+        account: account,
+        dashboard: section == 0,
+        navigate: (id) => setState(() => section = id),
+      );
+    }
+    if (section == 1) {
+      return SessionWorkspace(
+        key: ValueKey('$account:sessions'),
+        core: widget.core,
+        account: account,
+        connected: connected.contains(account),
+      );
+    }
+    if (section == 4) {
+      return MemoryWorkspace(
+        key: ValueKey('$account:memory'),
+        core: widget.core,
+        account: account,
+      );
+    }
+    if (section == 11) {
+      return AccountWorkspace(
+        key: ValueKey('$account:accounts'),
+        core: widget.core,
+        current: account,
+        select: (id) => unawaited(
+          perform(() async {
+            final ids = List<String>.from(
+              await widget.core.request('/accounts') as List,
+            );
+            if (!mounted) return;
+            setState(() {
+              accounts = ids;
+              account = id;
+            });
+            await loadAccount();
+          }),
+        ),
+      );
+    }
+    if (section == 6) {
+      return ArchiveWorkspace(
+        key: ValueKey('$account:archive'),
+        core: widget.core,
+        account: account,
+      );
+    }
+    if (section == 8) {
+      return WorkspacePage(
+        key: ValueKey('$account:persona'),
+        core: widget.core,
+        account: account,
+        page: 'persona',
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      children: content(context, connected),
     );
   }
 
@@ -417,152 +464,6 @@ class _QqafAppState extends State<QqafApp> {
       ];
     }
     switch (section) {
-      case 0:
-        return [
-          const Text(
-            '仪表盘',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          const Text('旧架构开发无限期暂停，恢复时间待定。此开发版不代表旧客户端全部功能已迁移。'),
-          const SizedBox(height: 24),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              summary('独立账号', '${accounts.length}'),
-              summary('OneBot 连接', '${connected.length}'),
-              summary('当前会话', '${chats.length}'),
-              summary('模型调用', '${usage['calls'] ?? 0}'),
-              summary(
-                '累计 Token',
-                '${(usage['input_tokens'] ?? 0) + (usage['output_tokens'] ?? 0)}',
-              ),
-              summary('估算成本', '${usage['estimated_cost'] ?? 0}'),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Text('消息正文直接写入 Rust SQLite，按账号隔离、按消息 ID 分页。模型对话不会自动发送到 QQ。'),
-          const SizedBox(height: 16),
-          const Text('酒狐实现仍在评估：Slint 承载或直接原生 3D。当前保持关闭。'),
-        ];
-      case 1:
-        return [
-          const Text(
-            '会话',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            children: chats
-                .map(
-                  (id) => ChoiceChip(
-                    label: Text(id),
-                    selected: chat == id,
-                    onSelected: (_) {
-                      setState(() => chat = id);
-                      unawaited(updateMessages());
-                    },
-                  ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: busy || account == null
-                ? null
-                : () async {
-                    final controller = TextEditingController();
-                    final value = await showDialog<String>(
-                      context: pageContext,
-                      builder: (context) => AlertDialog(
-                        title: const Text('选择会话'),
-                        content: TextField(
-                          controller: controller,
-                          decoration: const InputDecoration(
-                            hintText: 'group:群号 或 private:QQ号',
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('取消'),
-                          ),
-                          FilledButton(
-                            onPressed: () =>
-                                Navigator.pop(context, controller.text.trim()),
-                            child: const Text('选择'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (value != null && mounted) {
-                      setState(() => chat = value);
-                      unawaited(updateMessages());
-                    }
-                  },
-            child: const Text('指定群聊或私聊'),
-          ),
-          for (final row in messages.reversed)
-            ListTile(
-              title: Text('${row['text']}'),
-              subtitle: Text('${row['sender']} · ${row['timestamp']}'),
-            ),
-          const SizedBox(height: 16),
-          field('消息', message, lines: 3),
-          Wrap(
-            spacing: 12,
-            children: [
-              FilledButton(
-                onPressed: busy || account == null || chat == null
-                    ? null
-                    : () => perform(() async {
-                        final text = message.text;
-                        await widget.core.request(
-                          '/onebot/send',
-                          body: {
-                            'account': account,
-                            'chat': chat,
-                            'text': text,
-                          },
-                        );
-                        message.clear();
-                        notice = '消息已发送到 QQ';
-                        await updateMessages();
-                      }),
-                child: const Text('发送到 QQ'),
-              ),
-              OutlinedButton(
-                onPressed: busy || account == null
-                    ? null
-                    : () => perform(() async {
-                        final result = await widget.core.request(
-                          '/model/chat',
-                          body: {
-                            'account': account,
-                            'chat': chat ?? 'scratch',
-                            'text': message.text,
-                          },
-                        ) as Map;
-                        if (mounted) {
-                          setState(() {
-                            answer = '${result['text']}';
-                            notice =
-                                '输入 ${result['input_tokens']} · 输出 ${result['output_tokens']} Token · 估算 ${result['estimated_cost']}';
-                          });
-                        }
-                      }),
-                child: const Text('发送到模型'),
-              ),
-            ],
-          ),
-          if (answer.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: SelectableText(answer),
-            ),
-        ];
       case 3:
         return [
           const Text(
@@ -613,7 +514,7 @@ class _QqafAppState extends State<QqafApp> {
                           '/onebot/disconnect',
                           body: {'account': account},
                         );
-                        await updateMessages();
+                        await refreshSnapshot();
                       }),
                 child: const Text('断开当前账号'),
               ),
@@ -650,72 +551,8 @@ class _QqafAppState extends State<QqafApp> {
               page: 'snow',
             ),
         ];
-      case 4:
-        return [
-          const Text(
-            '会话记忆',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          Text('当前目标：${chat ?? 'scratch'} · 保存后供该会话模型上下文使用'),
-          const SizedBox(height: 16),
-          field('记忆内容', memory, lines: 4),
-          FilledButton(
-            onPressed: busy || account == null
-                ? null
-                : () => perform(() async {
-                    await widget.core.request(
-                      '/memory',
-                      body: {
-                        'account': account,
-                        'chat': chat ?? 'scratch',
-                        'text': memory.text,
-                      },
-                    );
-                    memory.clear();
-                    await updateMessages();
-                  }),
-            child: const Text('保存记忆'),
-          ),
-          for (final item in memories)
-            ListTile(
-              title: Text('${item[1]}'),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: busy
-                    ? null
-                    : () => perform(() async {
-                        await widget.core.request(
-                          '/memory/delete',
-                          body: {'account': account, 'id': item[0]},
-                        );
-                        await updateMessages();
-                      }),
-              ),
-            ),
-        ];
       default:
         return [const Text('请选择功能页')];
     }
   }
-
-  Widget summary(String title, String value) => SizedBox(
-    width: 200,
-    child: Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }

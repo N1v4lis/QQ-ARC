@@ -11,7 +11,7 @@ Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 
 ## 当前状态
 
-界面风格迁移记录：[0.1.1 实验版](docs/releases/experimental-0.1.1.md)。
+界面迁移记录：[0.1.1 实验版](docs/releases/experimental-0.1.1.md) · [页面与交互验收](docs/FLUTTER-UI-MIGRATION.md)。
 
 实验包版本为 **0.1.1**，与归档版 **0.4.5a** 分开记录。Flutter 负责窗口与界面，Rust 负责业务、网络、存储和模型请求；默认运行不依赖 Electron、Node.js、WebView 或 Slint。
 
@@ -26,7 +26,7 @@ Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 | 官方价格目录、多选筛选、Logo、来源链接与按站点/模型自定义单价 | 条件价格不自动套用；缓存分项、历史重算和定时更新待迁移 |
 | 搜索/网页读取、HTTP/HTTPS 本地代理、纯提示词技能 | 旧 Node/JS 插件不能直接执行；MCP/Harness 和市场安装待迁移 |
 | SnowLuma 启停、状态、日志、WebUI、GitHub Release 查询 | 外部 SnowLuma 自带运行时；下载、升级和注入登录不在本轮已接通范围 |
-| 默认/明暗/系统主题、Minecraft 背景字体图标和拉杆、托盘与显式自启 | 完整主题包与启动动画待迁移；酒狐排除且禁用 |
+| 默认/明暗/系统主题、Minecraft 背景字体图标和拉杆、托盘与显式自启 | 启动动画已接入；完整主题包待迁移，酒狐排除且禁用 |
 | 官方格式消息副本的显式迁入 | 支持正文、媒体和引用关联；不是整个旧库的无损迁移 |
 
 Windows 密钥通过 DPAPI 加密后保存在独立账号库，账号之间隔离；普通配置拒绝密钥字段。QQAF 核心与 Flutter 界面不依赖 Node.js。用户自带的 SnowLuma 是独立 OneBot 组件，启动它会使用其自身随附的运行时，不能把这种场景宣称为整个系统完全没有 Node。
