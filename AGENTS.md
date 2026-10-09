@@ -101,3 +101,5 @@
 - 2026-10-09最新：用户要求尝试移植所有功能及 UI，酒狐除外。本轮按 79 旧接口/32 默认配置重建 Flutter 工作区及 Rust 模块，边界见 docs/NATIVE-FEATURE-MATRIX.md。页面齐全不代表功能全部完成；未执行的配置必须标注/禁用，JS 插件不能伪装成可执行技能。默认关闭自动回复/代理/自启，不覆盖旧数据；密钥 Windows DPAPI 加密，普通配置拒绝明文。外部 SnowLuma 自身运行时与无 Node 业务核心分开说明。只 push Rust+Slint，无新 Release；构建须包含素材许可证，并验证实际核心与 UI 生命周期。
 
 - 2026-10-09最新版本命名：新架构使用 RS（Rust+Slint）公开版本前缀，Milestone 为 RS0.1.0–RS1.0.0 十个系列；英文 Codename 和中文版本短语严格采用 docs/rs-version-series.json，规则见 docs/RS-VERSIONING.md。后续新架构 Release 标题/说明和 README 同步这套名称；补丁版本继承所属主/次系列。内部 Flutter/Cargo 版本保留数字 SemVer，不改变旧版标签与里程碑。创建 Milestone 不等于授权发布 Release，仍仅推送 Rust+Slint。
+
+- 2026-10-09最新：用户要求 0.1 干净包结束后创建 RS0.2.0 分支并自主恢复全部功能。README 的当前版本 SVG/Codename/版本说明放最上方，删除“RS 版本系列”展示标题；版本表留在规范文档。关闭默认最小化到任务栏，显式退出菜单可用。默认导航 SVG 与品牌/ICO 应作为固定资产随构建打包，打包已有已验证目录不重复编译。干净发行用 clean-release 编译特性、空白模型/人设和独立 RS0.1 数据目录，不包含开发机信息；安装器验证包内哈希。0.1 固定资源/安装包进度与完整业务恢复分开，后者在 0.2 验收。

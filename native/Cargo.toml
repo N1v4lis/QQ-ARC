@@ -9,6 +9,7 @@ default-run = "qqaf-native"
 
 [features]
 default = []
+clean-release = []
 slint-prototype = ["dep:slint", "dep:slint-build", "gpu"]
 gpu = ["dep:wgpu", "dep:pollster"]
 

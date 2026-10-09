@@ -1,4 +1,8 @@
-# QQ Agent ARCFØX · RS0.1.1 — First Light
+# QQ Agent ARCFØX · RS0.1.0 — First Light
+
+![First Light](docs/assets/rs-first-light.svg)
+
+**RS0.1.0 — First Light — 初光 · 故事的起点**
 
 Flutter 桌面界面与 Rust 业务核心的架构迁移实验。
 
@@ -47,32 +51,9 @@ Windows 密钥通过 DPAPI 加密后保存在独立账号库，账号之间隔�
 
 构建步骤见 [Flutter 说明](flutter/README.md) 与 [Rust 核心说明](native/README.md)。
 
-生成 RS0.1.0 干净安装包：`tools/build-clean-experimental.ps1`。该脚本使用空白默认配置、空白人设模板和独立数据目录，输出到 `E:\QQAF\RS0.1.0-First-Light`；不会打包开发机配置、账号或缓存。分发需包含完整 Flutter Release 目录和 Rust 核心，不能只复制单个 exe。开发包不等于已验收的安装器；干净系统部署、干净系统部署与性能目标仍需验证。
+生成 RS0.1.0 干净安装包：`tools/build-clean-experimental.ps1`。该脚本使用空白默认配置、空白人设模板和独立数据目录，输出位置由 `-OutputRoot` 指定；不会打包开发机配置、账号或缓存。分发需包含完整 Flutter Release 目录和 Rust 核心，不能只复制单个 exe。开发包不等于已验收的安装器；干净系统部署与性能目标仍需验证。
 
 本地检查包括 Rust 单元/模拟集成测试、Flutter 静态分析与控件测试。测试使用本机模拟服务，不发送实际 QQ 或模型请求；通过这些检查不代表全部旧版功能已迁移。
-
-## RS 版本系列
-
-![First Light](docs/assets/rs-first-light.svg)
-
-RS = Rust+Slint。英文 Codename 与中文短语会同步到后续 Release 和 README；同一系列的补丁版本沿用名称。当前 `RS0.1.x` 属于 **First Light — 初光 · 故事的起点**。
-
-| 版本系列 | Codename | 中文版本短语 |
-| --- | --- | --- |
-| [RS0.1.0](https://github.com/N1v4lis/QQARCFOX/milestone/6) | First Light | 初光 · 故事的起点 |
-| [RS0.2.0](https://github.com/N1v4lis/QQARCFOX/milestone/7) | Resonance | 共鸣 · 第一次理解 |
-| [RS0.3.0](https://github.com/N1v4lis/QQARCFOX/milestone/8) | Connection | 连接 · 跨越距离 |
-| [RS0.4.0](https://github.com/N1v4lis/QQARCFOX/milestone/9) | Echoes | 回响 · 留下的记忆 |
-| [RS0.5.0](https://github.com/N1v4lis/QQARCFOX/milestone/10) | Awakening | 觉醒 · 新的可能 |
-| [RS0.6.0](https://github.com/N1v4lis/QQARCFOX/milestone/11) | Starlight | 星光 · 黑夜中的指引 |
-| [RS0.7.0](https://github.com/N1v4lis/QQARCFOX/milestone/12) | Daybreak | 破晓 · 漫长黑夜的尽头 |
-| [RS0.8.0](https://github.com/N1v4lis/QQARCFOX/milestone/13) | Beyond | 彼岸 · 越过已知的边界 |
-| [RS0.9.0](https://github.com/N1v4lis/QQARCFOX/milestone/14) | Reverie | 绮梦 · 关于未来的想象 |
-| [RS1.0.0](https://github.com/N1v4lis/QQARCFOX/milestone/15) | Tomorrow | 明天 · 新旅程的开始 |
-
-命名规则与统一数据来源见 [RS 版本规范](docs/RS-VERSIONING.md)。
-
-**分支推进规则：** 当前 RS0.1.0 Milestone 完成并验收后，才创建下一个 RS 版本分支；未完成前不提前开下一版本分支。
 
 ## 计划与文档
 

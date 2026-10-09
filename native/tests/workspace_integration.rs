@@ -473,3 +473,26 @@ async fn custom_prices_are_scoped_to_endpoint_and_model() {
         (0., 0.)
     );
 }
+
+#[test]
+fn clean_release_has_empty_model_configuration_and_persona() {
+    if !cfg!(feature = "clean-release") {
+        return;
+    }
+    let cfg = workspace::defaults();
+    assert_eq!(cfg["providers"], json!([]));
+    for field in ["apiKey", "model", "provider", "baseUrl"] {
+        assert_eq!(cfg["api"][field], "");
+    }
+    for field in [
+        "botName",
+        "selfNickname",
+        "roleText",
+        "customRules",
+        "systemPromptOverride",
+    ] {
+        assert_eq!(cfg["persona"][field], "");
+    }
+    assert_eq!(cfg["personaByChat"], json!({}));
+    assert_eq!(cfg["runtime"]["enabled"], false);
+}

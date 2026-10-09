@@ -11,9 +11,15 @@ import 'desktop_pages.dart';
 import 'startup_animation.dart';
 
 class QqafApp extends StatefulWidget {
-  const QqafApp({super.key, required this.core, this.animateStartup = true});
+  const QqafApp({
+    super.key,
+    required this.core,
+    this.animateStartup = true,
+    this.onExit,
+  });
   final CoreApi core;
   final bool animateStartup;
+  final VoidCallback? onExit;
   @override
   State<QqafApp> createState() => _QqafAppState();
 }
@@ -227,6 +233,7 @@ class _QqafAppState extends State<QqafApp> {
       ),
       home: Builder(
         builder: (pageContext) => LegacyShell(
+          exit: widget.onExit,
           overlay: startupFinished
               ? null
               : ArcfoxStartup(

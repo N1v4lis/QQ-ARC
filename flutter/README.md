@@ -1,8 +1,12 @@
-# QQAF Flutter 桌面界面
+# QQAF Flutter 桌面界面 · RS0.1.0 — First Light
+
+![First Light](../docs/assets/rs-first-light.svg)
+
+**RS0.1.0 — First Light — 初光 · 故事的起点**
 
 Flutter UI + Rust 核心的 Windows 实验版，当前目标为 **RS0.1.0 — First Light — 初光 · 故事的起点**，内部版本 0.1.1。旧客户端归档为 0.4.5a。所有后续开发在 Rust+Slint 分支进行，不覆盖旧安装和数据。
 
-生成干净包：从仓库根目录执行 `tools/build-clean-experimental.ps1`，默认输出到 `E:\QQAF\RS0.1.0-First-Light`，关闭按钮默认最小化到任务栏。
+生成干净包：从仓库根目录执行 `tools/build-clean-experimental.ps1`，输出目录由 `-OutputRoot` 指定，关闭按钮默认最小化到任务栏。
 
 开发使用 Flutter 3.47.6 / Dart 3.13.5；Windows 构建需要 Visual Studio C++ 桌面组件及插件符号链接权限。用户运行无需工具链。
 

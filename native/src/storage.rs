@@ -380,7 +380,11 @@ pub fn default_data_root() -> PathBuf {
     if let Some(root) = std::env::var_os("LOCALAPPDATA") {
         return PathBuf::from(root)
             .join("QQARCFOX")
-            .join("native-prototype");
+            .join(if cfg!(feature = "clean-release") {
+                "RS0.1"
+            } else {
+                "native-prototype"
+            });
     }
     if let Some(root) = std::env::var_os("XDG_DATA_HOME") {
         return PathBuf::from(root).join("qqarcfox-native-prototype");

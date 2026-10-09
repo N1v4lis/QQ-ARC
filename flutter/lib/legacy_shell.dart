@@ -18,6 +18,20 @@ const primaryPages = <(int, String, IconData)>[
   (2, '设置', Icons.settings_outlined),
   (18, '社区与市场', Icons.storefront_outlined),
 ];
+const defaultIconFiles = <int, String>{
+  0: '0.svg',
+  1: '1.svg',
+  2: '2.svg',
+  4: '4.svg',
+  6: '6.svg',
+  7: '7.svg',
+  8: '8.svg',
+  9: '9.svg',
+  10: '10.svg',
+  11: '11.svg',
+  18: '18.svg',
+};
+
 const settingsPages = <(int, String)>[
   (2, 'API与搜索'),
   (4, '记忆'),
@@ -46,6 +60,7 @@ class LegacyShell extends StatefulWidget {
     required this.refresh,
     this.overlay,
     this.collapseChanged,
+    this.exit,
   });
   final int section;
   final ValueChanged<int> select;
@@ -55,6 +70,7 @@ class LegacyShell extends StatefulWidget {
   final VoidCallback refresh;
   final Widget? overlay;
   final ValueChanged<bool>? collapseChanged;
+  final VoidCallback? exit;
   @override
   State<LegacyShell> createState() => _LegacyShellState();
 }
@@ -95,6 +111,16 @@ class _LegacyShellState extends State<LegacyShell> {
                 if (icon != null) ...[
                   widget.minecraft
                       ? PixelIcon(pixelNav[id] ?? 'gear')
+                      : defaultIconFiles.containsKey(id)
+                      ? SvgPicture.asset(
+                          'assets/default-icons/${defaultIconFiles[id]}',
+                          width: 18,
+                          height: 18,
+                          colorFilter: ColorFilter.mode(
+                            selected ? accent : Theme.of(context).hintColor,
+                            BlendMode.srcIn,
+                          ),
+                        )
                       : Icon(
                           icon,
                           size: 18,
@@ -155,7 +181,7 @@ class _LegacyShellState extends State<LegacyShell> {
                   widget.minecraft
                       ? const PixelIcon('gear')
                       : SvgPicture.asset(
-                          'assets/startup/arcfox-logo.svg',
+                          'assets/brand/qqaf-icon.svg',
                           width: 24,
                           height: 24,
                         ),
@@ -181,6 +207,15 @@ class _LegacyShellState extends State<LegacyShell> {
               ),
             ),
             actions: [
+              if (widget.exit != null)
+                PopupMenuButton<String>(
+                  tooltip: '应用菜单',
+                  icon: const Icon(Icons.more_horiz, size: 16),
+                  onSelected: (_) => widget.exit!(),
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'exit', child: Text('退出 QQAF')),
+                  ],
+                ),
               const Center(
                 child: Text('0.1.1 · 实验版', style: TextStyle(fontSize: 11)),
               ),

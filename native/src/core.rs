@@ -186,7 +186,7 @@ async fn authenticate(State(core): State<Core>, request: Request, next: Next) ->
 }
 async fn status(State(core): State<Core>) -> Json<Value> {
     Json(
-        json!({"architecture":"Flutter + Rust","connected_accounts":core.connections.status().await,"winefox":{"enabled":false,"available":false,"implementation":"undecided: Slint or native 3D"}}),
+        json!({"architecture":"Flutter + Rust","clean_release":cfg!(feature = "clean-release"),"connected_accounts":core.connections.status().await,"winefox":{"enabled":false,"available":false,"implementation":"undecided: Slint or native 3D"}}),
     )
 }
 async fn accounts(State(core): State<Core>) -> Json<Value> {

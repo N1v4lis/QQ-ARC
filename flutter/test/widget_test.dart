@@ -136,4 +136,3 @@ void main() {
     expect(closeAction({'closeAction': 'taskbar'}), 'taskbar');
   });
 }
-

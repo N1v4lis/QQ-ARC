@@ -18,14 +18,17 @@ fn error(message: impl Into<String>) -> (axum::http::StatusCode, Json<Value>) {
         Json(json!({"error":message.into()})),
     )
 }
+#[cfg(feature = "clean-release")]
+const DEFAULT_CONFIG: &str = include_str!("../resources/fresh-config.json");
+#[cfg(not(feature = "clean-release"))]
+const DEFAULT_CONFIG: &str = include_str!("../resources/default-config.json");
+#[cfg(feature = "clean-release")]
+const BUILTIN_PERSONAS: &str = include_str!("../resources/fresh-personas.json");
+#[cfg(not(feature = "clean-release"))]
+const BUILTIN_PERSONAS: &str = include_str!("../resources/personas.json");
+
 pub fn defaults() -> Value {
-    let mut value: Value =
-        serde_json::from_str(if std::env::var_os("QQAF_CLEAN_DEFAULTS").is_some() {
-            include_str!("../resources/fresh-config.json")
-        } else {
-            include_str!("../resources/default-config.json")
-        })
-        .expect("embedded defaults");
+    let mut value: Value = serde_json::from_str(DEFAULT_CONFIG).expect("embedded defaults");
     value["runtime"] = json!({"enabled":false});
     value["personaHistory"] = json!({"days":1,"limit":5});
     value["proxy"] = json!({"enabled":false,"url":"http://127.0.0.1:7890"});
@@ -180,13 +183,7 @@ pub async fn resolve_selected(
     if let Some(overrides) = cfg["personaByChat"].get(chat) {
         merge(&mut persona, overrides.clone());
     }
-    let builtin: Value =
-        serde_json::from_str(if std::env::var_os("QQAF_CLEAN_DEFAULTS").is_some() {
-            include_str!("../resources/fresh-personas.json")
-        } else {
-            include_str!("../resources/personas.json")
-        })
-        .expect("builtin personas");
+    let builtin: Value = serde_json::from_str(BUILTIN_PERSONAS).expect("builtin personas");
     if persona
         .pointer("/templateRef/builtin")
         .and_then(Value::as_bool)
@@ -577,13 +574,7 @@ async fn save_persona(State(core): State<Core>, Json(s): Json<PersonaSave>) -> R
     Ok(Json(json!({"ok":true})))
 }
 async fn templates(State(core): State<Core>) -> ResultJson {
-    let builtin: Value =
-        serde_json::from_str(if std::env::var_os("QQAF_CLEAN_DEFAULTS").is_some() {
-            include_str!("../resources/fresh-personas.json")
-        } else {
-            include_str!("../resources/personas.json")
-        })
-        .unwrap();
+    let builtin: Value = serde_json::from_str(BUILTIN_PERSONAS).expect("builtin personas");
     let custom = core
         .databases
         .call("local-settings".into(), |s| {

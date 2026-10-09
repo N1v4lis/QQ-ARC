@@ -3,7 +3,8 @@ param(
     [string]$Mode = 'test',
     [string]$CargoHome,
     [string]$RustupHome,
-    [string]$CompilerBin
+    [string]$CompilerBin,
+    [switch]$CleanRelease
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,7 +28,7 @@ try {
     switch ($Mode) {
         'test' { cargo test --locked }
         'build' { cargo build --locked }
-        'release' { cargo build --release --locked }
+        'release' { if ($CleanRelease) { cargo build --release --locked --features clean-release } else { cargo build --release --locked } }
         'run' { cargo run --locked }
         'probe' { cargo run --locked --features slint-prototype --bin slint-prototype -- --probe-gpu }
         'smoke' { cargo run --locked --features slint-prototype --bin slint-prototype -- --smoke-test }

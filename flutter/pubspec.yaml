@@ -55,6 +55,8 @@ flutter:
   assets:
     - assets/startup/
     - assets/model-logos/
+    - assets/brand/
+    - assets/default-icons/
     - assets/mc/bg/
     - assets/mc/icons/
     - assets/mc/sfx/

@@ -3,7 +3,8 @@ param(
     [string]$CargoHome,
     [string]$RustupHome,
     [string]$CompilerBin,
-    [switch]$SkipCoreBuild
+    [switch]$SkipCoreBuild,
+    [switch]$CleanRelease
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path $PSScriptRoot -Parent
@@ -14,7 +15,7 @@ try {
     $flutterExe = [IO.Path]::GetFullPath($FlutterBinary)
     & "$PSScriptRoot/sync-flutter-assets.ps1"
     if (-not $SkipCoreBuild) {
-        & "$PSScriptRoot/run-native.ps1" -Mode release -CargoHome $CargoHome -RustupHome $RustupHome -CompilerBin $CompilerBin
+        & "$PSScriptRoot/run-native.ps1" -Mode release -CargoHome $CargoHome -RustupHome $RustupHome -CompilerBin $CompilerBin -CleanRelease:$CleanRelease
     }
     $coreExe = Join-Path $repoRoot 'native/target/release/qqaf-native.exe'
     if (-not (Test-Path -LiteralPath $coreExe)) { throw 'Rust release executable missing.' }
@@ -58,7 +59,7 @@ try {
         Get-ChildItem -LiteralPath $assetDir -File | Where-Object { $_.Name -match '(?i)license|source|notice|OFL' } |
             ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $licenses }
     }
-    $manifest = @{version=$version;branch='Rust+Slint';commit=(git rev-parse HEAD);experimental=$true}
+    $manifest = @{version=$version;branch='Rust+Slint';commit=(git rev-parse HEAD);experimental=$true;cleanRelease=[bool]$CleanRelease;workingTreeDirty=[bool](git status --porcelain --untracked-files=no)}
     $manifest | ConvertTo-Json | Set-Content -Encoding utf8 -LiteralPath (Join-Path $bundle 'build-info.json')
     $zip = $bundle + '.zip'
     Compress-Archive -Path (Join-Path $bundle '*') -DestinationPath $zip

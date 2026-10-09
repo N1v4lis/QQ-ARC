@@ -3486,3 +3486,8 @@ README 改为实验版本说明，保留 WARNING/⚠️，明确 Flutter＋Rust�
 ## 2026-10-09 · RS 版本系列与代号
 
 按用户版本表创建 RS0.1.0 至 RS1.0.0 的十个 GitHub Milestone，英文 Codename 与中文版本短语存入 rs-version-series.json，并在 README 显示直达链接。RS 表示 Rust+Slint 的系列代号，当前实际 Flutter UI + Rust 方案不变。后续新架构 Release 标题和 README 沿用固定词句，补丁继承主/次系列；当前对应 RS0.1.1 — First Light — 初光 · 故事的起点。内部 SemVer 仍为数字，Milestone 创建不自动发布 Release。
+
+
+## 2026-10-09 · 固定资源与可复现干净安装
+
+确认已有构建包含 11 个导航 SVG 和品牌 SVG，ICO 16–256px 已进入 Windows 资源。分开构建与打包：BundlePath 复用已有二进制，逐文件哈希、核心 clean-release 编译标记和空白初始状态检查后输出。移除依赖 runtime clean flag 的行为，空白核心只嵌入发行默认值。保持旧库不动，发行首启使用新数据目录。默认关闭到任务栏并提供明确退出菜单。增加当前用户安装器，校验 ZIP 负载，空目录安装，保留用户数据的卸载入口。README SVG 和版本描述前置；按用户新指令 0.1 包完成后新建 RS0.2.0 分支恢复业务，不把安装包完成当作全部业务验收。

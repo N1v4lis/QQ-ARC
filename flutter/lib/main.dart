@@ -109,5 +109,6 @@ class _CoreLifecycleState extends State<CoreLifecycle> with WindowListener {
   }
 
   @override
-  Widget build(BuildContext context) => QqafApp(core: widget.core);
+  Widget build(BuildContext context) =>
+      QqafApp(core: widget.core, onExit: () => unawaited(terminate()));
 }

@@ -36,3 +36,8 @@ node tools/rs-version-meta.mjs RS0.9.2
 ```
 
 输出含 `publicVersion`、`codename`、`phrase`、`releaseTitle`、`milestoneNumber`。未来发布时采用这些字段，更新 README 当前版本并沿用此表。命名工具仅生成元数据，不创建 Release、推送标签或改变发布权限。
+
+
+## 版本分支与展示顺序
+
+用户 2026-10-09 更新：0.1 与后续版本的 README 顶部依次展示当前版本 SVG 卡、英文 Codename 和中文版本说明，不再增加“RS 版本系列”标题。完成当前阶段构建与验收后创建下一版本分支；用户已明确要求在 0.1 安装包完成后建立 `RS0.2.0` 并继续恢复所有功能。
