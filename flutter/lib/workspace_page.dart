@@ -1876,6 +1876,8 @@ class _WorkspacePageState extends State<WorkspacePage> {
     children: [
       const Divider(height: 40),
       heading('SnowLuma 管理', 'QQAF 安装包未内置组件；可在此获取官方完整包并安装。'),
+      _snowStatusPanel(),
+      const SizedBox(height: 16),
       SnowDownloadPanel(
         core: widget.core,
         account: widget.account!,
@@ -1949,6 +1951,90 @@ class _WorkspacePageState extends State<WorkspacePage> {
         ],
       ),
     ],
+  );
+
+  Widget _snowStatusPanel() {
+    final available = data['available'];
+    final listening = data['listening'] == true;
+    final directory = '${data['directory'] ?? ''}';
+    final webuiUrl = '${data['webuiUrl'] ?? ''}';
+    final logText = '${data['log'] ?? data['message'] ?? ''}';
+
+    Color dotColor;
+    String statusLabel;
+    if (available == false) {
+      dotColor = Colors.red;
+      statusLabel = '未找到组件';
+    } else if (listening) {
+      dotColor = Colors.green;
+      statusLabel = 'WebUI 已就绪';
+    } else if (available == true) {
+      dotColor = Colors.orange;
+      statusLabel = '已找到，未启动';
+    } else {
+      dotColor = Colors.grey;
+      statusLabel = '未检测';
+    }
+
+    return SurfacePanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                statusLabel,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          if (directory.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _snowField('目录', directory),
+          ],
+          if (webuiUrl.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            _snowField('地址', webuiUrl),
+          ],
+          if (logText.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _SnowLogSection(logText: logText),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _snowField(String label, String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 2),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 40,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).hintColor,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SelectableText(value, style: const TextStyle(fontSize: 12)),
+        ),
+      ],
+    ),
   );
   Widget desktopPage() {
     if (widget.page == 'personalize') {
@@ -2535,6 +2621,60 @@ class _WorkspacePageState extends State<WorkspacePage> {
           setAt(path, v);
         }
       },
+    );
+  }
+}
+
+class _SnowLogSection extends StatefulWidget {
+  const _SnowLogSection({required this.logText});
+  final String logText;
+  @override
+  State<_SnowLogSection> createState() => _SnowLogSectionState();
+}
+
+class _SnowLogSectionState extends State<_SnowLogSection> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = widget.logText.split('\n');
+    final preview = lines.take(3).join('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Row(
+            children: [
+              Icon(
+                _expanded ? Icons.expand_less : Icons.expand_more,
+                size: 16,
+                color: Theme.of(context).hintColor,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '日志',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).hintColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: SelectableText(
+            _expanded ? widget.logText : preview,
+            style: const TextStyle(fontSize: 11, fontFamily: 'Consolas'),
+          ),
+        ),
+      ],
     );
   }
 }

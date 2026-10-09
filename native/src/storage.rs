@@ -50,6 +50,7 @@ impl AccountStore {
              CREATE INDEX IF NOT EXISTS memory_documents_chat ON memory_documents(chat,id);
              PRAGMA user_version=1;",
         )?;
+        let _ = connection.execute("ALTER TABLE usage ADD COLUMN chat TEXT NOT NULL DEFAULT ''", []);
         Ok(Self {
             connection,
             cached_workspace: None,
@@ -321,13 +322,14 @@ impl AccountStore {
     ) -> rusqlite::Result<()> {
         let tx = self.connection.transaction()?;
         tx.execute(
-            "INSERT INTO usage(model,input,output,cost,timestamp) VALUES(?1,?2,?3,?4,?5)",
+            "INSERT INTO usage(model,input,output,cost,timestamp,chat) VALUES(?1,?2,?3,?4,?5,?6)",
             params![
                 model,
                 completion.input_tokens,
                 completion.output_tokens,
                 completion.estimated_cost,
-                timestamp
+                timestamp,
+                chat
             ],
         )?;
         for (sender, text) in [("user", prompt), ("assistant", completion.text.as_str())] {
@@ -481,7 +483,9 @@ impl AccountStore {
         let models:Vec<serde_json::Value>=query.query_map([since],|r|Ok(serde_json::json!({"model":r.get::<_,String>(0)?,"calls":r.get::<_,i64>(1)?,"input":r.get::<_,i64>(2)?,"output":r.get::<_,i64>(3)?,"cost":r.get::<_,f64>(4)?})))?.collect::<Result<_,_>>()?;
         let mut query=self.connection.prepare("SELECT strftime('%Y-%m-%d',timestamp,'unixepoch','localtime'),COUNT(*),SUM(input),SUM(output),SUM(cost) FROM usage WHERE timestamp>=?1 GROUP BY 1 ORDER BY 1 DESC")?;
         let days:Vec<serde_json::Value>=query.query_map([since],|r|Ok(serde_json::json!({"date":r.get::<_,String>(0)?,"calls":r.get::<_,i64>(1)?,"input":r.get::<_,i64>(2)?,"output":r.get::<_,i64>(3)?,"cost":r.get::<_,f64>(4)?})))?.collect::<Result<_,_>>()?;
-        Ok(serde_json::json!({"models":models,"days":days}))
+        let mut query=self.connection.prepare("SELECT u.chat,COUNT(*),SUM(u.input),SUM(u.output),SUM(u.cost) FROM usage u WHERE u.timestamp>=?1 AND u.chat!='' GROUP BY u.chat ORDER BY SUM(u.cost) DESC LIMIT 50")?;
+        let chats:Vec<serde_json::Value>=query.query_map([since],|r|Ok(serde_json::json!({"chat":r.get::<_,String>(0)?,"calls":r.get::<_,i64>(1)?,"input":r.get::<_,i64>(2)?,"output":r.get::<_,i64>(3)?,"cost":r.get::<_,f64>(4)?})))?.collect::<Result<_,_>>()?;
+        Ok(serde_json::json!({"models":models,"days":days,"chats":chats}))
     }
 }
 

@@ -429,13 +429,16 @@ async fn shutdown(State(core): State<Core>) -> Json<Value> {
 }
 
 async fn stats(State(core): State<Core>, Query(account): Query<Account>) -> ResultJson {
-    Ok(Json(
-        core.databases
-            .call(account.account, |s| {
-                s.stats().map_err(|_| "读取用量失败".into())
-            })
-            .await?,
-    ))
+    let accounts = core.databases.accounts().len();
+    let mut result = core.databases
+        .call(account.account, |s| {
+            s.stats().map_err(|_| "读取用量失败".into())
+        })
+        .await?;
+    if let Some(obj) = result.as_object_mut() {
+        obj.insert("accounts".to_string(), json!(accounts));
+    }
+    Ok(Json(result))
 }
 async fn read_memory(State(core): State<Core>, Query(page): Query<Page>) -> ResultJson {
     Ok(Json(json!(

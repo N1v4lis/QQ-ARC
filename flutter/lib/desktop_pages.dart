@@ -201,7 +201,7 @@ class _UsageWorkspaceState extends State<UsageWorkspace> {
                       horizontalMargin: 12,
                       columnSpacing: 24,
                       columns: [
-                        DataColumn(label: Text(field == 'date' ? '日期' : '模型')),
+                        DataColumn(label: Text(field == 'date' ? '日期' : field == 'chat' ? '会话' : '模型')),
                         const DataColumn(label: Text('调用'), numeric: true),
                         const DataColumn(
                           label: Text('输入 Token'),
@@ -470,7 +470,10 @@ class _UsageWorkspaceState extends State<UsageWorkspace> {
         if (!widget.dashboard) ...[
           table('按天', asRows(usage['days']), 'date'),
           table('按模型', models, 'model'),
-        ] else
+          table('按会话', asRows(usage['chats']), 'chat'),
+        ] else ...[
+          _dashboardStatusCards(),
+          const SizedBox(height: 20),
           SurfacePanel(
             child: Row(
               children: [
@@ -484,6 +487,82 @@ class _UsageWorkspaceState extends State<UsageWorkspace> {
               ],
             ),
           ),
+          const SizedBox(height: 20),
+          _runningTasksPanel(),
+        ],
+      ],
+    );
+  }
+
+  Widget _dashboardStatusCards() {
+    final now = DateTime.now();
+    final todayStart =
+        DateTime(now.year, now.month, now.day).millisecondsSinceEpoch ~/ 1000;
+    final runningCount = runs.where((r) => r['status'] == 'running').length;
+    final todayCount =
+        runs.where((r) => (r['started'] as num? ?? 0) >= todayStart).length;
+    final accountCount = stats['accounts'] as num? ?? 0;
+    return LayoutBuilder(
+      builder: (context, box) {
+        final count = box.maxWidth >= 760 ? 3 : 1;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final entry in <(String, String, String, int)>[
+              ('当前运行中', '$runningCount', '状态为 running 的任务', 1),
+              ('今日会话', '$todayCount', '今天启动的运行记录', 1),
+              ('账号数', '$accountCount', '已配置账号', 5),
+            ])
+              SizedBox(
+                width: (box.maxWidth - (count - 1) * 12) / count,
+                child: card(entry.$1, entry.$2, entry.$3, entry.$4),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _runningTasksPanel() {
+    final running = runs.where((r) => r['status'] == 'running').toList();
+    if (running.isEmpty) return const SizedBox.shrink();
+    final shown = running.take(3).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('正在运行的任务', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        SurfacePanel(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              for (final r in shown)
+                ListTile(
+                  dense: true,
+                  leading: const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  title: Text(
+                    '${r['chat']}',
+                    style: const TextStyle(fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    stamp(r['started']),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+              if (running.length > 3)
+                TextButton(
+                  onPressed: () => widget.navigate(1),
+                  child: Text('查看更多（共 ${running.length} 条）'),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
