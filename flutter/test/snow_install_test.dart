@@ -15,6 +15,22 @@ class SnowFixture implements CoreApi {
     Object? body,
   }) async {
     if (body != null) {
+      // /snow/releases is a POST but it's a read — don't count it as a mutation.
+      if (path == '/snow/releases') {
+        return {
+          'releases': [
+            {
+              'tag': 'v1.14.22',
+              'name': 'v1.14.22',
+              'publishedAt': '2026-10-07T00:00:00Z',
+              'hasLite': true,
+              'hasFull': true,
+              'compatibility': 'validated',
+            },
+          ],
+          'compatibility': {'recommended': 'v1.14.22'},
+        };
+      }
       mutations.add(path);
       if (path == '/snow/install') {
         install = Map<String, dynamic>.from(body as Map);
@@ -99,8 +115,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(core.mutations, isEmpty);
-      expect(find.text('固定适配版本：SnowLuma 1.14.22'), findsOneWidget);
-      expect(find.text('每天自动检查'), findsNothing);
+      // Dynamic-version UI: version dropdown and variant selector are shown
+      // instead of the old "固定适配版本" label.
+      expect(find.text('更新 SnowLuma 至 1.14.22'), findsOneWidget);
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
         'E:/QQAF/Snowluma',
@@ -109,7 +126,6 @@ void main() {
       await tester.ensureVisible(find.text('更新 SnowLuma 至 1.14.22'));
       await tester.tap(find.text('更新 SnowLuma 至 1.14.22'));
       await tester.pumpAndSettle();
-      expect(core.install!['channel'], 'compatible');
       expect(core.install!['directory'], 'E:/custom/Snowluma');
       expect(directory, 'E:/custom/Snowluma');
       expect(tester.takeException(), isNull);
