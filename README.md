@@ -6,6 +6,7 @@
 > **当前为 Public Beta / Release Candidate，请先使用测试账号体验。**
 >
 > - 本次仅支持全新安装；历史版本覆盖升级与原地重装已安全阻止。请勿覆盖已有部署或手动搬入旧数据库。
+> - **安装版已知问题**：部分用户遇到 `tiktoken_bg.wasm` 解压写入失败，根因尚未定位；遇到此问题请改用下方便携版。
 > - **Beta 测试说明**：本轮重点关注**记忆功能**，包括向量检索、混合检索及跨聊天空间共享。请重点检查记忆能否正确写入与检索、来源是否准确、共享范围是否符合设置，以及遗忘或撤销共享后是否仍被引用。图片、视频、QQ 原生表情、收藏表情、商城表情及第三方插件也在测试与完善中。遇到记忆遗漏、错误关联、共享异常，或媒体与插件的识别、发送、管理和兼容性问题，请通过 Issues 提交复现步骤及相关版本信息，并隐去私人记忆、聊天内容和密钥。
 > - **Token 消耗优化：开发中（WIP）**，暂不承诺固定消耗或节省比例。
 > - 由于 QQ 对第三方接入存在管控，请使用小号挂载 Bot，避免影响日常使用的主账号。
@@ -62,6 +63,16 @@ QQ ARC 是基于 [QQ Agent](https://github.com/Kondius/qq-agent) 开发的 Windo
 
 ## 开始使用
 
+### 选择安装方式
+
+| 安装方式 | 下载与使用 |
+| --- | --- |
+| 安装版 EXE | [下载安装包](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARCFOX-0.4.6-win-x64-Setup.exe)，双击安装；仅支持全新安装 |
+| 便携版 ZIP | [下载便携版](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARC-0.4.6-win-x64-Portable.zip)，完整解压后运行 `QQ ARC/QQARC.exe` |
+| 干净源码 ZIP | [下载当前版本源码](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARC-0.4.6-Source.zip)，供阅读与开发，不含用户数据与运行依赖 |
+
+详细说明与 [SHA256 校验清单](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/SHA256SUMS.txt) 见 [v0.4.6 RC Release](https://github.com/N1v4lis/QQ-ARC/releases/tag/v0.4.6)。安装版与便携版均包含 SnowLuma 1.14.22，首次启动从零配置。
+
 1. 获取 QQ ARC 0.4.6 RC 的 Windows 安装包，安装到新的独立目录。
 2. 启动 `QQARC.exe`，按照首次引导完成 QQ 与 SnowLuma 连接及密码修改。
 3. 配置人设、记忆和模型 API，明确选择允许回复的聊天范围。
@@ -75,5 +86,5 @@ QQ ARC 是基于 [QQ Agent](https://github.com/Kondius/qq-agent) 开发的 Windo
 
 - 原项目：[Kondius/qq-agent](https://github.com/Kondius/qq-agent)
 - QQ 连接支持：[SnowLuma](https://github.com/SnowLuma/SnowLuma)，独立第三方项目，遵循其自身许可。
-- 项目源码：因尝试架构迁移，暂不公开。
+- 项目源码：[当前版本的干净源码归档](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARC-0.4.6-Source.zip) 已提供；架构迁移中的开发工作树暂不公开。
 - [主题制作文档（Wiki）](https://github.com/N1v4lis/QQ-ARC/wiki/Theme-Authoring)
