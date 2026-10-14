@@ -8,6 +8,21 @@ body:
       value: |
         本轮重点收集记忆功能反馈。请用“账号 A/B”“群聊 A/B”和虚构内容描述，避免公开真实 QQ 号、私人记忆或完整数据库。
         若疑似跨账号／跨空间泄露，先关闭相关共享或暂停 Bot，只提供脱敏现象；不要为了复现继续暴露真实信息。
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 问题严重程度（初步判断）
+      description: "按实际影响选择，不确定也可以提交。最终严重程度由维护者核实并添加标签；严重程度与修复优先级分开判断。"
+      options:
+        - "不确定 — 由维护者判断"
+        - "Blocker（阻断）— 无法安装、启动或完成核心流程，且没有可用替代方案"
+        - "Critical（严重）— 数据丢失、隐私泄露或安全边界失效"
+        - "Major（重大）— 主要功能失效，但其他部分仍可使用"
+        - "Minor（次要）— 部分功能异常，有可行替代方式"
+        - "Trivial（轻微）— 外观、文案或其他非关键问题"
+      default: 0
+    validations:
+      required: true
   - type: input
     id: version
     attributes:
