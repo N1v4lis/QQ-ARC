@@ -67,11 +67,10 @@ QQ ARC 是基于 [QQ Agent](https://github.com/Kondius/qq-agent) 开发的 Windo
 
 | 安装方式 | 下载与使用 |
 | --- | --- |
-| 安装版 EXE | [下载安装包](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARCFOX-0.4.6-win-x64-Setup.exe)，双击安装；仅支持全新安装 |
-| 便携版 ZIP | [下载便携版](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARC-0.4.6-win-x64-Portable.zip)，完整解压后运行 `QQ ARC/QQARC.exe` |
-| 干净源码 ZIP | [下载当前版本源码](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARC-0.4.6-Source.zip)，供阅读与开发，不含用户数据与运行依赖 |
+| Windows Installer (EXE) | [下载安装包](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARCFOX-0.4.6-win-x64-Setup.exe)，双击安装；仅支持全新安装 |
+| Portable (ZIP) | [下载便携版](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARC-0.4.6-win-x64-Portable.zip)，完整解压后运行 `QQ ARC/QQARC.exe` |
 
-详细说明与 [SHA256 校验清单](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/SHA256SUMS.txt) 见 [v0.4.6 RC Release](https://github.com/N1v4lis/QQ-ARC/releases/tag/v0.4.6)。安装版与便携版均包含 SnowLuma 1.14.22，首次启动从零配置。
+详细说明与 SHA256 校验值见 [v0.4.6 RC Release](https://github.com/N1v4lis/QQ-ARC/releases/tag/v0.4.6)。安装版与便携版均包含 SnowLuma 1.14.22，首次启动从零配置。
 
 1. 获取 QQ ARC 0.4.6 RC 的 Windows 安装包，安装到新的独立目录。
 2. 启动 `QQARC.exe`，按照首次引导完成 QQ 与 SnowLuma 连接及密码修改。
@@ -86,5 +85,5 @@ QQ ARC 是基于 [QQ Agent](https://github.com/Kondius/qq-agent) 开发的 Windo
 
 - 原项目：[Kondius/qq-agent](https://github.com/Kondius/qq-agent)
 - QQ 连接支持：[SnowLuma](https://github.com/SnowLuma/SnowLuma)，独立第三方项目，遵循其自身许可。
-- 项目源码：[当前版本的干净源码归档](https://github.com/N1v4lis/QQ-ARC/releases/download/v0.4.6/QQARC-0.4.6-Source.zip) 已提供；架构迁移中的开发工作树暂不公开。
+- 项目源码：因尝试架构迁移，暂不公开。
 - [主题制作文档（Wiki）](https://github.com/N1v4lis/QQ-ARC/wiki/Theme-Authoring)
