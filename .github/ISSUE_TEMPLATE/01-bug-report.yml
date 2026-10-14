@@ -1,0 +1,67 @@
+name: "🐛 问题反馈"
+description: "功能异常、界面问题或配置未生效。安装与记忆问题请优先使用对应分类。"
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢参与 QQ ARC Beta 测试。请勿上传 API Key、Token、密码、完整账号数据或私人聊天记录；日志和截图请先脱敏。
+  - type: input
+    id: version
+    attributes:
+      label: QQ ARC 版本
+      placeholder: "例如：0.4.6 RC"
+    validations:
+      required: true
+  - type: dropdown
+    id: distribution
+    attributes:
+      label: 使用方式
+      options:
+        - Windows Installer (EXE)
+        - Portable (ZIP)
+        - 开发环境
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows 版本
+      placeholder: "例如：Windows 11 24H2 / Windows 10 22H2"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 操作步骤
+      description: "从哪个页面开始、点击了什么、在什么条件下出现？"
+      placeholder: |
+        1. 打开……
+        2. 点击……
+        3. 出现……
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: "说明是否每次出现，以及是否影响继续使用。"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 报错、日志与截图（选填）
+      description: "可拖入已脱敏截图，粘贴相关报错。不要上传整个数据目录。"
+  - type: textarea
+    id: context
+    attributes:
+      label: 补充信息（选填）
+      description: "涉及 SnowLuma、模型供应商或插件时，请附相关版本／模型名称，不要附密钥。"

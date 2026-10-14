@@ -1,0 +1,67 @@
+name: "🧠 记忆功能 Beta 反馈"
+description: "记忆写入、检索、错误关联、跨空间共享、遗忘或撤权异常。"
+title: "[Memory] "
+labels: ["memory"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        本轮重点收集记忆功能反馈。请用“账号 A/B”“群聊 A/B”和虚构内容描述，避免公开真实 QQ 号、私人记忆或完整数据库。
+        若疑似跨账号／跨空间泄露，先关闭相关共享或暂停 Bot，只提供脱敏现象；不要为了复现继续暴露真实信息。
+  - type: input
+    id: version
+    attributes:
+      label: QQ ARC 版本
+      placeholder: "例如：0.4.6 RC"
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: 问题类型
+      multiple: true
+      options:
+        - 记忆未写入或重启后丢失
+        - 检索遗漏或不相关
+        - 来源错误或人设关联错误
+        - 跨聊天空间共享异常
+        - 疑似跨 QQ 账号串用
+        - 遗忘、删除或撤销共享后仍被引用
+        - 关闭记忆后行为异常
+        - 响应速度或 Token 消耗
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 账号、聊天空间与共享设置
+      description: "说明涉及几个账号／群聊／私聊、人设绑定及共享规则。用 A/B 代替真实身份。"
+      placeholder: "账号 A 的群聊 A 允许向群聊 B 共享指定记忆；账号 B 不参与共享。"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 操作步骤与脱敏示例
+      description: "说明写入、检索、切换、遗忘或撤权的先后顺序；可提供虚构测试文本。"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: "指出是否引用了不应可见的记忆，或是否在重启后发生。"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 脱敏日志与截图（选填）
+      description: "只附相关片段，不上传数据库、密钥或原始私人聊天记录。"

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "🎨 主题制作 Wiki"
+    url: https://github.com/N1v4lis/QQ-ARC/wiki/Theme-Authoring
+    about: "查看主题包格式、最小示例和资源制作规范。"

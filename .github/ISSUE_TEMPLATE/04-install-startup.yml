@@ -1,0 +1,72 @@
+name: "📦 安装／启动问题"
+description: "安装失败、解压报错、无法启动、OOBE 或 SnowLuma 连接受阻。"
+title: "[Install] "
+labels: ["installation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请保留完整报错。当前 Beta 仅支持全新安装，不要覆盖现役部署或删除原有数据来尝试解决问题。
+        路径中的个人用户名可替换为 <用户名>，但请保留盘符、层级和特殊字符信息。
+  - type: input
+    id: version
+    attributes:
+      label: QQ ARC 版本与包文件名
+      placeholder: "例如：0.4.6 RC，QQARCFOX-0.4.6-win-x64-Setup.exe"
+    validations:
+      required: true
+  - type: dropdown
+    id: distribution
+    attributes:
+      label: 安装方式
+      options:
+        - Windows Installer (EXE)
+        - Portable (ZIP)
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows 版本
+      placeholder: "例如：Windows 11 24H2 / Windows 10 22H2"
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: 出问题的阶段
+      options:
+        - 下载或打开安装包
+        - 安装器解压／写入文件
+        - 便携 ZIP 解压
+        - 安装完成后启动
+        - OOBE 引导
+        - QQ／SnowLuma 连接
+        - 退出或卸载
+        - 其他
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: 安装或解压目录
+      placeholder: '例如：D:\Apps\QQ ARC'
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 操作步骤与完整报错
+      description: "包括报错文件名、退出码或截图，以及是否每次发生。"
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 磁盘与临时目录（选填）
+      description: "写入／解压报错时，请提供 C 盘及目标盘可用空间、%TEMP% 路径和对应盘的可用空间；这些信息用于排查，不代表已经确定原因。"
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 相关日志与补充信息（选填）
+      description: "可提供安装详情、下载来源、文件 SHA256、SnowLuma 版本及安全软件拦截记录。先脱敏，不要上传配置或账号数据。"

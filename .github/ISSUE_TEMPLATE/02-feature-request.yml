@@ -1,0 +1,44 @@
+name: "💡 功能建议"
+description: "提出新功能、交互改进或使用体验建议。"
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: "请先搜索已有 Issue，避免重复建议。建议描述具体使用场景，不必先设计技术实现。"
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 希望解决什么问题？
+      description: "你在什么场景下遇到不便？目前如何处理？"
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 希望增加或改进什么？
+      description: "描述你希望用户如何操作，以及最终看到的效果。"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 相关功能
+      options:
+        - 界面与主题
+        - 首次引导与 QQ 连接
+        - 模型、人设与聊天
+        - 记忆与共享
+        - 多账号与数据
+        - 表情与媒体
+        - 定时提醒
+        - 插件
+        - 安装与更新
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案或参考（选填）
+      description: "可附截图或链接；请勿公开私人聊天内容。"
