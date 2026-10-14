@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="220" viewBox="0 0 800 220" role="img" aria-labelledby="release-title release-description">
+  <title id="release-title">ARCFOX v0.4.6 RC — FIRST LIGHT</title>
+  <desc id="release-description">Release candidate card. The next chapter is almost here. 临界点 · 下一篇章，即将开启。</desc>
+  <rect width="800" height="220" rx="22" fill="#15171D"/>
+  <text x="36" y="45" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#AAB6C8">ARCFOX v0.4.6 RC</text>
+  <text x="764" y="45" text-anchor="end" font-family="Arial, sans-serif" font-size="13" font-weight="600" letter-spacing="1" fill="#8CB8FF">RELEASE CANDIDATE</text>
+  <line x1="36" y1="64" x2="764" y2="64" stroke="#394251"/>
+  <text x="36" y="121" font-family="Arial, sans-serif" font-size="42" font-weight="700" letter-spacing="2" fill="#F2F6FF">FIRST LIGHT</text>
+  <text x="36" y="158" font-family="Arial, sans-serif" font-size="18" fill="#D4DCE8">The next chapter is almost here.</text>
+  <text x="36" y="190" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#91A1B7">临界点 · 下一篇章，即将开启。</text>
+</svg>
