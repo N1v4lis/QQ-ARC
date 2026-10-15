@@ -81,7 +81,8 @@ struct Account {
 struct Request {
     account: String,
     #[serde(default)]
-    channel: String,
+    #[allow(dead_code)]
+    channel: Option<String>,
     #[serde(default)]
     expected_tag: Option<String>,
     /// Explicit version tag, e.g. "v1.14.22". Falls back to manifest recommended.
